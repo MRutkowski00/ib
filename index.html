@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>INSPEKTOR BUDOWY</title>
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#121212">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tailwind CSS & Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0a0a0a;
+      --text-main: #f5f5f5;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      overscroll-behavior-y: none;
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+    #viewport, #rohe-viewport, #takeoff-viewport {
+      cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+    }
+    .panning { cursor: grabbing !important; }
+
+    .pin-marker {
+      position: absolute;
+      width: 32px; height: 32px;
+      border-radius: 50% 50% 50% 0;
+      transform: translate(-50%, -100%) rotate(-45deg);
+      background: #e11d48;
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 50; transition: transform 0.1s;
+    }
+    .pin-marker span {
+      transform: rotate(45deg); color: #ffffff; font-weight: 900; font-size: 13px;
+    }
+
+    .a4-page {
+      background: #ffffff; color: #000000;
+      width: 210mm; min-height: 296mm;
+      margin: 0 auto 30px auto;
+      padding: 15mm 20mm;
+      box-sizing: border-box; position: relative;
+      display: flex; flex-direction: column;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    @page { size: A4; margin: 0; }
+    
+    @media print {
+      html, body { width: 210mm; height: 100%; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
+      .no-print, header, nav, #structure-subbar, #floating-tools-container, .modal-backdrop { display: none !important; }
+      .print-panel { display: block !important; position: static !important; overflow: visible !important; height: auto !important; }
+      .a4-page { 
+        margin: 0 !important; box-shadow: none !important; border: none !important; 
+        page-break-after: always; break-inside: avoid; min-height: 297mm !important;
+      }
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <header class="no-print bg-[#121212]/95 backdrop-blur-md border-b border-[#222] px-3 sm:px-5 py-2.5 flex items-center justify-between z-40 select-none">
+    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+      <button onclick="handleAppBack()" class="w-8 h-8 shrink-0 rounded-lg bg-[#202020] hover:bg-[#2b2b2b] border border-[#333] flex items-center justify-center text-white active:scale-90" title="Cofnij">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      </button>
+      <button onclick="switchView('dashboard')" class="w-8 h-8 shrink-0 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-blue-600/30">
+        🏗️
+      </button>
+      <div class="truncate">
+        <div class="font-bold text-sm leading-tight text-white truncate">INSPEKTOR BUDOWY</div>
+        <div class="text-[10px] sm:text-[11px] text-gray-400 font-medium truncate flex items-center gap-1.5">
+          <span id="header-active-info" class="cursor-pointer hover:text-white truncate" onclick="promptRenameProject()">Projekt: Wczytywanie...</span>
+          <button onclick="promptRenameProject()" class="text-gray-500 hover:text-blue-400 shrink-0"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pasek zakładek nawigacyjnych (Desktop) -->
+    <nav class="hidden xl:flex bg-[#1c1c1c] p-1 rounded-xl border border-[#2a2a2a] gap-1 text-xs font-semibold">
+      <button onclick="switchView('dashboard')" id="nav-btn-dashboard" class="nav-tab px-3 py-1.5 rounded-lg text-white bg-[#2d2d2d] shadow-sm flex items-center gap-1.5"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Pulpit</button>
+      <button onclick="switchView('plan')" id="nav-btn-plan" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="map" class="w-3.5 h-3.5"></i> Rzut & Usterki (<span id="nav-count-pins">0</span>)</button>
+      <button onclick="switchView('todo')" id="nav-btn-todo" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> To-Do</button>
+      <button onclick="switchView('calendar')" id="nav-btn-calendar" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Kalendarz</button>
+      <button onclick="switchView('norms')" id="nav-btn-norms" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Normy</button>
+      <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Raport RJ-V</button>
+    </nav>
+
+    <!-- Zarządzanie projektem -->
+    <div class="flex items-center gap-2 shrink-0">
+      <div id="sync-status" class="hidden md:flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-1 rounded-full">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span>Zapisano</span>
+      </div>
+      <div class="relative">
+        <button onclick="toggleElement('project-menu-dropdown')" class="bg-[#1e1e1e] hover:bg-[#282828] text-gray-200 border border-[#333] px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
+          <i data-lucide="folder" class="w-3.5 h-3.5"></i><span class="hidden sm:inline">Opcje</span><i data-lucide="chevron-down" class="w-3 h-3 text-gray-400"></i>
+        </button>
+        <div id="project-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 sm:w-56 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl py-1.5 z-50">
+          <button onclick="exportProjectFile()" class="w-full text-left px-3.5 py-2 text-xs text-gray-200 hover:bg-[#252525] flex items-center gap-2">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-blue-400"></i> Zapisz plik (.insp)
+          </button>
+          <label class="w-full text-left px-3.5 py-2 text-xs text-gray-200 hover:bg-[#252525] flex items-center gap-2 cursor-pointer">
+            <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-400"></i> Wczytaj plik (.insp)
+            <input type="file" accept=".insp,.json" class="hidden" onchange="importProjectFile(event)">
+          </label>
+          <div class="border-t border-[#2d2d2d] my-1"></div>
+          <button onclick="createNewEmptyProject()" class="w-full text-left px-3.5 py-2 text-xs text-amber-400 hover:bg-[#252525] flex items-center gap-2">
+            <i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Nowy (Wyczyść)
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="structure-subbar" class="hidden no-print bg-[#0d0d0d] border-b border-[#1c1c1c] px-3 py-1.5 flex flex-col md:flex-row md:items-center justify-between gap-1.5 select-none shrink-0 overflow-x-auto">
+    <div class="flex items-center gap-2 overflow-x-auto">
+      <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider shrink-0 flex items-center gap-1"><i data-lucide="building" class="w-3 h-3 text-blue-400"></i> Budynek:</span>
+      <div id="buildings-chips-list" class="flex items-center gap-1.5 shrink-0"></div>
+      <button onclick="promptNewBuilding()" class="bg-[#181818] border border-[#2e2e2e] text-gray-300 text-[11px] px-2 py-0.5 rounded flex items-center gap-1 shrink-0"><i data-lucide="plus" class="w-3 h-3"></i> Budynek</button>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto">
+      <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider shrink-0 flex items-center gap-1"><i data-lucide="layers" class="w-3 h-3 text-amber-400"></i> Piętro:</span>
+      <div id="floors-chips-list" class="flex items-center gap-1.5 shrink-0"></div>
+      <button onclick="promptNewFloor()" class="bg-[#181818] border border-[#2e2e2e] text-gray-300 text-[11px] px-2 py-0.5 rounded flex items-center gap-1 shrink-0"><i data-lucide="plus" class="w-3 h-3"></i> Piętro</button>
+    </div>
+  </div>
+
+  <main class="flex-1 relative overflow-hidden flex flex-col">
+
+    <div id="view-dashboard" class="view-panel w-full h-full overflow-y-auto p-4 sm:p-8 bg-[#0a0a0a]">
+      <div class="max-w-5xl mx-auto space-y-6">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-black text-white flex items-center gap-2">🏗️ Pulpit Inżyniera</h1>
+          <p class="text-xs text-gray-400 mt-1">Dedykowane moduły inżynierskie z obsługą PWA i IndexedDB.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 pb-20">
+          <div onclick="switchView('plan')" class="bg-[#141414] border border-[#262626] hover:border-blue-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="map" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Rzut & Usterki Robocze</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Podkłady z gestami zoomu i mapowanie usterek.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Pinezki:</span><span class="font-bold text-rose-400" id="dash-count-pins">0</span></div>
+          </div>
+          <div onclick="switchView('todo')" class="bg-[#141414] border border-[#262626] hover:border-emerald-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="check-square" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Zadania To-Do</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Zamówienia materiałów, telefony i sprawy pilne.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Aktywne:</span><span class="font-bold text-emerald-400" id="dash-count-todos">0</span></div>
+          </div>
+          <div onclick="switchView('calendar')" class="bg-[#141414] border border-[#262626] hover:border-amber-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-amber-600/20 text-amber-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="calendar" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Harmonogram prac</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Kalendarz robót, opóźnień i zdarzeń.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Wpisy:</span><span class="font-bold text-amber-400" id="dash-count-logs">0</span></div>
+          </div>
+          <div onclick="switchView('norms')" class="bg-[#141414] border border-[#262626] hover:border-purple-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Normy & Odbiory</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Checklista z oznaczaniem "Nice to have".</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Katalog:</span><span class="font-bold text-purple-400" id="dash-count-norms">0</span></div>
+          </div>
+          <div onclick="switchView('report-rohe')" class="bg-[#141414] border border-[#262626] hover:border-rose-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-rose-600/20 text-rose-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Raport Jakościowy RJ-V</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Wykaz wad, dedykowany rzut i zdjęcia do wydruku.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Wzorzec:</span><span class="text-rose-400 font-bold">ROHE</span></div>
+          </div>
+          <div onclick="openTakeoffModal()" class="bg-[#141414] border border-[#262626] hover:border-emerald-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="ruler" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Księga Obmiarów</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Mierzenie linii (mb) i powierzchni (m2) na rzutach.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Karty:</span><span class="font-bold text-emerald-400" id="dash-count-takeoffs">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-plan" class="view-panel w-full h-full relative hidden">
+      <div class="absolute top-2 left-2 z-20 flex gap-2">
+        <button onclick="clearCurrentFloorPins()" class="bg-[#111]/90 backdrop-blur border border-[#333] text-rose-400 text-[10px] px-2.5 py-1.5 rounded-lg shadow-lg hidden md:flex items-center gap-1">
+          <i data-lucide="trash-2" class="w-3 h-3"></i> Wyczyść pinezki piętra
+        </button>
+      </div>
+      
+      <div class="absolute right-3 top-3 flex flex-col gap-2 z-30">
+        <input type="file" id="plan-file-input" accept="image/*,application/pdf,.pdf" class="hidden" onchange="handlePlanUploadUniversal(event)">
+        <button onclick="document.getElementById('plan-file-input').click()" class="w-10 h-10 rounded-xl bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-xl"><i data-lucide="upload" class="w-4 h-4"></i></button>
+        <button onclick="openQuickDefectReport()" class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-xl mt-2"><i data-lucide="printer" class="w-4 h-4"></i></button>
+        <div class="w-10 h-[1px] bg-[#333] my-1"></div>
+        <button onclick="fitBlueprintToView()" class="w-10 h-10 rounded-xl bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-lg"><i data-lucide="focus" class="w-4 h-4"></i></button>
+        <button onclick="zoomManual(1.3, viewport)" class="w-10 h-10 rounded-xl bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-lg"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+        <button onclick="zoomManual(0.7, viewport)" class="w-10 h-10 rounded-xl bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-lg"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+      </div>
+
+      <div id="viewport" class="w-full h-full relative overflow-hidden bg-[#070707]">
+        <div id="plan-wrapper" class="absolute origin-top-left will-change-transform">
+          <img id="plan-img" class="block pointer-events-none select-none max-w-none" />
+          <div id="pins-layer" class="absolute inset-0 pointer-events-auto"></div>
+        </div>
+        <div id="plan-empty-state" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10 pointer-events-none">
+          <div class="border border-dashed border-[#333] p-6 rounded-2xl max-w-xs flex flex-col items-center gap-3 bg-[#111]/80 pointer-events-auto">
+            <i data-lucide="file-up" class="w-8 h-8 text-blue-400"></i>
+            <p class="text-xs text-gray-400">Brak podkładu roboczego. Wgraj plik PDF lub obraz.</p>
+            <button onclick="document.getElementById('plan-file-input').click()" class="bg-blue-600 text-white text-xs px-4 py-2 rounded-xl">Wybierz plik</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="absolute bottom-3 left-3 pointer-events-none bg-[#111]/85 backdrop-blur px-3 py-1.5 rounded-lg border border-[#222] text-[10px] text-gray-300 flex items-center gap-1.5 max-w-[70%]">
+        <i data-lucide="info" class="w-3 h-3 text-blue-400 shrink-0"></i><span>Kliknij w podkład, aby zgłosić usterkę. Pinch-to-zoom aktywny.</span>
+      </div>
+    </div>
+
+    <div id="view-todo" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#0c0c0c]">
+      <div class="max-w-4xl mx-auto space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
+          <h2 class="text-lg font-black text-white flex items-center gap-2"><i data-lucide="check-square" class="w-5 h-5 text-emerald-500"></i> Zadania & Notatnik</h2>
+          <div class="flex items-center gap-1.5 bg-[#171717] p-1 rounded-xl border border-[#262626] overflow-x-auto shrink-0">
+            <button onclick="setTodoFilter('all')" id="todofilter-all" class="text-[11px] px-2.5 py-1 rounded-lg bg-blue-600 text-white">Wszystkie</button>
+            <button onclick="setTodoFilter('order')" id="todofilter-order" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">📦 Zamówienia</button>
+            <button onclick="setTodoFilter('call')" id="todofilter-call" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">📞 Kontakt</button>
+            <button onclick="setTodoFilter('inspection')" id="todofilter-inspection" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">🔍 Odbiór</button>
+            <button onclick="setTodoFilter('general')" id="todofilter-general" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">📝 Ogólne</button>
+          </div>
+        </div>
+
+        <div class="bg-[#141414] border border-[#262626] rounded-xl p-3 shadow-md">
+          <div class="flex items-center gap-2 mb-2">
+            <input type="text" id="new-todo-title" placeholder="Treść zadania..." class="w-full bg-transparent text-sm text-white border-b border-[#333] focus:border-emerald-500 pb-1 outline-none">
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <select id="new-todo-cat" class="bg-[#1e1e1e] border border-[#333] text-gray-300 rounded px-2 py-1 outline-none">
+              <option value="order">📦 Zamówienie</option><option value="call">📞 Kontakt</option><option value="inspection">🔍 Odbiór</option><option value="general">📝 Ogólne</option>
+            </select>
+            <input type="date" id="new-todo-due" class="bg-[#1e1e1e] border border-[#333] text-gray-300 rounded px-2 py-1 outline-none">
+            <input type="text" id="new-todo-who" placeholder="Podwykonawca..." class="bg-[#1e1e1e] border border-[#333] text-gray-300 rounded px-2 py-1 w-28 sm:w-40 outline-none">
+            <label class="flex items-center gap-1 cursor-pointer text-gray-300"><input type="checkbox" id="new-todo-urgent" class="rounded bg-[#222] border-[#333] text-rose-600 focus:ring-0"> Pilne</label>
+            <button onclick="addQuickTodo()" class="ml-auto bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded shadow-md">Dodaj</button>
+          </div>
+        </div>
+        <div id="todos-container" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <div id="view-calendar" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#0c0c0c]">
+      <div class="max-w-4xl mx-auto space-y-4">
+        <div class="flex items-center justify-between border-b border-[#222] pb-3">
+          <h2 class="text-lg font-black text-white flex items-center gap-2"><i data-lucide="calendar-days" class="w-5 h-5 text-amber-500"></i> Harmonogram</h2>
+          <button onclick="toggleElement('modal-schedule-entry')" class="bg-amber-600 hover:bg-amber-500 text-white text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-md">
+            <i data-lucide="plus" class="w-3 h-3"></i> Dodaj zdarzenie
+          </button>
+        </div>
+        <div class="flex gap-2 text-[11px] font-bold pb-2 overflow-x-auto border-b border-[#222]">
+          <button onclick="setCalendarSubTab('schedule')" id="subtab-btn-schedule" class="px-3 py-1 rounded bg-[#222] text-amber-400 border border-[#333] shrink-0">Zdarzenia & Opóźnienia (<span id="count-schedule-items">0</span>)</button>
+          <button onclick="setCalendarSubTab('audit')" id="subtab-btn-audit" class="px-3 py-1 rounded text-gray-400 hover:text-white shrink-0">Logi systemowe apki (<span id="count-audit-entries">0</span>)</button>
+        </div>
+        <div id="calendar-content-container" class="space-y-2.5"></div>
+      </div>
+    </div>
+
+    <div id="view-norms" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#0c0c0c]">
+      <div class="max-w-4xl mx-auto space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
+          <h2 class="text-lg font-black text-white flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-purple-500"></i> Baza Norm</h2>
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <i data-lucide="search" class="w-3 h-3 absolute left-2 top-2 text-gray-500"></i>
+              <input type="text" id="norm-search" placeholder="Szukaj normy..." onkeyup="filterNorms(this.value)" class="bg-[#1a1a1a] border border-[#333] rounded-lg pl-6 pr-2 py-1 text-xs text-white outline-none w-32 sm:w-48">
+            </div>
+            <button onclick="toggleElement('modal-add-norm-category')" class="bg-purple-600 hover:bg-purple-500 text-white text-[11px] px-2.5 py-1 rounded-lg flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Norma</button>
+          </div>
+        </div>
+        <div class="flex gap-2 overflow-x-auto pb-1 text-xs font-semibold" id="norms-tabs-bar"></div>
+        <div id="norm-detail-card" class="bg-[#141414] border border-[#282828] rounded-2xl p-4 space-y-3"></div>
+      </div>
+    </div>
+
+    <div id="view-report-rohe" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#070707] print-panel">
+      <div class="max-w-[920px] mx-auto space-y-4">
+        
+        <div class="no-print bg-[#131313] border border-[#282828] rounded-2xl p-4 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-2">
+            <h3 class="text-sm font-bold text-white flex items-center gap-1.5"><i data-lucide="file-check" class="w-4 h-4 text-rose-500"></i> Generator RJ-V</h3>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <button onclick="toggleElement('rohe-blueprint-manager')" class="bg-[#1e1e1e] border border-[#333] text-gray-200 text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3 text-amber-400"></i> Rzut PDF</button>
+              <button onclick="window.print()" class="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-md"><i data-lucide="printer" class="w-3 h-3"></i> Drukuj A4</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+            <div><label class="text-gray-400 uppercase">Nr dok:</label><input type="text" id="rohe-meta-docnum" value="RJ-B-004-2026" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+            <div><label class="text-gray-400 uppercase">Data:</label><input type="text" id="rohe-meta-date" value="09.10.2026" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+            <div><label class="text-gray-400 uppercase">Sporządził:</label><input type="text" id="rohe-meta-author" value="Inżynier Budowy" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+            <div><label class="text-gray-400 uppercase">Wykonawca:</label><input type="text" id="rohe-meta-contractor" value="KAEMDE Sp. z o.o." oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+            <div class="col-span-2"><label class="text-gray-400 uppercase">Projekt:</label><input type="text" id="rohe-meta-project" value="Inwestycja Mieszkaniowa" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+            <div class="col-span-2"><label class="text-gray-400 uppercase">Dotyczy:</label><input type="text" id="rohe-meta-subject" value="Usterki z odbioru" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+          </div>
+          
+          <div class="border-t border-[#222] pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <div class="flex items-center justify-between mb-1 text-[10px]">
+                <span class="text-gray-400 font-bold uppercase">Baza uwag w raporcie:</span>
+              </div>
+              <div id="rohe-defect-types-list" class="space-y-1 max-h-32 overflow-y-auto text-[10px]"></div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1 text-[10px]">
+                <span class="text-gray-400 font-bold uppercase">Załączniki zdjęciowe (Widoczne w PDF):</span>
+              </div>
+              <div id="rohe-photos-selection-list" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Menedżer Rzutu RJ-V -->
+        <div id="rohe-blueprint-manager" class="no-print hidden bg-[#141414] border border-[#282828] rounded-xl p-3 relative shadow-2xl">
+          <div class="flex items-center justify-between border-b border-[#222] pb-2 mb-2">
+            <span class="text-xs font-bold text-white"><i data-lucide="map" class="inline w-3 h-3 text-rose-500 mr-1"></i> Rzut dla RJ-V</span>
+            <div class="flex items-center gap-1.5">
+              <input type="file" id="rohe-plan-file-input" accept="image/*,application/pdf,.pdf" class="hidden" onchange="handleRohePlanUploadUniversal(event)">
+              <button onclick="document.getElementById('rohe-plan-file-input').click()" class="bg-[#222] text-gray-200 text-[10px] px-2 py-1 rounded border border-[#333]">Wgraj podkład</button>
+              <button onclick="clearRohePins()" class="text-rose-400 text-[10px] px-2 py-1 rounded border border-rose-950 bg-rose-950/30">Wyczyść pinezki</button>
+              <button onclick="toggleElement('rohe-blueprint-manager')" class="text-gray-500 p-1"><i data-lucide="x" class="w-3 h-3"></i></button>
+            </div>
+          </div>
+          <div class="absolute right-4 top-14 flex flex-col gap-1.5 z-30">
+            <button onclick="fitRoheBlueprintToView()" class="w-8 h-8 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="focus" class="w-3 h-3"></i></button>
+            <button onclick="zoomManual(1.3, roheViewport)" class="w-8 h-8 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="zoom-in" class="w-3 h-3"></i></button>
+            <button onclick="zoomManual(0.7, roheViewport)" class="w-8 h-8 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="zoom-out" class="w-3 h-3"></i></button>
+          </div>
+          <div id="rohe-viewport" class="w-full h-[45vh] sm:h-80 relative bg-[#070707] rounded-lg overflow-hidden border border-[#222]">
+            <div id="rohe-plan-wrapper" class="absolute origin-top-left will-change-transform">
+              <img id="rohe-plan-img" class="block pointer-events-none select-none max-w-none" />
+              <div id="rohe-pins-layer" class="absolute inset-0 pointer-events-auto"></div>
+            </div>
+            <div id="rohe-empty-state" class="absolute inset-0 flex items-center justify-center text-[10px] text-gray-500 text-center p-4 pointer-events-none">Brak podkładu RJ-V.</div>
+          </div>
+        </div>
+
+        <div id="rohe-report-container" class="space-y-4"></div>
+      </div>
+    </div>
+
+    <div id="view-quick-report" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-6 pb-28 bg-[#070707] print-panel">
+      <div class="max-w-[920px] mx-auto space-y-4">
+        <div class="no-print bg-[#131313] border border-[#282828] rounded-xl p-3 flex justify-between shadow-xl">
+          <div>
+            <h3 class="text-sm font-bold text-white"><i data-lucide="file-check" class="inline w-3 h-3 text-cyan-400 mr-1"></i> Szybki Raport Roboczy (PW)</h3>
+            <p class="text-[10px] text-gray-400">1 problem = 1 strona A4</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="switchView('plan')" class="px-2 py-1 rounded-lg border border-[#333] text-gray-300 text-[11px]">Zamknij</button>
+            <button onclick="window.print()" class="bg-cyan-600 text-white text-[11px] px-3 py-1 rounded-lg shadow"><i data-lucide="printer" class="inline w-3 h-3 mr-1"></i> Drukuj</button>
+          </div>
+        </div>
+        <div id="quick-report-container" class="space-y-4"></div>
+      </div>
+    </div>
+
+    <div id="view-takeoff-print" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-6 pb-28 bg-[#070707] print-panel">
+      <div class="max-w-[920px] mx-auto space-y-4">
+        <div class="no-print bg-[#131313] border border-[#282828] rounded-xl p-3 flex justify-between shadow-xl">
+          <h3 class="text-sm font-bold text-white"><i data-lucide="ruler" class="inline w-3 h-3 text-emerald-400 mr-1"></i> Karta Obmiaru (Wydruk)</h3>
+          <div class="flex gap-2">
+            <button onclick="openTakeoffModal()" class="px-2 py-1 rounded-lg border border-[#333] text-gray-300 text-[11px]">Zamknij</button>
+            <button onclick="window.print()" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded-lg shadow"><i data-lucide="printer" class="inline w-3 h-3 mr-1"></i> Drukuj</button>
+          </div>
+        </div>
+        <div id="takeoff-print-container" class="space-y-4"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="floating-tools-container" class="no-print fixed bottom-4 sm:bottom-6 left-3 sm:left-5 z-40 flex flex-col-reverse items-start gap-2.5 select-none">
+    <button onclick="toggleQuickToolsMenu()" class="w-12 h-12 p-3 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-900/50 flex items-center justify-center active:scale-95 group">
+      <i data-lucide="wrench" class="w-5 h-5 group-hover:rotate-45 transition-transform duration-300"></i>
+    </button>
+    <div id="quick-tools-menu" class="hidden flex flex-col gap-2">
+      <button onclick="openCalculatorModal(); toggleQuickToolsMenu();" class="flex items-center gap-2.5 bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] px-3 py-2 rounded-xl shadow-lg">
+        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center"><i data-lucide="calculator" class="w-3.5 h-3.5"></i></div>
+        <div class="text-left text-gray-200"><div class="text-[11px] font-bold">Kalkulator</div></div>
+      </button>
+      <button onclick="openTakeoffModal(); toggleQuickToolsMenu();" class="flex items-center gap-2.5 bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] px-3 py-2 rounded-xl shadow-lg">
+        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center"><i data-lucide="ruler" class="w-3.5 h-3.5"></i></div>
+        <div class="text-left text-gray-200"><div class="text-[11px] font-bold">Obmiary & Pola</div></div>
+      </button>
+    </div>
+  </div>
+
+  <div id="modal-pin" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-sm flex flex-col shadow-2xl">
+      <div class="px-4 py-3 border-b border-[#242424] flex justify-between items-center">
+        <div class="flex items-center gap-2"><div id="modal-pin-badge" class="w-6 h-6 rounded-full bg-rose-600 text-white font-black text-[11px] flex items-center justify-center">1</div><h3 class="text-xs font-bold text-white">Usterka</h3></div>
+        <button onclick="closePinModal()" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="p-4 space-y-3 text-[11px]">
+        <textarea id="modal-pin-desc" rows="2" placeholder="Treść wady..." class="w-full bg-[#1c1c1c] border border-[#333] rounded-lg p-2 text-white outline-none focus:border-blue-500"></textarea>
+        <input type="text" id="modal-pin-loc" placeholder="Lokalizacja / Osie..." class="w-full bg-[#1c1c1c] border border-[#333] rounded-lg px-2 py-1.5 text-white outline-none focus:border-blue-500">
+        <div>
+          <label class="block text-gray-400 font-bold mb-1">Zdjęcie:</label>
+          <input type="file" id="modal-pin-photo-input" accept="image/*" class="w-full text-gray-400" onchange="handlePinPhotoUpload(event)">
+          <div id="modal-photo-preview-box" class="mt-2 hidden"><img id="modal-photo-preview-img" class="w-full h-32 object-cover rounded border border-[#333]" /></div>
+        </div>
+      </div>
+      <div class="px-4 py-2 border-t border-[#242424] bg-[#111] flex justify-between items-center rounded-b-2xl">
+        <button id="modal-pin-btn-delete" onclick="deleteCurrentPin()" class="text-red-400 text-[10px]"><i data-lucide="trash-2" class="inline w-3 h-3"></i> Usuń</button>
+        <button onclick="savePinFromModal()" class="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-semibold text-[11px]">Zapisz</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-rohe-pin" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-sm flex flex-col shadow-2xl">
+      <div class="px-4 py-3 border-b border-[#242424] flex justify-between items-center">
+        <h3 class="text-xs font-bold text-white"><i data-lucide="map-pin" class="inline w-3 h-3 text-rose-500"></i> Wada w RJ-V</h3>
+        <button onclick="closeRohePinModal()" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="p-4 space-y-3 text-[11px]">
+        <div class="flex gap-4 border-b border-[#222] pb-2">
+          <label class="flex items-center gap-1 cursor-pointer text-gray-300"><input type="radio" name="r-mode" id="rohe-mode-existing" checked onchange="toggleRoheDefectMode()" class="text-rose-600"> Baza</label>
+          <label class="flex items-center gap-1 cursor-pointer text-gray-300"><input type="radio" name="r-mode" id="rohe-mode-new" onchange="toggleRoheDefectMode()" class="text-rose-600"> Nowa</label>
+        </div>
+        <select id="modal-rohe-pin-select-defect" class="w-full bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white"></select>
+        <input type="text" id="modal-rohe-pin-new-text" placeholder="Treść nowej wady..." class="hidden w-full bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white">
+        <input type="text" id="modal-rohe-pin-loc" placeholder="Podpis zdjęcia (np. Parter, P.01)..." class="w-full bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white">
+        <div>
+          <label class="block text-gray-400 font-bold mb-1">Załącznik:</label>
+          <input type="file" id="modal-rohe-photo-input" accept="image/*" class="w-full text-gray-400" onchange="handleRohePinPhotoUpload(event)">
+          <div id="modal-rohe-photo-preview-box" class="mt-2 hidden"><img id="modal-rohe-photo-preview-img" class="w-full h-32 object-cover rounded border border-[#333]" /></div>
+        </div>
+      </div>
+      <div class="px-4 py-2 border-t border-[#242424] bg-[#111] flex justify-end rounded-b-2xl">
+        <button onclick="saveRohePinFromModal()" class="px-4 py-1.5 rounded bg-rose-600 text-white font-semibold text-[11px]">Wstaw do raportu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-schedule-entry" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-xs shadow-2xl">
+      <div class="px-4 py-3 border-b border-[#222] flex justify-between"><h3 class="text-xs font-bold text-white">Dodaj zdarzenie / opóźnienie</h3><button onclick="toggleElement('modal-schedule-entry')" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+      <div class="p-4 space-y-3 text-[11px]">
+        <input type="date" id="sch-date" class="w-full bg-[#1b1b1b] border border-[#333] rounded p-1.5 text-white outline-none">
+        <input type="text" id="sch-title" placeholder="Wydarzenie (np. Brak dostawy okien)..." class="w-full bg-[#1b1b1b] border border-[#333] rounded p-1.5 text-white outline-none">
+        <select id="sch-status" class="w-full bg-[#1b1b1b] border border-[#333] rounded p-1.5 text-white outline-none">
+          <option value="planned">Niebieski - Standard/Zaplanowane</option>
+          <option value="delayed">Czerwony - Problem/Opóźnienie</option>
+          <option value="done">Zielony - Zrealizowane/Rozwiązane</option>
+        </select>
+        <textarea id="sch-note" rows="2" placeholder="Dodatkowe uwagi (opcjonalne)..." class="w-full bg-[#1b1b1b] border border-[#333] rounded p-1.5 text-white outline-none"></textarea>
+      </div>
+      <div class="px-4 py-2 border-t border-[#222] bg-[#111] text-right rounded-b-2xl">
+        <button onclick="saveScheduleEntry()" class="px-3 py-1.5 rounded bg-amber-600 text-white font-semibold text-[11px]">Zapisz</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-add-norm-category" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-sm shadow-2xl">
+      <div class="px-4 py-3 border-b border-[#222] flex justify-between"><h3 class="text-xs font-bold text-white">Nowy wpis normowy</h3><button onclick="toggleElement('modal-add-norm-category')" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+      <div class="p-4 space-y-3 text-[11px]">
+        <input type="text" id="new-norm-short" placeholder="Krótka nazwa (Zakładka)" class="w-full bg-[#1b1b1b] border border-[#333] rounded p-1.5 text-white outline-none">
+        <input type="text" id="new-norm-title" placeholder="Pełen tytuł ITB/Normy" class="w-full bg-[#1b1b1b] border border-[#333] rounded p-1.5 text-white outline-none">
+        <textarea id="new-norm-guidelines" rows="3" placeholder="Tolerancje (każda w nowej linii)" class="w-full bg-[#1b1b1b] border border-[#333] rounded p-1.5 text-white outline-none"></textarea>
+      </div>
+      <div class="px-4 py-2 border-t border-[#222] bg-[#111] text-right rounded-b-2xl">
+        <button onclick="saveNewNormCategory()" class="px-3 py-1.5 rounded bg-purple-600 text-white font-semibold text-[11px]">Dodaj bazę</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-calculator" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+    <div class="bg-[#151515] border border-[#2b2b2b] rounded-2xl w-full max-w-sm flex flex-col max-h-[85vh] shadow-2xl overflow-hidden">
+      <div class="px-3 py-2 bg-[#111] border-b border-[#242424] flex justify-between items-center shrink-0">
+        <span class="text-[11px] font-bold text-white"><i data-lucide="calculator" class="inline w-3 h-3 text-amber-500 mr-1"></i> Kalkulator Budowlany</span>
+        <button onclick="toggleElement('modal-calculator')" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="flex border-b border-[#242424] text-[10px] font-semibold overflow-x-auto shrink-0 bg-[#161616]">
+        <button onclick="setCalcTab('standard')" id="calctab-standard" class="px-2.5 py-1.5 text-amber-400 border-b-2 border-amber-500 bg-[#1b1b1b]">Standard</button>
+        <button onclick="setCalcTab('concrete')" id="calctab-concrete" class="px-2.5 py-1.5 text-gray-400">Beton m3</button>
+        <button onclick="setCalcTab('steel')" id="calctab-steel" class="px-2.5 py-1.5 text-gray-400">Stal kg</button>
+        <button onclick="setCalcTab('slopes')" id="calctab-slopes" class="px-2.5 py-1.5 text-gray-400">Spadki %</button>
+        <button onclick="setCalcTab('masonry')" id="calctab-masonry" class="px-2.5 py-1.5 text-gray-400">Bloczki</button>
+      </div>
+      <div class="overflow-y-auto p-3 flex-1 text-[11px]">
+        <!-- Kalkulator Standardowy -->
+        <div id="calc-panel-standard" class="space-y-2">
+          <div class="bg-[#0b0b0b] border border-[#262626] rounded-lg p-2 text-right">
+            <div id="calc-history" class="text-[9px] text-gray-500 h-3 font-mono overflow-hidden"></div>
+            <div id="calc-display" class="text-xl font-black text-white font-mono mt-1 overflow-x-auto">0</div>
+          </div>
+          <div class="grid grid-cols-4 gap-1.5 font-semibold select-none text-xs">
+            <button onclick="calcPress('C')" class="p-2.5 bg-[#242424] text-red-400 rounded">C</button>
+            <button onclick="calcPress('(')" class="p-2.5 bg-[#202020] text-gray-300 rounded">(</button>
+            <button onclick="calcPress(')')" class="p-2.5 bg-[#202020] text-gray-300 rounded">)</button>
+            <button onclick="calcPress('/')" class="p-2.5 bg-amber-600/30 text-amber-400 rounded">÷</button>
+            <button onclick="calcPress('7')" class="p-2.5 bg-[#1a1a1a] text-white rounded">7</button>
+            <button onclick="calcPress('8')" class="p-2.5 bg-[#1a1a1a] text-white rounded">8</button>
+            <button onclick="calcPress('9')" class="p-2.5 bg-[#1a1a1a] text-white rounded">9</button>
+            <button onclick="calcPress('*')" class="p-2.5 bg-amber-600/30 text-amber-400 rounded">×</button>
+            <button onclick="calcPress('4')" class="p-2.5 bg-[#1a1a1a] text-white rounded">4</button>
+            <button onclick="calcPress('5')" class="p-2.5 bg-[#1a1a1a] text-white rounded">5</button>
+            <button onclick="calcPress('6')" class="p-2.5 bg-[#1a1a1a] text-white rounded">6</button>
+            <button onclick="calcPress('-')" class="p-2.5 bg-amber-600/30 text-amber-400 rounded">−</button>
+            <button onclick="calcPress('1')" class="p-2.5 bg-[#1a1a1a] text-white rounded">1</button>
+            <button onclick="calcPress('2')" class="p-2.5 bg-[#1a1a1a] text-white rounded">2</button>
+            <button onclick="calcPress('3')" class="p-2.5 bg-[#1a1a1a] text-white rounded">3</button>
+            <button onclick="calcPress('+')" class="p-2.5 bg-amber-600/30 text-amber-400 rounded">+</button>
+            <button onclick="calcPress('0')" class="p-2.5 bg-[#1a1a1a] text-white rounded col-span-2">0</button>
+            <button onclick="calcPress('.')" class="p-2.5 bg-[#1a1a1a] text-white rounded">.</button>
+            <button onclick="calcPress('=')" class="p-2.5 bg-amber-500 text-black font-black rounded">=</button>
+          </div>
+          <div class="mt-2 border-t border-[#222] pt-1 text-[9px] text-gray-500">
+            <div class="flex justify-between items-center mb-1"><span>Historia taśmy:</span><button onclick="clearCalcList('standard')" class="text-rose-400">Wyczyść</button></div>
+            <div id="calc-tape-list" class="space-y-0.5 max-h-20 overflow-y-auto"></div>
+          </div>
+        </div>
+        <!-- Inne zakładki kalkulatora (Zoptymalizowane) -->
+        <div id="calc-panel-concrete" class="hidden space-y-2">
+          <div class="grid grid-cols-4 gap-1">
+            <input type="text" id="calc-c-n" placeholder="Nazwa" class="col-span-4 bg-[#111] border border-[#333] p-1 rounded text-white">
+            <input type="number" id="calc-c-l" placeholder="Dł. m" class="bg-[#111] border border-[#333] p-1 rounded text-white">
+            <input type="number" id="calc-c-w" placeholder="Sz. m" class="bg-[#111] border border-[#333] p-1 rounded text-white">
+            <input type="number" id="calc-c-h" placeholder="Gr. m" class="bg-[#111] border border-[#333] p-1 rounded text-white">
+            <input type="number" id="calc-c-q" placeholder="Szt." value="1" class="bg-[#111] border border-[#333] p-1 rounded text-white">
+          </div>
+          <button onclick="addConcreteItem()" class="w-full py-1.5 bg-gray-800 text-white rounded border border-[#333]">+ Dodaj element</button>
+          <div id="calc-c-list" class="space-y-1 my-2 max-h-24 overflow-y-auto border-y border-[#222] py-1"></div>
+          <div class="text-right text-[12px] font-bold text-amber-400">SUMA (z 5%): <span id="calc-c-sum">0.00</span> m³</div>
+          <button onclick="clearCalcList('concrete')" class="w-full py-1 mt-1 text-gray-500 border border-[#333] rounded">Wyczyść listę</button>
+        </div>
+        
+        <div id="calc-panel-steel" class="hidden space-y-2">
+          <div class="grid grid-cols-3 gap-1">
+            <select id="calc-s-fi" class="bg-[#111] border border-[#333] p-1 rounded text-white">
+              <option value="0.222">fi 6</option><option value="0.395">fi 8</option><option value="0.617">fi 10</option>
+              <option value="0.888" selected>fi 12</option><option value="1.578">fi 16</option><option value="2.466">fi 20</option>
+            </select>
+            <input type="number" id="calc-s-l" placeholder="Dł. m" class="bg-[#111] border border-[#333] p-1 rounded text-white">
+            <input type="number" id="calc-s-q" placeholder="Szt." value="1" class="bg-[#111] border border-[#333] p-1 rounded text-white">
+          </div>
+          <button onclick="addSteelItem()" class="w-full py-1.5 bg-gray-800 text-white rounded border border-[#333]">+ Dodaj pręty</button>
+          <div id="calc-s-list" class="space-y-1 my-2 max-h-24 overflow-y-auto border-y border-[#222] py-1"></div>
+          <div class="text-right text-[12px] font-bold text-blue-400">SUMA: <span id="calc-s-sum">0.00</span> kg</div>
+          <button onclick="clearCalcList('steel')" class="w-full py-1 mt-1 text-gray-500 border border-[#333] rounded">Wyczyść listę</button>
+        </div>
+
+        <div id="calc-panel-slopes" class="hidden space-y-2">
+          <p class="text-[9px] text-gray-400 mb-2">Podaj zmierzoną długość odcinka i różnicę poziomów (wysokość) na tym odcinku, aby poznać spadek.</p>
+          <div class="grid grid-cols-2 gap-1">
+            <input type="number" id="calc-sl-l" placeholder="Długość (m)" class="bg-[#111] border border-[#333] p-1.5 rounded text-white">
+            <input type="number" id="calc-sl-h" placeholder="Wysokość (cm)" class="bg-[#111] border border-[#333] p-1.5 rounded text-white">
+          </div>
+          <button onclick="computeSlope()" class="w-full py-1.5 bg-emerald-700 text-white rounded">Oblicz Spadek</button>
+          <div id="calc-sl-res" class="text-center font-bold text-[14px] text-emerald-400 mt-2 py-2 bg-[#111] border border-[#333] rounded">-%</div>
+        </div>
+
+        <div id="calc-panel-masonry" class="hidden space-y-2">
+          <div class="grid grid-cols-2 gap-1">
+            <input type="number" id="calc-m-area" placeholder="Pow. ściany m2" class="bg-[#111] border border-[#333] p-1.5 rounded text-white">
+            <select id="calc-m-type" class="bg-[#111] border border-[#333] p-1.5 rounded text-white">
+              <option value="12.5">BK 24x24x59 (12.5 szt/m2)</option>
+              <option value="22">Silikat 18 (22 szt/m2)</option>
+              <option value="16">Porotherm 25 (16 szt/m2)</option>
+            </select>
+          </div>
+          <button onclick="computeMasonry()" class="w-full py-1.5 bg-orange-700 text-white rounded">Oblicz zapotrzebowanie</button>
+          <div id="calc-m-res" class="text-center font-bold text-[14px] text-orange-400 mt-2 py-2 bg-[#111] border border-[#333] rounded">- szt.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-takeoff" class="modal-backdrop fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex-col">
+    <div class="px-2 sm:px-4 py-2 bg-[#121212] border-b border-[#252525] flex justify-between shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded bg-emerald-600 flex justify-center items-center"><i data-lucide="ruler" class="w-3 h-3 text-white"></i></div>
+        <div class="text-[11px] sm:text-xs text-white font-bold max-w-[120px] sm:max-w-xs truncate" id="takeoff-active-title">Obmiar bez nazwy</div>
+        <button onclick="promptRenameActiveTakeoff()" class="text-gray-400"><i data-lucide="edit" class="w-3 h-3"></i></button>
+      </div>
+      <div class="flex gap-1 sm:gap-2">
+        <button onclick="promptCreateNewTakeoffSession()" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] sm:text-[11px]">Nowy</button>
+        <button onclick="openTakeoffPrintPreview()" class="bg-[#1f1f1f] text-emerald-400 border border-[#333] px-2 py-1 rounded text-[10px] sm:text-[11px]">Drukuj PDF</button>
+        <button onclick="closeTakeoffModal()" class="text-gray-400 pl-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      <!-- Pasek z listą kart (Mobile zwijany / Desktop bok) -->
+      <div class="w-full md:w-56 bg-[#0e0e0e] border-b md:border-b-0 md:border-r border-[#222] flex flex-col shrink-0 max-h-[120px] md:max-h-none overflow-y-auto">
+        <div id="takeoff-sessions-list" class="p-1 space-y-1"></div>
+      </div>
+
+      <!-- OBSZAR ROBOCZY RZUTU -->
+      <div class="flex-1 relative bg-[#060606] overflow-hidden flex items-center justify-center">
+        <!-- Pasek narzędzi rzutu -->
+        <div class="absolute top-2 left-2 z-20 flex flex-wrap gap-1 bg-[#141414]/90 border border-[#333] p-1 rounded text-[10px] sm:text-[11px] max-w-[90%]">
+          <label class="flex items-center gap-1 text-gray-300 px-1.5 py-0.5 cursor-pointer border-r border-[#333]">
+            <i data-lucide="upload" class="w-3 h-3 text-blue-400"></i> Dodaj Rzut <input type="file" id="tk-file" accept=".pdf,image/*" class="hidden" onchange="handleTakeoffBlueprintUploadUniversal(event)">
+          </label>
+          <button onclick="clearCurrentTakeoffLines()" class="text-rose-400 px-1.5 py-0.5 border-r border-[#333]">Wyczyść Rzut</button>
+          
+          <!-- Przełącznik trybu: Linia vs Poligon -->
+          <div class="flex bg-black rounded p-0.5 ml-1">
+            <button onclick="setTkMode('line')" id="tk-mode-line" class="px-2 bg-emerald-600 text-white rounded-l">mb (Linia)</button>
+            <button onclick="setTkMode('area')" id="tk-mode-area" class="px-2 text-gray-400 rounded-r">m2 (Pole)</button>
+          </div>
+        </div>
+
+        <div class="absolute right-2 top-14 flex flex-col gap-1.5 z-30">
+          <button onclick="fitTakeoffBlueprintToView()" class="w-7 h-7 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 shadow-md"><i data-lucide="focus" class="w-3 h-3 mx-auto"></i></button>
+          <button onclick="zoomManual(1.3, takeoffViewport)" class="w-7 h-7 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 shadow-md"><i data-lucide="zoom-in" class="w-3 h-3 mx-auto"></i></button>
+          <button onclick="zoomManual(0.7, takeoffViewport)" class="w-7 h-7 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 shadow-md"><i data-lucide="zoom-out" class="w-3 h-3 mx-auto"></i></button>
+        </div>
+
+        <div id="takeoff-viewport" class="w-full h-full relative overflow-hidden bg-[#060606]">
+          <div id="takeoff-drawing-container" class="absolute origin-top-left will-change-transform">
+            <img id="takeoff-img" class="block pointer-events-none select-none max-w-none opacity-80 filter grayscale" />
+            <svg id="takeoff-svg-layer" class="absolute inset-0 w-full h-full cursor-crosshair pointer-events-auto"></svg>
+          </div>
+        </div>
+
+        <!-- Pływające powiadomienie instrukcyjne na dole -->
+        <div class="absolute bottom-2 left-2 right-2 bg-black/80 text-white text-[10px] p-2 rounded border border-[#333] text-center flex items-center justify-between z-20">
+          <span id="tk-instruction" class="flex-1 truncate">Wgraj podkład rzutu, aby rozpocząć obmiar.</span>
+          <button id="tk-finish-btn" onclick="finishCurrentPolygon()" class="hidden bg-emerald-600 px-2 py-0.5 rounded ml-2 whitespace-nowrap">Zamknij figurę</button>
+        </div>
+      </div>
+
+      <!-- Prawy panel: Wyniki -->
+      <div class="w-full md:w-64 bg-[#111] flex flex-col shrink-0 h-48 md:h-auto border-t md:border-t-0 md:border-l border-[#222]">
+        <div class="p-2 border-b border-[#222] flex justify-between items-center bg-[#161616]">
+          <span class="text-[11px] font-bold text-gray-300">Zestawienie</span>
+          <div class="text-[10px] font-mono"><span class="text-emerald-400" id="tk-sum-mb">0 mb</span> | <span class="text-blue-400" id="tk-sum-m2">0 m2</span></div>
+        </div>
+        <div id="takeoff-items-list" class="flex-1 overflow-y-auto p-1.5 space-y-1 text-[10px]"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Wektorowe Logo
+    const ROHE_LOGO_SVG = `
+      <svg class="h-[28mm] w-auto" viewBox="0 0 160 40" fill="#000000" xmlns="http://www.w3.org/2000/svg">
+        <text x="0" y="32" font-family="Arial, sans-serif" font-weight="900" font-size="34" letter-spacing="-1">ROHE</text>
+      </svg>
+    `;
+
+    // PWA Service Worker
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+    // DB Init
+    const DB_STORE = 'app_state_store';
+    async function initDB(){ return new Promise((r,e)=>{ const rq=indexedDB.open('InspDB',1); rq.onupgradeneeded=ev=>{ if(!ev.target.result.objectStoreNames.contains(DB_STORE)) ev.target.result.createObjectStore(DB_STORE); }; rq.onsuccess=()=>r(rq.result); rq.onerror=()=>e(rq.error); }); }
+    async function saveToDB(s){ try{ const db=await initDB(); return new Promise((r,e)=>{ const tx=db.transaction(DB_STORE,'readwrite'); tx.objectStore(DB_STORE).put(s,'state'); tx.oncomplete=()=>{ const el=document.getElementById('sync-status'); if(el){el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),1000);} r(); }; tx.onerror=()=>e(tx.error); }); }catch(e){} }
+    async function loadFromDB(){ try{ const db=await initDB(); return new Promise((r,e)=>{ const req=db.transaction(DB_STORE,'readonly').objectStore(DB_STORE).get('state'); req.onsuccess=()=>r(req.result||null); req.onerror=()=>e(req.error); }); }catch(e){return null;} }
+
+    // Stan Aplikacji
+    let appState = {
+      project: { name: 'Inwestycja B', contractor: 'Firma X', docNum: 'RJ-01', date: new Date().toLocaleDateString('pl-PL') },
+      currentBuildingId: 'b-1',
+      buildings: [{ id: 'b-1', name: 'Budynek Główny', currentFloorId: 'b1-f0', floors: [{ id: 'b1-f0', name: 'Rzut Główny', blueprint: null, pins: [] }] }],
+      roheReport: { blueprint: null, defectTypes: [], pins: [] }, // Wyzerowano bazowe wady
+      takeoffBook: { activeSessionId: 'tk-1', sessions: [{ id: 'tk-1', title: 'Obmiar Parter', date: new Date().toLocaleDateString('pl-PL'), blueprints: [], items: [], lines: [], pxToMeterScale: null }] },
+      todos: [], calendarSchedule: [], customNormChecklist: [], customNormCategories: []
+    };
+
+    let navStack = ['dashboard'];
+    let selectedPinId = null, tempPinPhoto = null, tempRohePhoto = null;
+    let todoFilter = 'all', calendarSubTab = 'schedule';
+    
+    // Zmienne Pan & Zoom
+    let scale=1, panX=0, panY=0;
+    let roheScale=1, rohePanX=0, rohePanY=0;
+    let tkScale=1, tkPanX=0, tkPanY=0;
+
+    const viewport = document.getElementById('viewport'), planWrapper = document.getElementById('plan-wrapper'), planImg = document.getElementById('plan-img'), pinsLayer = document.getElementById('pins-layer');
+    const roheViewport = document.getElementById('rohe-viewport'), rohePlanWrapper = document.getElementById('rohe-plan-wrapper'), rohePlanImg = document.getElementById('rohe-plan-img'), rohePinsLayer = document.getElementById('rohe-pins-layer');
+    const tkViewport = document.getElementById('takeoff-viewport'), tkWrapper = document.getElementById('takeoff-drawing-container'), tkImg = document.getElementById('takeoff-img'), tkSvg = document.getElementById('takeoff-svg-layer');
+
+    window.addEventListener('popstate', handleAppBackPopState);
+    function handleAppBackPopState(e) {
+      const modals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+      if(modals.length > 0) { modals.forEach(m => m.classList.add('hidden')); return; }
+      if(navStack.length > 1) { navStack.pop(); switchViewCore(navStack[navStack.length-1], false); } else { switchViewCore('dashboard', false); }
+    }
+    function handleAppBack() { history.back(); }
+    
+    function switchView(view) {
+      document.getElementById('project-menu-dropdown').classList.add('hidden');
+      if(navStack[navStack.length-1] !== view) { navStack.push(view); history.pushState({view:view},''); }
+      switchViewCore(view, true);
+    }
+    function switchViewCore(view, fromClick) {
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+      const activePanel = document.getElementById(`view-${view}`);
+      if(activePanel) activePanel.classList.remove('hidden');
+      const structBar = document.getElementById('structure-subbar');
+      if(structBar) { if(view === 'plan') structBar.classList.remove('hidden'); else structBar.classList.add('hidden'); }
+      if(view === 'report-rohe') { renderRoheDefects(); renderRohePhotos(); renderRoheReportPages(); if(rohePlanImg.naturalWidth>0)fitRoheBlueprintToView(); }
+      if(view === 'plan' && planImg.naturalWidth>0) fitBlueprintToView();
+      updateDashboardCounts(); if(window.lucide) lucide.createIcons();
+    }
+
+    function toggleElement(id) { document.getElementById(id)?.classList.toggle('hidden'); }
+    async function persistData() { await saveToDB(appState); updateDashboardCounts(); }
+    function promptRenameProject() {
+      const name = prompt('Nazwa projektu:', appState.project.name);
+      if(name){ appState.project.name = name; document.getElementById('rohe-meta-project').value = name; persistData(); }
+    }
+
+    // SILNIK ZOOM (Wspólny)
+    function setupUniversalPanZoom(vEl, wEl, onUpdate) {
+      let curS=1, curX=0, curY=0, isP=false, sX=0, sY=0, startDist=0, initS=1;
+      const apply = () => { wEl.style.transform = `translate(${curX}px, ${curY}px) scale(${curS})`; if(onUpdate) onUpdate(curS, curX, curY); };
+      vEl.zoomToPoint = (f, cX, cY) => {
+        const rect = vEl.getBoundingClientRect(); const mX = cX - rect.left, mY = cY - rect.top;
+        const nS = Math.min(Math.max(curS * f, 0.05), 10.0); const r = nS / curS;
+        curX = mX - (mX - curX) * r; curY = mY - (mY - curY) * r; curS = nS; apply();
+      };
+      vEl.setPanZoom = (s,x,y) => { curS=s; curX=x; curY=y; apply(); };
+      vEl.addEventListener('wheel', e => { e.preventDefault(); vEl.zoomToPoint(e.deltaY<0?1.15:0.85, e.clientX, e.clientY); }, {passive:false});
+      vEl.addEventListener('mousedown', e => { if(e.target.closest('button'))return; isP=true; sX=e.clientX-curX; sY=e.clientY-curY; vEl.classList.add('panning'); });
+      window.addEventListener('mousemove', e => { if(!isP)return; curX=e.clientX-sX; curY=e.clientY-sY; apply(); });
+      window.addEventListener('mouseup', () => { isP=false; vEl.classList.remove('panning'); });
+      vEl.addEventListener('touchstart', e => {
+        if(e.touches.length===1) { isP=true; sX=e.touches[0].clientX-curX; sY=e.touches[0].clientY-curY; }
+        else if(e.touches.length===2) { isP=false; startDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); initS=curS; }
+      }, {passive:false});
+      vEl.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if(e.touches.length===1 && isP) { curX=e.touches[0].clientX-sX; curY=e.touches[0].clientY-sY; apply(); }
+        else if(e.touches.length===2) {
+          const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+          const f = d/startDist; vEl.zoomToPoint(f/(curS/initS), (e.touches[0].clientX+e.touches[1].clientX)/2, (e.touches[0].clientY+e.touches[1].clientY)/2);
+        }
+      }, {passive:false});
+      vEl.addEventListener('touchend', () => isP=false);
+    }
+    function zoomManual(f, vEl) { if(vEl && vEl.clientWidth) vEl.zoomToPoint(f, vEl.clientWidth/2, vEl.clientHeight/2); }
+
+    // RZUTY - Render PDF to Image
+    function renderPdfToDataUrl(file) {
+      return new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = async function() {
+          try {
+            const pdf = await pdfjsLib.getDocument(new Uint8Array(this.result)).promise;
+            const page = await pdf.getPage(1);
+            const vp = page.getViewport({ scale: 2.0 });
+            const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+            await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+            res(cv.toDataURL('image/jpeg', 0.85));
+          } catch(e) { rej(e); }
+        }; fr.onerror=rej; fr.readAsArrayBuffer(file);
+      });
+    }
+
+    // MAIN INIT
+    window.addEventListener('DOMContentLoaded', async () => {
+      history.replaceState({view:'dashboard'},'');
+      const st = await loadFromDB(); if(st) appState = {...appState, ...st};
+      
+      setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y;});
+      setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y;});
+      setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y;});
+      
+      renderStructureSubbar(); loadFloor(appState.buildings[0].currentFloorId);
+      renderTodos(); renderCalendar(); renderNorms(); renderRoheDefects(); renderRohePhotos();
+      
+      if(appState.roheReport.blueprint) { rohePlanImg.src=appState.roheReport.blueprint; rohePlanImg.onload=()=>{rohePlanWrapper.style.width=rohePlanImg.naturalWidth+'px'; rohePlanWrapper.style.height=rohePlanImg.naturalHeight+'px'; renderRohePins(); fitRoheBlueprintToView();} }
+      
+      setupBlueprintClick(); setupRoheBlueprintClick(); setupTkInteraction();
+      updateDashboardCounts(); if(window.lucide) lucide.createIcons();
+    });
+
+    function updateDashboardCounts() {
+      let pins=0; appState.buildings.forEach(b=>b.floors.forEach(f=>pins+=f.pins.length));
+      document.getElementById('dash-count-pins').innerText = pins; document.getElementById('nav-count-pins').innerText = pins;
+      document.getElementById('dash-count-todos').innerText = appState.todos.filter(t=>!t.completed).length;
+      document.getElementById('dash-count-takeoffs').innerText = appState.takeoffBook.sessions.length;
+      const act = getCurrentBuilding();
+      document.getElementById('header-active-info').innerText = `Pro: ${appState.project.name} (${act?act.name:''})`;
+    }
+
+    // STRUKTURA
+    function getCurrentBuilding() { return appState.buildings.find(b=>b.id===appState.currentBuildingId)||appState.buildings[0]; }
+    function getCurrentFloor() { const b=getCurrentBuilding(); return b.floors.find(f=>f.id===b.currentFloorId)||b.floors[0]; }
+    function renderStructureSubbar() {
+      const bc=document.getElementById('buildings-chips-list'), fc=document.getElementById('floors-chips-list');
+      bc.innerHTML=''; fc.innerHTML=''; const cb=getCurrentBuilding();
+      appState.buildings.forEach(b=>{ bc.innerHTML+=`<button onclick="switchBuilding('${b.id}')" class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold ${b.id===cb.id?'bg-blue-600 text-white':'bg-[#181818] border border-[#333] text-gray-400'}">${b.name}</button>`; });
+      cb.floors.forEach(f=>{ fc.innerHTML+=`<button onclick="switchFloor('${f.id}')" class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold ${f.id===cb.currentFloorId?'bg-amber-600 text-white':'bg-[#181818] border border-[#333] text-gray-400'}">${f.name}</button>`; });
+    }
+    function switchBuilding(id) { appState.currentBuildingId=id; renderStructureSubbar(); loadFloor(getCurrentFloor().id); updateDashboardCounts(); }
+    function switchFloor(id) { getCurrentBuilding().currentFloorId=id; renderStructureSubbar(); loadFloor(id); updateDashboardCounts(); }
+    
+    // RZUT ROBOCZY (PLAN)
+    function loadFloor(id) {
+      const f = getCurrentFloor(); pinsLayer.innerHTML='';
+      if(f.blueprint) {
+        document.getElementById('plan-empty-state').style.display='none';
+        planImg.src = f.blueprint;
+        planImg.onload = () => { planWrapper.style.width=planImg.naturalWidth+'px'; planWrapper.style.height=planImg.naturalHeight+'px'; fitBlueprintToView(); renderPins(); };
+      } else { document.getElementById('plan-empty-state').style.display='flex'; planImg.src=''; planWrapper.style.width='0px'; }
+    }
+    function fitBlueprintToView() {
+      if(!planImg.naturalWidth) return; const s = Math.min((viewport.clientWidth*0.94)/planImg.naturalWidth, (viewport.clientHeight*0.94)/planImg.naturalHeight, 1.5);
+      viewport.setPanZoom(s, (viewport.clientWidth-planImg.naturalWidth*s)/2, (viewport.clientHeight-planImg.naturalHeight*s)/2);
+    }
+    async function handlePlanUploadUniversal(e) {
+      const file = e.target.files[0]; if(!file) return;
+      const f = getCurrentFloor();
+      if(file.type==='application/pdf' || file.name.endsWith('.pdf')) { f.blueprint = await renderPdfToDataUrl(file); }
+      else { f.blueprint = await new Promise(r=>{const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file);}); }
+      e.target.value=''; persistData(); loadFloor(f.id);
+    }
+    
+    function setupBlueprintClick() {
+      viewport.addEventListener('click', e => {
+        if(e.target.closest('.pin-marker') || e.target.closest('button') || !getCurrentFloor().blueprint) return;
+        const rect = planWrapper.getBoundingClientRect();
+        const pX = ((e.clientX - rect.left) / scale / planImg.naturalWidth) * 100;
+        const pY = ((e.clientY - rect.top) / scale / planImg.naturalHeight) * 100;
+        openPinModal(null, {x:pX, y:pY});
+      });
+    }
+    function renderPins() {
+      pinsLayer.innerHTML=''; getCurrentFloor().pins.forEach(p => {
+        const m = document.createElement('div'); m.className='pin-marker'; m.style.left=`${p.x}%`; m.style.top=`${p.y}%`;
+        m.innerHTML=`<span>${p.num}</span>`; m.onclick=(e)=>{e.stopPropagation(); openPinModal(p.id);}; pinsLayer.appendChild(m);
+      });
+    }
+    function clearCurrentFloorPins() { if(confirm('Usunąć wszystkie pinezki?')){ getCurrentFloor().pins=[]; persistData(); renderPins(); updateDashboardCounts();} }
+
+    function openPinModal(id=null, coords=null) {
+      selectedPinId = id; tempPinPhoto = null;
+      document.getElementById('modal-pin-photo-input').value=''; // Reset input
+      const b=document.getElementById('modal-pin-badge'), d=document.getElementById('modal-pin-desc'), l=document.getElementById('modal-pin-loc'), img=document.getElementById('modal-photo-preview-img'), box=document.getElementById('modal-photo-preview-box');
+      if(id) {
+        const p = getCurrentFloor().pins.find(x=>x.id===id);
+        b.innerText=p.num; d.value=p.desc; l.value=p.loc||''; 
+        if(p.photo){ box.classList.remove('hidden'); img.src=p.photo; tempPinPhoto=p.photo; } else box.classList.add('hidden');
+        document.getElementById('modal-pin-btn-delete').classList.remove('hidden');
+      } else {
+        let max=0; appState.buildings.forEach(b=>b.floors.forEach(f=>f.pins.forEach(x=>{if(x.num>max)max=x.num;})));
+        b.innerText=max+1; d.value=''; l.value=''; box.classList.add('hidden'); img.src='';
+        window._tmpPin = {x:coords.x, y:coords.y, num:max+1}; document.getElementById('modal-pin-btn-delete').classList.add('hidden');
+      }
+      document.getElementById('modal-pin').classList.remove('hidden'); document.getElementById('modal-pin').classList.add('flex');
+    }
+    function closePinModal() { document.getElementById('modal-pin').classList.add('hidden'); document.getElementById('modal-pin').classList.remove('flex'); }
+    function handlePinPhotoUpload(e) {
+      const file = e.target.files[0]; if(!file) return;
+      const r = new FileReader(); r.onload=ev=>{
+        const img = new Image(); img.onload=()=>{
+          const cv=document.createElement('canvas'); let w=img.width, h=img.height, m=1000;
+          if(w>h&&w>m){h=Math.round(h*m/w);w=m;}else if(h>m){w=Math.round(w*m/h);h=m;}
+          cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+          tempPinPhoto=cv.toDataURL('image/jpeg',0.8);
+          document.getElementById('modal-photo-preview-box').classList.remove('hidden'); document.getElementById('modal-photo-preview-img').src=tempPinPhoto;
+        }; img.src=ev.target.result;
+      }; r.readAsDataURL(file);
+    }
+    function savePinFromModal() {
+      const f=getCurrentFloor();
+      if(selectedPinId) {
+        const p = f.pins.find(x=>x.id===selectedPinId); p.desc=document.getElementById('modal-pin-desc').value; p.loc=document.getElementById('modal-pin-loc').value; p.photo=tempPinPhoto;
+      } else {
+        f.pins.push({ id:'p-'+Date.now(), num:window._tmpPin.num, x:window._tmpPin.x, y:window._tmpPin.y, desc:document.getElementById('modal-pin-desc').value, loc:document.getElementById('modal-pin-loc').value, photo:tempPinPhoto, fn:f.name, bn:getCurrentBuilding().name, bp:f.blueprint });
+      }
+      closePinModal(); persistData(); renderPins();
+    }
+    function deleteCurrentPin() { getCurrentFloor().pins = getCurrentFloor().pins.filter(x=>x.id!==selectedPinId); closePinModal(); persistData(); renderPins(); }
+
+    async function openQuickDefectReport() {
+      switchView('quick-report'); const c = document.getElementById('quick-report-container');
+      let pins=[]; appState.buildings.forEach(b=>b.floors.forEach(f=>pins.push(...f.pins))); pins.sort((a,b)=>a.num-b.num);
+      if(!pins.length) { c.innerHTML='<div class="text-white text-center py-10">Brak usterek.</div>'; return; }
+      c.innerHTML='<div class="text-center text-white py-4">Generowanie...</div>'; let html='';
+      for(const p of pins) {
+        let mapUrl = ''; if(p.bp) {
+          const img=new Image(); img.src=p.bp; await new Promise(r=>img.onload=r);
+          const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0);
+          const px=(p.x/100)*img.width, py=(p.y/100)*img.height, r=Math.max(img.width*0.02, 26);
+          ctx.fillStyle='#e11d48'; ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.fill();
+          ctx.lineWidth=r*0.15; ctx.strokeStyle='#fff'; ctx.stroke();
+          ctx.fillStyle='#fff'; ctx.font=`bold ${Math.round(r)}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.num,px,py);
+          mapUrl = cv.toDataURL('image/jpeg',0.8);
+        }
+        html+=`
+          <div class="a4-page">
+            <div class="border-b-2 border-black pb-2 mb-4 flex justify-between items-center">
+              <div><div class="text-[14pt] font-black uppercase">Karta Usterki #${p.num}</div><div class="text-[9pt]">${p.bn} • ${p.fn}</div></div>
+            </div>
+            <div class="bg-gray-50 border border-black p-3 mb-4"><div class="font-bold text-[11pt]">Wada: ${p.desc}</div>${p.loc?`<div class="text-[9pt] mt-1">Lokalizacja: ${p.loc}</div>`:''}</div>
+            <div class="flex-1 flex flex-col gap-4">
+              <div class="border border-black flex-1 flex flex-col justify-center items-center overflow-hidden h-[120mm]"><img src="${mapUrl}" class="max-w-full max-h-full object-contain"></div>
+              ${p.photo ? `<div class="border border-black flex-1 flex flex-col justify-center items-center overflow-hidden h-[120mm]"><img src="${p.photo}" class="max-w-full max-h-full object-contain"></div>` : ''}
+            </div>
+          </div>
+        `;
+      } c.innerHTML=html;
+    }
+
+    // RAPORT ROHE (RJ-V)
+    async function handleRohePlanUploadUniversal(e) {
+      const file = e.target.files[0]; if(!file) return;
+      if(file.type==='application/pdf' || file.name.endsWith('.pdf')) { appState.roheReport.blueprint = await renderPdfToDataUrl(file); }
+      else { appState.roheReport.blueprint = await new Promise(r=>{const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file);}); }
+      e.target.value=''; persistData();
+      rohePlanImg.src=appState.roheReport.blueprint; rohePlanImg.onload=()=>{rohePlanWrapper.style.width=rohePlanImg.naturalWidth+'px'; rohePlanWrapper.style.height=rohePlanImg.naturalHeight+'px'; document.getElementById('rohe-empty-state').style.display='none'; fitRoheBlueprintToView(); renderRohePins();};
+      renderRoheReportPages();
+    }
+    function fitRoheBlueprintToView() {
+      if(!rohePlanImg.naturalWidth) return; const s = Math.min((roheViewport.clientWidth*0.94)/rohePlanImg.naturalWidth, (roheViewport.clientHeight*0.94)/rohePlanImg.naturalHeight, 1.2);
+      roheViewport.setPanZoom(s, (roheViewport.clientWidth-rohePlanImg.naturalWidth*s)/2, (roheViewport.clientHeight-rohePlanImg.naturalHeight*s)/2);
+    }
+    function setupRoheBlueprintClick() {
+      roheViewport.addEventListener('click', e => {
+        if(e.target.closest('button') || e.target.closest('.pin-marker') || !appState.roheReport.blueprint) return;
+        const rect = rohePlanWrapper.getBoundingClientRect();
+        openRohePinModal( ((e.clientX-rect.left)/roheScale/rohePlanImg.naturalWidth)*100, ((e.clientY-rect.top)/roheScale/rohePlanImg.naturalHeight)*100 );
+      });
+    }
+    function renderRohePins() {
+      rohePinsLayer.innerHTML=''; appState.roheReport.pins.forEach(p=>{
+        const m = document.createElement('div'); m.className='pin-marker'; m.style.left=`${p.x}%`; m.style.top=`${p.y}%`; m.innerHTML=`<span>${p.dNum}</span>`;
+        m.onclick=(e)=>{e.stopPropagation(); if(confirm(`Usunąć wadę #${p.dNum}?`)){ appState.roheReport.pins=appState.roheReport.pins.filter(x=>x.id!==p.id); persistData(); renderRohePins(); renderRohePhotos(); renderRoheReportPages(); }};
+        rohePinsLayer.appendChild(m);
+      });
+    }
+    function clearRohePins() { if(confirm('Wyczyścić RJ-V?')){ appState.roheReport.pins=[]; persistData(); renderRohePins(); renderRohePhotos(); renderRoheReportPages();} }
+
+    function openRohePinModal(x,y) {
+      document.getElementById('modal-rohe-photo-input').value=''; tempRohePhoto=null; document.getElementById('modal-rohe-photo-preview-box').classList.add('hidden'); document.getElementById('modal-rohe-pin-new-text').value=''; document.getElementById('modal-rohe-pin-loc').value='';
+      window._tmpRPin = {x,y};
+      const sel=document.getElementById('modal-rohe-pin-select-defect'); sel.innerHTML='';
+      if(!appState.roheReport.defectTypes.length){ document.getElementById('rohe-mode-new').checked=true; toggleRoheDefectMode(); }
+      else { document.getElementById('rohe-mode-existing').checked=true; toggleRoheDefectMode(); appState.roheReport.defectTypes.forEach(d=>{sel.innerHTML+=`<option value="${d.num}">${d.num}. ${d.text}</option>`;}); }
+      document.getElementById('modal-rohe-pin').classList.remove('hidden'); document.getElementById('modal-rohe-pin').classList.add('flex');
+    }
+    function closeRohePinModal() { document.getElementById('modal-rohe-pin').classList.add('hidden'); document.getElementById('modal-rohe-pin').classList.remove('flex'); }
+    function toggleRoheDefectMode() {
+      const isNew = document.getElementById('rohe-mode-new').checked;
+      document.getElementById('rohe-field-existing').classList.toggle('hidden', isNew);
+      document.getElementById('modal-rohe-pin-new-text').classList.toggle('hidden', !isNew);
+    }
+    function handleRohePinPhotoUpload(e) {
+      const file = e.target.files[0]; if(!file) return; const r = new FileReader(); r.onload=ev=>{
+        const img = new Image(); img.onload=()=>{
+          const cv=document.createElement('canvas'); let w=img.width, h=img.height, m=1000;
+          if(w>h&&w>m){h=Math.round(h*m/w);w=m;}else if(h>m){w=Math.round(w*m/h);h=m;}
+          cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+          tempRohePhoto=cv.toDataURL('image/jpeg',0.8);
+          document.getElementById('modal-rohe-photo-preview-box').classList.remove('hidden'); document.getElementById('modal-rohe-photo-preview-img').src=tempRohePhoto;
+        }; img.src=ev.target.result;
+      }; r.readAsDataURL(file);
+    }
+    function saveRohePinFromModal() {
+      const isNew = document.getElementById('rohe-mode-new').checked; let num, txt;
+      if(isNew) {
+        txt = document.getElementById('modal-rohe-pin-new-text').value || 'Wada'; num = appState.roheReport.defectTypes.length+1;
+        appState.roheReport.defectTypes.push({id:'dt-'+Date.now(), num:num, text:txt}); renderRoheDefects();
+      } else { num = parseInt(document.getElementById('modal-rohe-pin-select-defect').value); txt = appState.roheReport.defectTypes.find(d=>d.num===num).text; }
+      
+      appState.roheReport.pins.push({ id:'rp-'+Date.now(), x:window._tmpRPin.x, y:window._tmpRPin.y, dNum:num, dTxt:txt, loc:document.getElementById('modal-rohe-pin-loc').value, photo:tempRohePhoto, pr:true });
+      closeRohePinModal(); persistData(); renderRohePins(); renderRohePhotos(); renderRoheReportPages();
+    }
+    
+    function renderRoheDefects() {
+      const c = document.getElementById('rohe-defect-types-list'); c.innerHTML='';
+      appState.roheReport.defectTypes.forEach(d => {
+        c.innerHTML += `<div class="flex items-center justify-between border-b border-[#222] py-1 gap-2"><div class="flex items-center gap-1.5 min-w-0"><span class="text-rose-400 font-bold">${d.num}.</span><input type="text" value="${d.text}" onchange="updateRoheDefect('${d.id}', this.value)" class="bg-transparent border-none text-white outline-none text-[10px] w-full truncate"></div><button onclick="deleteRoheDefect('${d.id}')" class="text-gray-500 shrink-0"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`;
+      }); if(window.lucide) lucide.createIcons();
+    }
+    function updateRoheDefect(id, val) { const d = appState.roheReport.defectTypes.find(x=>x.id===id); if(d) { d.text=val; persistData(); renderRoheReportPages(); } }
+    function deleteRoheDefect(id) { appState.roheReport.defectTypes = appState.roheReport.defectTypes.filter(x=>x.id!==id); appState.roheReport.defectTypes.forEach((x,i)=>x.num=i+1); persistData(); renderRoheDefects(); renderRoheReportPages(); }
+    
+    function renderRohePhotos() {
+      const c = document.getElementById('rohe-photos-selection-list'); c.innerHTML='';
+      appState.roheReport.pins.filter(p=>p.photo).forEach(p => {
+        c.innerHTML += `<div class="flex gap-2 items-center bg-[#111] p-1.5 rounded border border-[#222]"><img src="${p.photo}" class="w-8 h-8 object-cover rounded border border-[#333] shrink-0"><div class="flex-1 min-w-0"><div class="text-[9px] text-white truncate">#${p.dNum} ${p.loc}</div><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" ${p.pr?'checked':''} onchange="toggleRohePhoto('${p.id}')" class="w-2.5 h-2.5 accent-rose-600"><span class="text-[8px] text-gray-400">Drukuj</span></label></div></div>`;
+      });
+    }
+    function toggleRohePhoto(id) { const p=appState.roheReport.pins.find(x=>x.id===id); if(p){p.pr=!p.pr; persistData(); renderRoheReportPages();} }
+
+    async function renderRoheReportPages() {
+      const c = document.getElementById('rohe-report-container'); c.innerHTML='<div class="text-center py-4">Ładowanie RJ-V...</div>';
+      const mDoc=document.getElementById('rohe-meta-docnum').value, mDat=document.getElementById('rohe-meta-date').value, mAut=document.getElementById('rohe-meta-author').value, mCon=document.getElementById('rohe-meta-contractor').value, mPro=document.getElementById('rohe-meta-project').value, mSub=document.getElementById('rohe-meta-subject').value, mTra=document.getElementById('rohe-meta-trade').value, mLoc=document.getElementById('rohe-meta-loc').value, mRef=document.getElementById('rohe-meta-norms-ref').value, mTxt=document.getElementById('rohe-meta-bodytext').value;
+      
+      let html = '';
+      html += `
+        <div class="a4-page">
+          <div class="flex justify-between items-start mb-4 pb-2">
+            <div class="text-[9pt] leading-snug text-black"><div class="font-bold">Generalny Wykonawca / Dział Kontroli Jakości</div><div>Raport Techniczno-Odbiorczy</div></div>
+            <div class="flex justify-end">${ROHE_LOGO_SVG}</div>
+          </div>
+          <table class="w-full border-collapse mb-4 text-[9pt] text-black"><tr><td class="border border-black p-1">Nr dokumentu:</td><td class="border border-black p-1 font-bold">${mDoc}</td><td class="border border-black p-1">Data:</td><td class="border border-black p-1 font-bold">${mDat}</td></tr></table>
+          <div class="text-[14pt] font-bold mb-3 text-black">Raport jakościowy</div>
+          <table class="w-full border-collapse mb-4 text-[9pt] text-black">
+            <tr><td class="border border-black p-1 bg-gray-50">Projekt:</td><td class="border border-black p-1 font-bold" colspan="3">${mPro}</td></tr>
+            <tr><td class="border border-black p-1 bg-gray-50">Sporządził:</td><td class="border border-black p-1">${mAut}</td><td class="border border-black p-1 bg-gray-50">Wykonawca:</td><td class="border border-black p-1 font-bold">${mCon}</td></tr>
+            <tr><td class="border border-black p-1 bg-gray-50">Dotyczy:</td><td class="border border-black p-1" colspan="3">${mSub}</td></tr>
+            <tr><td class="border border-black p-1 bg-gray-50">Branża:</td><td class="border border-black p-1">${mTra==='Budowlana'?'☑':'☐'} Budowlana ${mTra==='Sanitarna'?'☑':'☐'} Sanitarna</td><td class="border border-black p-1 bg-gray-50">Lokalizacja:</td><td class="border border-black p-1">${mLoc}</td></tr>
+          </table>
+          <div class="text-[9pt] mb-2 text-black leading-relaxed">${mTxt.replace(/\n/g,'<br>')}</div>
+          <div class="text-[9pt] font-semibold mb-3 bg-gray-50 border border-gray-300 p-1.5">Podstawa: <i>${mRef}</i></div>
+          <div class="text-[10pt] font-bold text-black mb-1">Wykaz wad:</div>
+          <ol class="list-decimal pl-5 text-[9pt] text-black">
+            ${appState.roheReport.defectTypes.map(d=>`<li><b>${d.text}</b></li>`).join('')}
+          </ol>
+        </div>
+      `;
+
+      if(appState.roheReport.blueprint) {
+        const img = new Image(); img.src=appState.roheReport.blueprint; await new Promise(r=>img.onload=r);
+        const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0);
+        appState.roheReport.pins.forEach(p => {
+          const px=(p.x/100)*img.width, py=(p.y/100)*img.height, r=Math.max(img.width*0.016, 20);
+          ctx.fillStyle='#e11d48'; ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.fill();
+          ctx.lineWidth=r*0.15; ctx.strokeStyle='#fff'; ctx.stroke();
+          ctx.fillStyle='#fff'; ctx.font=`bold ${Math.round(r)}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.dNum,px,py);
+        });
+        html += `<div class="a4-page"><div class="flex justify-between items-start mb-2"><div class="text-[9pt]">Załącznik graficzny</div>${ROHE_LOGO_SVG}</div><div class="border border-black w-full h-[230mm] flex justify-center items-center overflow-hidden"><img src="${cv.toDataURL('image/jpeg',0.8)}" class="max-w-full max-h-full object-contain"></div></div>`;
+      }
+
+      const photos = appState.roheReport.pins.filter(p=>p.photo && p.pr);
+      for(let i=0; i<photos.length; i+=2) {
+        html += `<div class="a4-page"><div class="flex justify-between items-start mb-2"><div class="text-[9pt]">Dokumentacja fotograficzna</div>${ROHE_LOGO_SVG}</div><div class="flex flex-col gap-4">`;
+        [photos[i], photos[i+1]].filter(Boolean).forEach(p => {
+          html += `<div class="relative"><button onclick="removeRohePhotoPrint('${p.id}')" class="no-print absolute top-1 right-1 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">✕ Usuń ze zdjęć</button><div class="border border-black w-full h-[110mm] flex justify-center items-center overflow-hidden"><img src="${p.photo}" class="max-w-full max-h-full object-contain"></div><div class="text-[9pt] mt-1 text-black"><b>Wada #${p.dNum}:</b> ${p.loc}</div></div>`;
+        });
+        html += `</div></div>`;
+      }
+      
+      html += `<div class="a4-page"><div class="flex justify-between items-start mb-4"><div class="text-[12pt] font-bold text-black">Protokół Usunięcia Wad</div>${ROHE_LOGO_SVG}</div><table class="w-full border-collapse text-[9pt] text-black"><tr><td class="border border-black p-3 h-24 align-top w-1/2">Przekazał:<br><br>Podpis: .......................</td><td class="border border-black p-3 align-top w-1/2">Odebrał:<br><br>Podpis: .......................</td></tr><tr><td colspan="2" class="border border-black p-3 h-32 align-top">Akceptacja naprawy GW:<br><br>☐ Akceptacja bez uwag &nbsp;&nbsp;&nbsp; ☐ Akceptacja z uwagami<br><br>Podpis: .......................</td></tr></table></div>`;
+      c.innerHTML = html;
+    }
+    function removeRohePhotoPrint(id) { toggleRohePhoto(id); renderRohePhotos(); }
+
+    // TO-DO
+    function setTodoFilter(f) { todoFilter=f; document.querySelectorAll('[id^="todofilter-"]').forEach(b=>b.classList.remove('bg-blue-600','text-white')); document.getElementById('todofilter-'+f).classList.add('bg-blue-600','text-white'); renderTodos(); }
+    function addQuickTodo() {
+      const t=document.getElementById('new-todo-title').value.trim(); if(!t) return;
+      appState.todos.unshift({ id:'td-'+Date.now(), title:t, category:document.getElementById('new-todo-cat').value, dueDate:document.getElementById('new-todo-due').value||null, who:document.getElementById('new-todo-who').value||null, urgent:document.getElementById('new-todo-urgent').checked, completed:false });
+      document.getElementById('new-todo-title').value=''; document.getElementById('new-todo-due').value=''; document.getElementById('new-todo-who').value=''; document.getElementById('new-todo-urgent').checked=false;
+      persistData(); renderTodos();
+    }
+    function toggleTodoCompleted(id) { const t=appState.todos.find(x=>x.id===id); if(t){t.completed=!t.completed; persistData(); renderTodos();} }
+    function deleteTodo(id) { appState.todos=appState.todos.filter(x=>x.id!==id); persistData(); renderTodos(); }
+    function renderTodos() {
+      const c = document.getElementById('todos-container'); c.innerHTML='';
+      const f = appState.todos.filter(t => todoFilter==='all' ? true : (todoFilter==='done'?t.completed: (todoFilter==='urgent'?t.urgent&&!t.completed : t.category===todoFilter)));
+      f.forEach(t => {
+        c.innerHTML += `<div class="p-3 rounded-xl border flex items-start gap-2 text-[11px] ${t.completed?'bg-[#0f0f0f] border-[#222] opacity-50':'bg-[#141414] border-[#2a2a2a]'}"><input type="checkbox" ${t.completed?'checked':''} onchange="toggleTodoCompleted('${t.id}')" class="mt-0.5"><div class="flex-1 min-w-0"><div class="font-bold text-white ${t.completed?'line-through text-gray-500':''}">${t.title} ${t.urgent?'<span class="text-rose-400 bg-rose-950 px-1 rounded ml-1">PILNE</span>':''}</div><div class="text-gray-400 mt-0.5">${t.dueDate?`📅 ${t.dueDate} `:''}${t.who?`👤 ${t.who}`:''}</div></div><button onclick="deleteTodo('${t.id}')" class="text-gray-500"><i data-lucide="trash" class="w-3 h-3"></i></button></div>`;
+      }); if(window.lucide) lucide.createIcons();
+    }
+
+    // KALENDARZ
+    function setCalendarSubTab(t) { calendarSubTab=t; document.getElementById('subtab-btn-schedule').classList.remove('bg-[#222]','text-amber-400'); document.getElementById('subtab-btn-audit').classList.remove('bg-[#222]','text-white'); document.getElementById('subtab-btn-'+t).classList.add('bg-[#222]', t==='schedule'?'text-amber-400':'text-white'); renderCalendar(); }
+    function saveScheduleEntry() {
+      const t=document.getElementById('sch-title').value.trim(); if(!t) return;
+      appState.calendarSchedule.unshift({ id:'sch-'+Date.now(), date:document.getElementById('sch-date').value||new Date().toISOString().slice(0,10), title:t, status:document.getElementById('sch-status').value, note:document.getElementById('sch-note').value });
+      document.getElementById('sch-title').value=''; document.getElementById('sch-note').value=''; toggleElement('modal-schedule-entry'); persistData(); renderCalendar();
+    }
+    function toggleScheduleStatus(id) { const s=appState.calendarSchedule.find(x=>x.id===id); if(s){ s.status = s.status==='planned'?'done' : s.status==='done'?'delayed':'planned'; persistData(); renderCalendar(); } }
+    function deleteScheduleEntry(id) { appState.calendarSchedule=appState.calendarSchedule.filter(x=>x.id!==id); persistData(); renderCalendar(); }
+    function renderCalendar() {
+      const c = document.getElementById('calendar-content-container'); c.innerHTML='';
+      document.getElementById('count-schedule-items').innerText = appState.calendarSchedule.length; document.getElementById('count-audit-entries').innerText = appState.auditTrail.length;
+      if(calendarSubTab==='schedule') {
+        appState.calendarSchedule.forEach(s => {
+          let badge = s.status==='done'?'<span class="text-emerald-400 bg-emerald-950 px-1 rounded">Zrealizowane</span>' : s.status==='delayed'?'<span class="text-rose-400 bg-rose-950 px-1 rounded">Opóźnienie</span>' : '<span class="text-blue-400 bg-blue-950 px-1 rounded">Zaplanowane</span>';
+          c.innerHTML += `<div class="bg-[#141414] border border-[#222] p-3 rounded-xl flex items-center justify-between gap-2 text-[11px]"><div class="flex-1 min-w-0"><div class="flex gap-2 mb-1"><span class="font-mono text-amber-400 font-bold">${s.date}</span>${badge}</div><div class="font-bold text-white">${s.title}</div><div class="text-gray-500">${s.note}</div></div><button onclick="toggleScheduleStatus('${s.id}')" class="px-2 py-1 bg-[#222] rounded text-gray-300 shrink-0 border border-[#333]">Status</button><button onclick="deleteScheduleEntry('${s.id}')" class="text-rose-400 p-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`;
+        });
+      } else {
+        appState.auditTrail.forEach(a => { c.innerHTML += `<div class="flex justify-between items-center text-[10px] bg-[#111] p-2 border border-[#222] rounded"><span class="text-gray-300 truncate mr-2">${a.text}</span><span class="font-mono text-gray-500 shrink-0">${a.timestamp}</span></div>`; });
+      } if(window.lucide) lucide.createIcons();
+    }
+
+    // NORMY
+    function renderNorms() {
+      const bar=document.getElementById('norms-tabs-bar'), card=document.getElementById('norm-detail-card'), search=document.getElementById('norm-search')?.value.toLowerCase()||'';
+      bar.innerHTML=''; card.innerHTML='';
+      const cats = appState.customNormCategories.filter(c => c.title.toLowerCase().includes(search) || c.short.toLowerCase().includes(search));
+      cats.forEach(c => {
+        bar.innerHTML += `<button onclick="activeNormCat='${c.id}'; renderNorms();" class="px-3 py-1.5 rounded-lg border shrink-0 ${activeNormCat===c.id?'bg-[#222] border-purple-500 text-purple-400':'bg-[#111] border-[#333] text-gray-400'}">${c.short}</button>`;
+      });
+      const act = cats.find(c=>c.id===activeNormCat); if(!act) return;
+      card.innerHTML = `<div class="flex justify-between items-center border-b border-[#222] pb-2 mb-2"><h3 class="font-bold text-white text-xs">${act.title}</h3><button onclick="deleteNormCat('${act.id}')" class="text-rose-400 text-[10px] bg-rose-950/40 px-2 py-1 rounded">Usuń normę</button></div><ul class="text-[11px] text-gray-300 space-y-1 pl-4 list-disc">${act.guidelines.map(g=>`<li>${g}</li>`).join('')}</ul>`;
+    }
+    function saveNewNormCategory() {
+      appState.customNormCategories.push({ id:'n-'+Date.now(), short:document.getElementById('new-norm-short').value||'Norma', title:document.getElementById('new-norm-title').value||'Nowa Norma', guidelines:document.getElementById('new-norm-guidelines').value.split('\n').filter(Boolean) });
+      document.getElementById('new-norm-short').value=''; document.getElementById('new-norm-title').value=''; document.getElementById('new-norm-guidelines').value=''; toggleElement('modal-add-norm-category'); persistData(); renderNorms();
+    }
+    function deleteNormCat(id) { if(confirm('Usunąć normę?')){ appState.customNormCategories=appState.customNormCategories.filter(x=>x.id!==id); persistData(); renderNorms(); } }
+    function filterNorms(val) { renderNorms(); }
+
+    // KALKULATOR
+    function toggleQuickToolsMenu() { toggleElement('quick-tools-menu'); }
+    function openCalculatorModal() { document.getElementById('modal-calculator').classList.remove('hidden'); document.getElementById('modal-calculator').classList.add('flex'); renderCalcLists(); }
+    function setCalcTab(t) { ['standard','concrete','steel','slopes','masonry'].forEach(x=>{document.getElementById('calc-panel-'+x).classList.toggle('hidden',x!==t); document.getElementById('calctab-'+x).classList.toggle('text-amber-400',x===t); document.getElementById('calctab-'+x).classList.toggle('text-gray-400',x!==t); document.getElementById('calctab-'+x).classList.toggle('bg-[#1b1b1b]',x===t);}); }
+    
+    let tape=[];
+    function calcPress(c) {
+      const d=document.getElementById('calc-display'); if(c==='C'){calcExpression=''; d.innerText='0'; return;}
+      if(c==='='){ try{const r=Function(`'use strict'; return (${calcExpression.replace(/×/g,'*').replace(/÷/g,'/')})`)(); tape.unshift(`${calcExpression} = ${r}`); if(tape.length>10)tape.pop(); calcExpression=String(r); d.innerText=r; renderCalcLists();}catch(e){d.innerText='Błąd'; calcExpression='';} return;}
+      calcExpression+=c; d.innerText=calcExpression;
+    }
+    
+    let cList=[], sList=[];
+    function addConcreteItem() { const n=document.getElementById('calc-c-n').value||'Płyta', l=parseFloat(document.getElementById('calc-c-l').value)||0, w=parseFloat(document.getElementById('calc-c-w').value)||0, h=parseFloat(document.getElementById('calc-c-h').value)||0, q=parseInt(document.getElementById('calc-c-q').value)||1; if(l*w*h===0)return; cList.push({n, v:(l*w*h*q)}); document.getElementById('calc-c-n').value=''; document.getElementById('calc-c-l').value=''; document.getElementById('calc-c-w').value=''; document.getElementById('calc-c-h').value=''; renderCalcLists(); }
+    function addSteelItem() { const w=parseFloat(document.getElementById('calc-s-fi').value)||0.888, l=parseFloat(document.getElementById('calc-s-l').value)||0, q=parseInt(document.getElementById('calc-s-q').value)||1; if(l===0)return; sList.push({fi:document.getElementById('calc-s-fi').options[document.getElementById('calc-s-fi').selectedIndex].text, v:(w*l*q)}); document.getElementById('calc-s-l').value=''; renderCalcLists(); }
+    
+    function renderCalcLists() {
+      const tc=document.getElementById('calc-tape-list'); tc.innerHTML=''; tape.forEach(t=>tc.innerHTML+=`<div class="text-right">${t}</div>`);
+      const cc=document.getElementById('calc-c-list'); cc.innerHTML=''; let cSum=0; cList.forEach(c=>{cSum+=c.v; cc.innerHTML+=`<div class="flex justify-between border-b border-[#222] pb-0.5"><span class="text-white">${c.n}</span><span class="font-mono text-amber-400">${c.v.toFixed(2)} m3</span></div>`}); document.getElementById('calc-c-sum').innerText=(cSum*1.05).toFixed(2);
+      const sc=document.getElementById('calc-s-list'); sc.innerHTML=''; let sSum=0; sList.forEach(s=>{sSum+=s.v; sc.innerHTML+=`<div class="flex justify-between border-b border-[#222] pb-0.5"><span class="text-white">${s.fi}</span><span class="font-mono text-blue-400">${s.v.toFixed(2)} kg</span></div>`}); document.getElementById('calc-s-sum').innerText=sSum.toFixed(2);
+    }
+    function clearCalcList(type) { if(type==='standard')tape=[]; if(type==='concrete')cList=[]; if(type==='steel')sList=[]; renderCalcLists(); }
+
+    function computeSlope() { const l=parseFloat(document.getElementById('calc-sl-l').value)||0, h=parseFloat(document.getElementById('calc-sl-h').value)||0; if(l>0){ const p=(h/(l*100))*100; document.getElementById('calc-sl-res').innerHTML=`${p.toFixed(2)}% <span class="text-gray-500 text-[10px]">(${Math.atan(p/100)*(180/Math.PI).toFixed(1)}°)</span>`; } }
+    function computeMasonry() { const a=parseFloat(document.getElementById('calc-m-area').value)||0, r=parseFloat(document.getElementById('calc-m-type').value)||1; if(a>0) document.getElementById('calc-m-res').innerHTML=`${Math.ceil(a*r)} szt.`; }
+
+    // OBMIARY (Linie i Poligony Shoelace)
+    let tkMode = 'line'; // 'line' or 'area'
+    let tkPoints = []; // Ostatnio klikane punkty
+    
+    function setTkMode(m) { tkMode=m; document.getElementById('tk-mode-line').className=`px-2 rounded-l ${m==='line'?'bg-emerald-600 text-white':'text-gray-400'}`; document.getElementById('tk-mode-area').className=`px-2 rounded-r ${m==='area'?'bg-emerald-600 text-white':'text-gray-400'}`; document.getElementById('tk-finish-btn').classList.toggle('hidden', m==='line'); tkPoints=[]; redrawTk(); }
+    
+    function getActiveTk() { let s=appState.takeoffBook.sessions.find(x=>x.id===appState.takeoffBook.activeSessionId); if(!s){s=appState.takeoffBook.sessions[0]; appState.takeoffBook.activeSessionId=s.id;} return s; }
+    function openTakeoffModal() { document.getElementById('modal-takeoff').classList.remove('hidden'); document.getElementById('modal-takeoff').classList.add('flex'); renderTkList(); loadTkSess(); }
+    function closeTakeoffModal() { document.getElementById('modal-takeoff').classList.add('hidden'); document.getElementById('modal-takeoff').classList.remove('flex'); tkPoints=[]; }
+    
+    function promptCreateNewTakeoffSession() { const t=prompt('Nazwa karty:'); if(t){ const id='tk-'+Date.now(); appState.takeoffBook.sessions.push({id, title:t, date:new Date().toLocaleDateString('pl-PL'), blueprints:[], items:[], lines:[], pxToMeterScale:null}); appState.takeoffBook.activeSessionId=id; persistData(); renderTkList(); loadTkSess(); } }
+    function promptRenameActiveTakeoff() { const s=getActiveTk(); const n=prompt('Nazwa:',s.title); if(n){s.title=n; persistData(); renderTkList(); document.getElementById('takeoff-active-title').innerText=n;} }
+    function deleteTakeoffSession(id) { if(confirm('Usunąć kartę?')){ appState.takeoffBook.sessions=appState.takeoffBook.sessions.filter(x=>x.id!==id); appState.takeoffBook.activeSessionId=appState.takeoffBook.sessions[0].id; persistData(); renderTkList(); loadTkSess(); } }
+    
+    function renderTkList() {
+      const c = document.getElementById('takeoff-sessions-list'); c.innerHTML='';
+      appState.takeoffBook.sessions.forEach(s => {
+        c.innerHTML+=`<div onclick="appState.takeoffBook.activeSessionId='${s.id}'; persistData(); renderTkList(); loadTkSess();" class="p-1.5 rounded border cursor-pointer text-[10px] sm:text-[11px] ${s.id===appState.takeoffBook.activeSessionId?'bg-[#1c1c1c] border-emerald-500':'bg-[#111] border-[#222]'}"><div class="flex justify-between items-center"><span class="font-bold text-white truncate pr-2">${s.title}</span><button onclick="event.stopPropagation();deleteTakeoffSession('${s.id}')" class="text-gray-500"><i data-lucide="trash" class="w-3 h-3"></i></button></div></div>`;
+      }); if(window.lucide) lucide.createIcons();
+    }
+
+    async function handleTakeoffBlueprintUploadUniversal(e) {
+      const file = e.target.files[0]; if(!file) return; let url;
+      if(file.type==='application/pdf' || file.name.endsWith('.pdf')) url = await renderPdfToDataUrl(file);
+      else url = await new Promise(r=>{const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file);});
+      getActiveTk().blueprints = [url]; getActiveTk().pxToMeterScale=null; persistData(); loadTkSess(); e.target.value='';
+    }
+    function useCurrentFloorAsTakeoff() { const f=getCurrentFloor(); if(f.blueprint){ getActiveTk().blueprints=[f.blueprint]; getActiveTk().pxToMeterScale=null; persistData(); loadTkSess(); } }
+    function clearCurrentTakeoffLines() { if(confirm('Wyczyścić pomiary?')){ getActiveTk().lines=[]; getActiveTk().items=[]; getActiveTk().pxToMeterScale=null; persistData(); renderTkSheet(); redrawTk(); } }
+
+    function loadTkSess() {
+      const s = getActiveTk(); document.getElementById('takeoff-active-title').innerText=s.title;
+      tkPoints=[]; setTkMode('line');
+      if(s.blueprints && s.blueprints.length) {
+        document.getElementById('takeoff-empty').style.display='none'; tkImg.src=s.blueprints[0];
+        tkImg.onload=()=>{tkWrapper.style.width=tkImg.naturalWidth+'px'; tkWrapper.style.height=tkImg.naturalHeight+'px'; fitTakeoffBlueprintToView(); redrawTk();};
+      } else { document.getElementById('takeoff-empty').style.display='flex'; tkImg.src=''; tkWrapper.style.width='0px'; redrawTk(); }
+      renderTkSheet();
+    }
+    function fitTakeoffBlueprintToView() { if(!tkImg.naturalWidth) return; const s=Math.min((tkViewport.clientWidth*0.94)/tkImg.naturalWidth, (tkViewport.clientHeight*0.94)/tkImg.naturalHeight, 1.2); tkViewport.setPanZoom(s, (tkViewport.clientWidth-tkImg.naturalWidth*s)/2, (tkViewport.clientHeight-tkImg.naturalHeight*s)/2); }
+
+    function setupTkInteraction() {
+      tkSvg.onclick = e => {
+        const s = getActiveTk(); if(!s.blueprints.length || !tkImg.naturalWidth) return;
+        const rect = tkWrapper.getBoundingClientRect();
+        const pX = ((e.clientX - rect.left) / tkScale / tkImg.naturalWidth) * 100;
+        const pY = ((e.clientY - rect.top) / tkScale / tkImg.naturalHeight) * 100;
+        
+        tkPoints.push({x:pX, y:pY}); redrawTk();
+        
+        if(tkMode==='line' && tkPoints.length===2) { processLineMeasurement(s); }
+      };
+    }
+    
+    function processLineMeasurement(s) {
+      const p1=tkPoints[0], p2=tkPoints[1]; tkPoints=[]; // Reset
+      const pxDist = Math.hypot((p2.x-p1.x)/100*tkImg.naturalWidth, (p2.y-p1.y)/100*tkImg.naturalHeight);
+      
+      let meters = 0;
+      if(!s.pxToMeterScale) {
+        const val = prompt('Zaznaczono pierwszy odcinek referencyjny.\nPodaj jego rzeczywistą długość w metrach (np. 5.5):');
+        if(val && parseFloat(val.replace(',','.'))>0) { meters = parseFloat(val.replace(',','.')); s.pxToMeterScale = pxDist / meters; } else { redrawTk(); return; }
+      } else { meters = pxDist / s.pxToMeterScale; }
+      
+      const desc = prompt('Opis odcinka (np. Ściana):', 'Odcinek mb')||'mb';
+      s.lines.push({type:'line', p1, p2, val:meters}); s.items.push({id:'i-'+Date.now(), desc, val:meters, unit:'mb'});
+      persistData(); renderTkSheet(); redrawTk();
+    }
+    
+    function finishCurrentPolygon() {
+      if(tkPoints.length < 3) { alert('Potrzebujesz min. 3 punktów dla pola.'); return; }
+      const s = getActiveTk();
+      if(!s.pxToMeterScale) { alert('Narysuj najpierw odcinek mb, aby nadać skalę (kalibracja), a dopiero potem licz pola m2.'); tkPoints=[]; redrawTk(); return; }
+      
+      // Calculate Area using Shoelace in Pixels, then convert to meters
+      let areaPx = 0;
+      for(let i=0; i<tkPoints.length; i++) {
+        let j = (i+1)%tkPoints.length;
+        let p1x=(tkPoints[i].x/100)*tkImg.naturalWidth, p1y=(tkPoints[i].y/100)*tkImg.naturalHeight;
+        let p2x=(tkPoints[j].x/100)*tkImg.naturalWidth, p2y=(tkPoints[j].y/100)*tkImg.naturalHeight;
+        areaPx += p1x*p2y - p2x*p1y;
+      }
+      areaPx = Math.abs(areaPx / 2);
+      const m2 = areaPx / (s.pxToMeterScale * s.pxToMeterScale);
+      
+      const desc = prompt('Opis pola powierzchni (np. Płyta stropowa):', 'Powierzchnia m2')||'m2';
+      s.lines.push({type:'polygon', pts:[...tkPoints], val:m2}); s.items.push({id:'i-'+Date.now(), desc, val:m2, unit:'m2'});
+      tkPoints=[]; persistData(); renderTkSheet(); redrawTk();
+    }
+
+    function redrawTk() {
+      tkSvg.innerHTML=''; const s=getActiveTk(); if(!s.blueprints.length || !tkImg.naturalWidth) return;
+      const w=tkImg.naturalWidth, h=tkImg.naturalHeight;
+      
+      s.lines.forEach(l => {
+        if(l.type==='line') {
+          const x1=(l.p1.x/100)*w, y1=(l.p1.y/100)*h, x2=(l.p2.x/100)*w, y2=(l.p2.y/100)*h;
+          tkSvg.innerHTML+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#10b981" stroke-width="4"/><circle cx="${x1}" cy="${y1}" r="6" fill="#10b981" stroke="#fff" stroke-width="2"/><circle cx="${x2}" cy="${y2}" r="6" fill="#10b981" stroke="#fff" stroke-width="2"/>`;
+          tkSvg.innerHTML+=`<rect x="${(x1+x2)/2-25}" y="${(y1+y2)/2-10}" width="50" height="20" fill="#000" rx="4" stroke="#10b981"/><text x="${(x1+x2)/2}" y="${(y1+y2)/2+4}" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">${l.val.toFixed(2)}</text>`;
+        } else if(l.type==='polygon') {
+          const ptsStr = l.pts.map(p=>`${(p.x/100)*w},${(p.y/100)*h}`).join(' ');
+          tkSvg.innerHTML+=`<polygon points="${ptsStr}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6" stroke-width="3"/>`;
+          // Find center roughly
+          let minX=w, maxX=0, minY=h, maxY=0;
+          l.pts.forEach(p=>{ let px=(p.x/100)*w, py=(p.y/100)*h; if(px<minX)minX=px; if(px>maxX)maxX=px; if(py<minY)minY=py; if(py>maxY)maxY=py; });
+          tkSvg.innerHTML+=`<rect x="${(minX+maxX)/2-35}" y="${(minY+maxY)/2-10}" width="70" height="20" fill="#000" rx="4" stroke="#3b82f6"/><text x="${(minX+maxX)/2}" y="${(minY+maxY)/2+4}" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">${l.val.toFixed(2)} m2</text>`;
+        }
+      });
+      
+      // Rysowanie bieżących punktów
+      if(tkPoints.length>0) {
+        if(tkMode==='line') { const x=(tkPoints[0].x/100)*w, y=(tkPoints[0].y/100)*h; tkSvg.innerHTML+=`<circle cx="${x}" cy="${y}" r="6" fill="#ef4444" stroke="#fff" stroke-width="2" class="animate-pulse"/>`; }
+        else {
+          let str = ''; tkPoints.forEach((p,i)=>{ const x=(p.x/100)*w, y=(p.y/100)*h; str+=`${x},${y} `; tkSvg.innerHTML+=`<circle cx="${x}" cy="${y}" r="5" fill="#f59e0b"/>`; });
+          tkSvg.innerHTML+=`<polyline points="${str}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,5"/>`;
+        }
+      }
+    }
+
+    function renderTkSheet() {
+      const c = document.getElementById('takeoff-items-list'); c.innerHTML='';
+      const s = getActiveTk(); let smb=0, sm2=0;
+      s.items.forEach((i,idx) => {
+        if(i.unit==='mb') smb+=i.val; if(i.unit==='m2') sm2+=i.val;
+        c.innerHTML+=`<div class="flex justify-between items-center bg-[#181818] p-1.5 rounded"><div class="flex-1 truncate text-gray-300 pr-2">${idx+1}. <input type="text" value="${i.desc}" onchange="updateTkItem('${i.id}', this.value)" class="bg-transparent border-none text-white outline-none w-20 sm:w-28 text-[10px]"></div><span class="font-bold ${i.unit==='mb'?'text-emerald-400':'text-blue-400'}">${i.val.toFixed(2)} ${i.unit}</span><button onclick="deleteTkItem('${i.id}')" class="text-rose-400 ml-2"><i data-lucide="x" class="w-3 h-3"></i></button></div>`;
+      });
+      document.getElementById('tk-sum-mb').innerText = smb.toFixed(2)+' mb'; document.getElementById('tk-sum-m2').innerText = sm2.toFixed(2)+' m2';
+      if(!s.pxToMeterScale && s.blueprints.length) document.getElementById('tk-instruction').innerText='Zaznacz odcinek (2 punkty), aby nadać skalę w metrach.'; else if(s.blueprints.length) document.getElementById('tk-instruction').innerText=`Skala aktywna. Klikaj punkty.`;
+      if(window.lucide) lucide.createIcons();
+    }
+    function updateTkItem(id, v) { const i=getActiveTk().items.find(x=>x.id===id); if(i){i.desc=v; persistData();} }
+    function deleteTkItem(id) { const s=getActiveTk(); s.items=s.items.filter(x=>x.id!==id); persistData(); renderTkSheet(); } // Note: doesn't delete visual line yet for simplicity
+
+    async function openTakeoffPrintPreview() {
+      const s = getActiveTk(); closeTakeoffModal(); switchView('takeoff-print');
+      const c = document.getElementById('takeoff-print-container'); c.innerHTML='Generowanie...';
+      
+      let snap = '';
+      if(s.blueprints.length) {
+        const img=new Image(); img.src=s.blueprints[0]; await new Promise(r=>img.onload=r);
+        const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const ctx=cv.getContext('2d');
+        ctx.filter='grayscale(100%)'; ctx.drawImage(img,0,0); ctx.filter='none';
+        s.lines.forEach(l=>{
+          if(l.type==='line') {
+            const x1=(l.p1.x/100)*img.width, y1=(l.p1.y/100)*img.height, x2=(l.p2.x/100)*img.width, y2=(l.p2.y/100)*img.height;
+            ctx.strokeStyle='#10b981'; ctx.lineWidth=6; ctx.setLineDash([10,10]); ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.setLineDash([]);
+            [x1,x2].forEach((x,i)=>{ctx.fillStyle='#10b981'; ctx.beginPath(); ctx.arc(x,i===0?y1:y2,12,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();});
+            ctx.fillStyle='#000'; ctx.fillRect((x1+x2)/2-40, (y1+y2)/2-15, 80, 30); ctx.fillStyle='#fff'; ctx.font='bold 18px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(l.val.toFixed(2), (x1+x2)/2, (y1+y2)/2);
+          } else if(l.type==='polygon') {
+            ctx.fillStyle='rgba(59,130,246,0.3)'; ctx.strokeStyle='#3b82f6'; ctx.lineWidth=4; ctx.beginPath(); l.pts.forEach((p,i)=>{let x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}); ctx.closePath(); ctx.fill(); ctx.stroke();
+            let minX=img.width, maxX=0, minY=img.height, maxY=0; l.pts.forEach(p=>{let x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;});
+            ctx.fillStyle='#000'; ctx.fillRect((minX+maxX)/2-45, (minY+maxY)/2-15, 90, 30); ctx.fillStyle='#fff'; ctx.font='bold 16px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(l.val.toFixed(2)+' m2', (minX+maxX)/2, (minY+maxY)/2);
+          }
+        });
+        snap = cv.toDataURL('image/jpeg',0.8);
+      }
+      
+      c.innerHTML = `
+        <div class="a4-page">
+          <div class="flex justify-between items-start mb-4 pb-2 border-b-2 border-black">
+            <div><div class="text-[14pt] font-black uppercase">Obmiar z natury</div><div class="text-[11pt] font-bold text-emerald-800">${s.title}</div></div>
+            <div class="text-right text-[9pt]"><b>${appState.project.name}</b><br>${s.date}</div>
+          </div>
+          <div class="border border-black w-full h-[150mm] flex items-center justify-center overflow-hidden mb-4"><img src="${snap}" class="max-w-full max-h-full object-contain"></div>
+          <div class="text-[10pt] font-bold mb-1 text-black">Zestawienie:</div>
+          <table class="w-full border-collapse text-[9pt] text-black border border-black mb-4">
+            <tr class="bg-gray-100"><th class="border border-black p-1">Lp.</th><th class="border border-black p-1 text-left">Opis</th><th class="border border-black p-1 text-right">Wartość</th><th class="border border-black p-1">Jedn.</th></tr>
+            ${s.items.map((i,idx)=>`<tr><td class="border border-black p-1 text-center">${idx+1}</td><td class="border border-black p-1">${i.desc}</td><td class="border border-black p-1 text-right font-bold">${i.val.toFixed(2)}</td><td class="border border-black p-1 text-center">${i.unit}</td></tr>`).join('')}
+          </table>
+          <div class="mt-auto text-[8pt] border-t border-black pt-1">Podpis: .......................</div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
