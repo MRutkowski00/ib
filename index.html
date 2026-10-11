@@ -2062,11 +2062,21 @@ function exportProjectFile() {
       }; r.readAsText(e.target.files[0]); e.target.value='';
     }
     
+    // Kluczowa poprawka dla resetowania aplikacji - operacja blokująca
     function createNewEmptyProject() { 
       const req = indexedDB.deleteDatabase(DB_NAME); 
-      req.onsuccess = () => window.location.reload(); 
-      req.onerror = () => window.location.reload(); 
-      req.onblocked = () => { alert('Zresetowano. Odśwież stronę (Ctrl+F5) aby wczytać czysty projekt.'); window.location.reload(); };
+      req.onsuccess = () => {
+         console.log("Baza skasowana");
+         window.location.reload(); 
+      };
+      req.onerror = () => {
+         console.error("Błąd kasowania bazy");
+         window.location.reload(); 
+      };
+      req.onblocked = () => { 
+         alert('Proces zablokowany. Proszę odświeżyć stronę (Ctrl+F5) ręcznie.'); 
+         window.location.reload(); 
+      };
     }
     
     function toggleElement(id) { 
@@ -2076,7 +2086,6 @@ function exportProjectFile() {
         if(el.classList.contains('flex')){ el.classList.remove('hidden'); }
       }
     }
-    
   </script>
 </body>
 </html>
