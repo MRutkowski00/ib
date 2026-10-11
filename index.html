@@ -313,7 +313,7 @@
             <button onclick="exportNormsFile()" class="bg-[#1f1f1f] hover:bg-[#2a2a2a] text-purple-300 border border-purple-800/50 text-[11px] font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-colors"><i data-lucide="download" class="w-3.5 h-3.5"></i> Eksportuj</button>
             <input type="file" id="norms-file-input" accept=".json" class="hidden" onchange="importNormsFile(event)">
             <button onclick="document.getElementById('norms-file-input').click()" class="bg-[#1f1f1f] hover:bg-[#2a2a2a] text-purple-300 border border-purple-800/50 text-[11px] font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-colors"><i data-lucide="upload" class="w-3.5 h-3.5"></i> Importuj</button>
-            <button onclick="toggleElement('modal-add-norm-category')" class="bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-md transition-colors"><i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i> Norma</button>
+           <button onclick="openNormCategoryModal()" class="bg-purple-600 hover:bg-purple-500 ...
             <button onclick="toggleElement('modal-add-norm')" class="bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-md transition-colors"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Punkt kontrolny</button>
           </div>
         </div>
@@ -508,18 +508,25 @@
     </div>
   </div>
 
-<!-- MODAL: ADD NORM CAT -->
-  <div id="modal-add-norm-category" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-md shadow-2xl">
-      <div class="px-5 py-4 border-b border-[#222] flex justify-between items-center"><h3 class="text-sm font-bold text-white flex gap-2"><i data-lucide="file-plus-2" class="w-4 h-4 text-purple-400"></i> Dodaj Normę</h3><button onclick="toggleElement('modal-add-norm-category')" class="text-gray-400 hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button></div>
-      <div class="p-5 space-y-4 text-xs">
-        <div><label class="block text-gray-400 font-bold mb-1.5">Krótka nazwa (np. Tynki):</label><input type="text" id="new-norm-short" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl p-2.5 text-white outline-none focus:border-purple-500"></div>
-        <div><label class="block text-gray-400 font-bold mb-1.5">Pełny tytuł (np. Tynki gipsowe ITB):</label><input type="text" id="new-norm-title" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl p-2.5 text-white outline-none focus:border-purple-500"></div>
-        <div><label class="block text-gray-400 font-bold mb-1.5">Wytyczne i Tolerancje (każda w nowej linii):</label><textarea id="new-norm-guidelines" rows="3" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl p-2.5 text-white outline-none focus:border-purple-500"></textarea></div>
-      </div>
-      <div class="px-5 py-3.5 border-t border-[#222] bg-[#111] flex justify-end gap-2"><button onclick="toggleElement('modal-add-norm-category')" class="px-4 py-2 border border-[#333] hover:bg-[#222] rounded-xl text-xs text-gray-300 transition-colors">Anuluj</button><button onclick="saveNewNormCategory()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-colors">Zapisz normę</button></div>
+<!-- MODAL: ADD / EDIT NORM CAT -->
+<div id="modal-add-norm-category" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-md shadow-2xl">
+    <div class="px-5 py-4 border-b border-[#222] flex justify-between items-center">
+      <h3 id="modal-norm-cat-title" class="text-sm font-bold text-white flex gap-2 items-center"><i data-lucide="file-plus-2" class="w-4 h-4 text-purple-400"></i> Dodaj Normę</h3>
+      <button onclick="closeNormCategoryModal()" class="text-gray-400 hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="p-5 space-y-4 text-xs">
+      <input type="hidden" id="edit-norm-cat-id">
+      <div><label class="block text-gray-400 font-bold mb-1.5">Krótka nazwa (np. Tynki):</label><input type="text" id="new-norm-short" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl p-2.5 text-white outline-none focus:border-purple-500"></div>
+      <div><label class="block text-gray-400 font-bold mb-1.5">Pełny tytuł (np. Tynki gipsowe ITB):</label><input type="text" id="new-norm-title" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl p-2.5 text-white outline-none focus:border-purple-500"></div>
+      <div><label class="block text-gray-400 font-bold mb-1.5">Wytyczne i Tolerancje (każda w nowej linii):</label><textarea id="new-norm-guidelines" rows="3" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl p-2.5 text-white outline-none focus:border-purple-500"></textarea></div>
+    </div>
+    <div class="px-5 py-3.5 border-t border-[#222] bg-[#111] flex justify-end gap-2">
+      <button onclick="closeNormCategoryModal()" class="px-4 py-2 border border-[#333] hover:bg-[#222] rounded-xl text-xs text-gray-300 transition-colors">Anuluj</button>
+      <button onclick="saveNewNormCategory()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition-colors">Zapisz normę</button>
     </div>
   </div>
+</div>
 
   <!-- MODAL: ADD NORM ITEM -->
   <div id="modal-add-norm" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
@@ -812,6 +819,10 @@
       takeoffBook: { activeSessionId: 'tk-1', sessions: [{ id: 'tk-1', title: 'Obmiar Parter', date: new Date().toLocaleDateString('pl-PL'), blueprints: [], items: [], lines: [], pxToMeterScale: null }] },
      todos: [], calendarSchedule: [], customNormChecklist: [], customNormCategories: [], auditTrail: []
     };
+
+    // Pomocnicze okna dialogowe
+function uiAlert(msg) { alert(msg); }
+function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
 
     let navStack = ['dashboard'];
     let selectedPinId = null, tempPinPhoto = null, tempRohePhoto = null;
@@ -1353,10 +1364,14 @@
       if(!act || !card) return;
       
       card.innerHTML = `
-        <div class="flex justify-between items-start border-b border-[#222] pb-3 mb-3">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="book-check" class="w-4 h-4 text-purple-400"></i> ${act.title}</h3>
-          <button onclick="deleteNormCat('${act.id}')" class="text-rose-400 hover:text-rose-300 text-[10px] bg-rose-950/40 border border-rose-900/50 px-2 py-1 rounded transition-colors flex items-center gap-1 shrink-0"><i data-lucide="trash-2" class="w-3 h-3"></i> Usuń</button>
-        </div>
+  <div class="flex justify-between items-start border-b border-[#222] pb-3 mb-3">
+    <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="book-check" class="w-4 h-4 text-purple-400"></i> ${act.title}</h3>
+    <div class="flex items-center gap-2 shrink-0">
+      <button onclick="openNormCategoryModal('${act.id}')" class="text-purple-300 hover:text-white text-[10px] bg-purple-950/40 border border-purple-800/50 px-2 py-1 rounded transition-colors flex items-center gap-1"><i data-lucide="edit-2" class="w-3 h-3"></i> Edytuj</button>
+      <button onclick="deleteNormCat('${act.id}')" class="text-rose-400 hover:text-rose-300 text-[10px] bg-rose-950/40 border border-rose-900/50 px-2 py-1 rounded transition-colors flex items-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Usuń</button>
+    </div>
+  </div>
+`;
         
         <div class="space-y-1.5 pt-1">
           <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider block mb-2">Wytyczne i Tolerancje:</span>
@@ -1392,34 +1407,91 @@
     
     function renderNormCategoriesTabs() { renderNorms(); }
     
+   function openNormCategoryModal(id = null) {
+      const titleEl = document.getElementById('modal-norm-cat-title');
+      const idInput = document.getElementById('edit-norm-cat-id');
+      const shortInput = document.getElementById('new-norm-short');
+      const titleInput = document.getElementById('new-norm-title');
+      const guideInput = document.getElementById('new-norm-guidelines');
+      
+      if (id) {
+        const cat = appState.customNormCategories.find(c => c.id === id);
+        if (!cat) return;
+        idInput.value = cat.id;
+        shortInput.value = cat.short || '';
+        titleInput.value = cat.title || '';
+        guideInput.value = (cat.guidelines || []).join('\n');
+        if (titleEl) titleEl.innerHTML = '<i data-lucide="edit-3" class="w-4 h-4 text-purple-400"></i> Edytuj Normę';
+      } else {
+        idInput.value = '';
+        shortInput.value = '';
+        titleInput.value = '';
+        guideInput.value = '';
+        if (titleEl) titleEl.innerHTML = '<i data-lucide="file-plus-2" class="w-4 h-4 text-purple-400"></i> Dodaj Normę';
+      }
+      
+      const modal = document.getElementById('modal-add-norm-category');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeNormCategoryModal() {
+      const modal = document.getElementById('modal-add-norm-category');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
     function deleteNormCat(id) {
-       uiConfirm('Czy na pewno usunąć całą tę normę z bazy?', () => {
-          appState.customNormCategories = appState.customNormCategories.filter(c => c.id !== id);
-          activeNormCat = null; persistData(); renderNorms();
-       });
+      if (confirm('Czy na pewno chcesz bezpowrotnie usunąć tę normę z bazy?')) {
+        appState.customNormCategories = appState.customNormCategories.filter(c => c.id !== id);
+        activeNormCat = null;
+        persistData();
+        renderNorms();
+      }
     }
 
     function removeChecklist(catId, idx) { 
-      const n = appState.customNormCategories.find(c=>c.id===catId); 
-      if(n && n.checklist) n.checklist.splice(idx,1); 
-      persistData(); renderNorms(); 
+      const n = appState.customNormCategories.find(c => c.id === catId); 
+      if (n && n.checklist) n.checklist.splice(idx, 1); 
+      persistData(); 
+      renderNorms(); 
     }
-    
+
     function saveNewNormCategory() {
+      const editId = document.getElementById('edit-norm-cat-id').value;
       const short = document.getElementById('new-norm-short').value.trim();
       const title = document.getElementById('new-norm-title').value.trim();
       const g = document.getElementById('new-norm-guidelines').value;
       
-      if(!short || !title) { uiAlert('Podaj krótką nazwę i tytuł normy.'); return; }
-      if(!appState.customNormCategories) appState.customNormCategories = [];
+      if (!short || !title) { uiAlert('Podaj krótką nazwę i tytuł normy.'); return; }
+      if (!appState.customNormCategories) appState.customNormCategories = [];
       
-      appState.customNormCategories.push({ 
-        id: 'n-' + Date.now(), short: short, title: title, 
-        guidelines: g.split('\n').filter(Boolean), checklist: [] 
-      });
+      const guidelinesList = g.split('\n').map(s => s.trim()).filter(Boolean);
+
+      if (editId) {
+        const cat = appState.customNormCategories.find(c => c.id === editId);
+        if (cat) {
+          cat.short = short;
+          cat.title = title;
+          cat.guidelines = guidelinesList;
+          activeNormCat = editId;
+        }
+      } else {
+        const newId = 'n-' + Date.now();
+        appState.customNormCategories.push({ 
+          id: newId, 
+          short: short, 
+          title: title, 
+          guidelines: guidelinesList, 
+          checklist: [] 
+        });
+        activeNormCat = newId;
+      }
       
-      document.getElementById('new-norm-short').value=''; document.getElementById('new-norm-title').value=''; document.getElementById('new-norm-guidelines').value=''; 
-      toggleElement('modal-add-norm-category'); activeNormCat = null; persistData(); renderNorms();
+      closeNormCategoryModal();
+      persistData();
+      renderNorms();
     }
     
     function saveCustomNormItem() {
@@ -2062,22 +2134,29 @@ function exportProjectFile() {
       }; r.readAsText(e.target.files[0]); e.target.value='';
     }
     
-    // Kluczowa poprawka dla resetowania aplikacji - operacja blokująca
-    function createNewEmptyProject() { 
-      const req = indexedDB.deleteDatabase(DB_NAME); 
-      req.onsuccess = () => {
-         console.log("Baza skasowana");
-         window.location.reload(); 
-      };
-      req.onerror = () => {
-         console.error("Błąd kasowania bazy");
-         window.location.reload(); 
-      };
-      req.onblocked = () => { 
-         alert('Proces zablokowany. Proszę odświeżyć stronę (Ctrl+F5) ręcznie.'); 
-         window.location.reload(); 
-      };
-    }
+  // NOWY KOD RESETU:
+async function createNewEmptyProject() { 
+  if (!confirm('Czy na pewno chcesz wyczyścić aplikację?\nWszystkie rzuty, usterki, kalendarz i obmiary zostaną usunięte. Twoja baza norm pozostanie nienaruszona.')) return;
+
+  const zachowaneNormy = appState.customNormCategories || [];
+  const zachowanaChecklista = appState.customNormChecklist || [];
+
+  appState = {
+    project: { name: 'Nowy Projekt', contractor: '', docNum: 'RJ-01', date: new Date().toLocaleDateString('pl-PL') },
+    currentBuildingId: 'b-1',
+    buildings: [{ id: 'b-1', name: 'Budynek Główny', currentFloorId: 'b1-f0', floors: [{ id: 'b1-f0', name: 'Rzut Główny', blueprint: null, pins: [] }] }],
+    roheReport: { blueprint: null, defectTypes: [], pins: [] },
+    takeoffBook: { activeSessionId: 'tk-1', sessions: [{ id: 'tk-1', title: 'Obmiar Parter', date: new Date().toLocaleDateString('pl-PL'), blueprints: [], items: [], lines: [], pxToMeterScale: null }] },
+    todos: [], 
+    calendarSchedule: [], 
+    customNormChecklist: zachowanaChecklista, 
+    customNormCategories: zachowaneNormy, 
+    auditTrail: []
+  };
+
+  await persistData();
+  window.location.reload();
+}
     
     function toggleElement(id) { 
       const el = document.getElementById(id);
