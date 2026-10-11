@@ -1299,22 +1299,142 @@
       if(window.lucide) lucide.createIcons();
     }
 
-    // NORMY
+   /* NORMY - PEŁEN MODUŁ (Import/Eksport, Checklisty, Usterki) */
+    let activeNormCat = null;
+    
     function renderNorms() {
-      const bar=document.getElementById('norms-tabs-bar'), card=document.getElementById('norm-detail-card'), search=document.getElementById('norm-search')?.value.toLowerCase()||'';
-      bar.innerHTML=''; card.innerHTML='';
+      const bar = document.getElementById('norms-tabs-bar'), card = document.getElementById('norm-detail-card'), sel = document.getElementById('custom-norm-cat'), search = document.getElementById('norm-search')?.value.toLowerCase() || ''; 
+      bar.innerHTML = ''; card.innerHTML = ''; sel.innerHTML = '';
+      
       const cats = appState.customNormCategories.filter(c => c.title.toLowerCase().includes(search) || c.short.toLowerCase().includes(search));
-      cats.forEach(c => {
-        bar.innerHTML += `<button onclick="activeNormCat='${c.id}'; renderNorms();" class="px-3 py-1.5 rounded-lg border shrink-0 ${activeNormCat===c.id?'bg-[#222] border-purple-500 text-purple-400':'bg-[#111] border-[#333] text-gray-400'}">${c.short}</button>`;
-      });
-      const act = cats.find(c=>c.id===activeNormCat); if(!act) return;
-      card.innerHTML = `<div class="flex justify-between items-center border-b border-[#222] pb-2 mb-2"><h3 class="font-bold text-white text-xs">${act.title}</h3><button onclick="deleteNormCat('${act.id}')" class="text-rose-400 text-[10px] bg-rose-950/40 px-2 py-1 rounded">Usuń normę</button></div><ul class="text-[11px] text-gray-300 space-y-1 pl-4 list-disc">${act.guidelines.map(g=>`<li>${g}</li>`).join('')}</ul>`;
+      
+      if(cats.length === 0) {
+        card.innerHTML = `<div class="text-center py-10 text-xs text-gray-500 border border-dashed border-[#222] rounded-2xl">Brak norm w bazie. Użyj "Importuj" aby załadować plik JSON, lub stwórz normę ręcznie.</div>`;
+        return;
+      }
+      
+      if(!activeNormCat || !cats.find(n => n.id === activeNormCat)) activeNormCat = cats[0].id;
+      
+      cats.forEach(n => {
+        bar.innerHTML += `<button onclick="activeNormCat='${n.id}'; renderNorms();" class="px-3 py-1.5 rounded-lg border shrink-0 transition-colors ${activeNormCat===n.id?'bg-[#222] border-purple-500 text-purple-400 shadow-md':'bg-[#111] border-[#333] text-gray-400 hover:text-white'}"><div class="font-bold text-[11px]">${n.short}</div></button>`;
+        sel.innerHTML += `<option value="${n.id}">${n.short}</option>`;
+      }); 
+      
+      const act = cats.find(c => c.id === activeNormCat);
+      if(!act) return;
+      
+      card.innerHTML = `
+        <div class="flex justify-between items-start border-b border-[#222] pb-3 mb-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="book-check" class="w-4 h-4 text-purple-400"></i> ${act.title}</h3>
+          <button onclick="uiConfirm('Czy na pewno usunąć całą tę normę z bazy?', ()=>{appState.customNormCategories=appState.customNormCategories.filter(c=>c.id!=='${act.id}'); activeNormCat=null; persistData(); renderNorms();})" class="text-rose-400 hover:text-rose-300 text-[10px] bg-rose-950/40 border border-rose-900/50 px-2 py-1 rounded transition-colors flex items-center gap-1 shrink-0"><i data-lucide="trash-2" class="w-3 h-3"></i> Usuń</button>
+        </div>
+        
+        <div class="space-y-1.5 pt-1">
+          <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider block mb-2">Wytyczne i Tolerancje:</span>
+          <ul class="text-xs text-gray-300 space-y-1.5 pl-2">
+            ${act.guidelines && act.guidelines.length > 0 ? act.guidelines.map(g => `<li class="flex items-start gap-2"><span class="text-purple-500 mt-0.5 font-bold">•</span><span>${g}</span></li>`).join('') : '<li class="text-gray-500 italic text-[11px]">Brak wpisanych wytycznych głównych.</li>'}
+          </ul>
+        </div>
+        
+        <div class="mt-5 pt-3 border-t border-[#222]">
+          <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-3">Checklista punktów kontrolnych:</span>
+          <div class="space-y-2">
+            ${(act.checklist||[]).map((cItem, i) => `
+              <div class="flex justify-between items-center bg-[#1a1a1a] p-2.5 rounded-xl border border-[#333] gap-2">
+                <span class="text-xs text-gray-200">${cItem}</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button onclick="createDefectFromNorm('${cItem}')" class="text-[10px] font-bold bg-[#252525] hover:bg-rose-950 text-rose-400 border border-[#333] hover:border-rose-900/50 px-2 py-1.5 rounded-lg transition-colors shadow-sm">+ Usterka na rzut</button>
+                  <button onclick="removeChecklist('${act.id}',${i})" class="text-gray-500 hover:text-rose-400 p-1.5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                </div>
+              </div>
+            `).join('')}
+            ${(!act.checklist || act.checklist.length === 0) ? '<div class="text-[11px] text-gray-500 italic p-2 border border-dashed border-[#333] rounded-lg">Brak punktów na checkliście. Kliknij przycisk "Punkt kontrolny" na górze, aby je dodać.</div>' : ''}
+          </div>
+        </div>
+      `;
+      if(window.lucide) lucide.createIcons();
     }
+    
+    function removeChecklist(catId, idx) { 
+      const n = appState.customNormCategories.find(c=>c.id===catId); 
+      n.checklist.splice(idx,1); 
+      persistData(); renderNorms(); 
+    }
+    
     function saveNewNormCategory() {
-      appState.customNormCategories.push({ id:'n-'+Date.now(), short:document.getElementById('new-norm-short').value||'Norma', title:document.getElementById('new-norm-title').value||'Nowa Norma', guidelines:document.getElementById('new-norm-guidelines').value.split('\n').filter(Boolean) });
-      document.getElementById('new-norm-short').value=''; document.getElementById('new-norm-title').value=''; document.getElementById('new-norm-guidelines').value=''; toggleElement('modal-add-norm-category'); persistData(); renderNorms();
+      const short = document.getElementById('new-norm-short').value.trim();
+      const title = document.getElementById('new-norm-title').value.trim();
+      const g = document.getElementById('new-norm-guidelines').value;
+      
+      if(!short || !title) { uiAlert('Podaj krótką nazwę zakładki i tytuł normy.'); return; }
+      
+      appState.customNormCategories.push({ 
+        id: 'n-' + Date.now(), 
+        short: short, 
+        title: title, 
+        guidelines: g.split('\n').filter(Boolean), 
+        checklist: [] 
+      });
+      
+      document.getElementById('new-norm-short').value=''; 
+      document.getElementById('new-norm-title').value=''; 
+      document.getElementById('new-norm-guidelines').value=''; 
+      toggleElement('modal-add-norm-category'); 
+      persistData(); renderNorms();
     }
-    function deleteNormCat(id) { if(confirm('Usunąć normę?')){ appState.customNormCategories=appState.customNormCategories.filter(x=>x.id!==id); persistData(); renderNorms(); } }
+    
+    function saveCustomNormItem() {
+      const catId = document.getElementById('custom-norm-cat').value;
+      const text = document.getElementById('custom-norm-text').value.trim();
+      
+      if(!text) return;
+      
+      const n = appState.customNormCategories.find(c => c.id === catId); 
+      if(n) {
+        if(!n.checklist) n.checklist = [];
+        n.checklist.push(text);
+      }
+      
+      document.getElementById('custom-norm-text').value=''; 
+      toggleElement('modal-add-norm'); 
+      activeNormCat = catId; 
+      persistData(); renderNorms();
+    }
+    
+    function exportNormsFile() {
+      if(appState.customNormCategories.length === 0) { uiAlert('Brak norm do eksportu.'); return; }
+      const a = document.createElement('a'); 
+      a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState.customNormCategories, null, 2));
+      a.download = `Baza_Norm_ITB_${new Date().toISOString().slice(0,10)}.json`; 
+      a.click();
+    }
+    
+    function importNormsFile(e) {
+      const file = e.target.files[0];
+      if(!file) return;
+      const r = new FileReader(); 
+      r.onload = (evt) => {
+        try { 
+          const d = JSON.parse(evt.target.result); 
+          if(Array.isArray(d)) {
+            appState.customNormCategories = [...appState.customNormCategories, ...d]; 
+            persistData(); renderNorms(); 
+            uiAlert('Pomyślnie zaimportowano bazę norm.');
+          } else { uiAlert('Plik nie jest w poprawnym formacie norm JSON.'); }
+        } catch(err) { uiAlert('Błąd krytyczny podczas odczytu pliku!'); }
+      }; 
+      r.readAsText(file); 
+      e.target.value='';
+    }
+    
+    function createDefectFromNorm(text) {
+      switchView('plan');
+      setTimeout(() => {
+        openPinModal(null, { x: 50, y: 50 });
+        document.getElementById('modal-pin-desc').value = `Zgodnie z normą: ${text}`;
+      }, 300);
+    }
+    
     function filterNorms(val) { renderNorms(); }
 
     // KALKULATOR
