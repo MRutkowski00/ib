@@ -72,17 +72,20 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
 
-    @page { size: A4; margin: 0; }
-    
+   @page { size: A4; margin: 0; }
     @media print {
-      html, body { width: 210mm; height: 100%; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
+      html, body { width: 100%; height: auto !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
       .no-print, header, nav, #structure-subbar, #floating-tools-container, .modal-backdrop { display: none !important; }
-      .print-panel { display: block !important; position: static !important; overflow: visible !important; height: auto !important; }
+      .view-panel { display: none !important; }
+      .view-panel:not(.hidden) { display: block !important; position: static !important; overflow: visible !important; height: auto !important; }
       .a4-page { 
-        margin: 0 !important; box-shadow: none !important; border: none !important; 
-        page-break-after: always; break-inside: avoid; min-height: 297mm !important;
+        width: 100% !important; margin: 0 auto !important; padding: 10mm 15mm !important; 
+        box-shadow: none !important; border: none !important; 
+        page-break-after: always; break-inside: avoid; min-height: auto !important;
       }
+      .a4-page:last-child { page-break-after: auto; }
     }
+    
   </style>
 </head>
 <body class="antialiased">
@@ -553,7 +556,7 @@
             <div id="calc-tape-list" class="space-y-0.5 max-h-20 overflow-y-auto"></div>
           </div>
         </div>
-        <!-- Inne zakładki kalkulatora (Zoptymalizowane) -->
+        <!-- Inne zakładki kalkulatora -->
         <div id="calc-panel-concrete" class="hidden space-y-2">
           <div class="grid grid-cols-4 gap-1">
             <input type="text" id="calc-c-n" placeholder="Nazwa" class="col-span-4 bg-[#111] border border-[#333] p-1 rounded text-white">
@@ -653,23 +656,23 @@
         </div>
 
        <div id="takeoff-viewport" class="w-full h-full relative overflow-hidden bg-[#060606]">
-  <div id="takeoff-drawing-container" class="absolute origin-top-left will-change-transform">
-    <img id="takeoff-img" class="block pointer-events-none select-none max-w-none opacity-80 filter grayscale" />
-    <svg id="takeoff-svg-layer" class="absolute inset-0 w-full h-full cursor-crosshair pointer-events-auto"></svg>
-  </div>
+          <div id="takeoff-drawing-container" class="absolute origin-top-left will-change-transform">
+            <img id="takeoff-img" class="block pointer-events-none select-none max-w-none opacity-80 filter grayscale" />
+            <svg id="takeoff-svg-layer" class="absolute inset-0 w-full h-full cursor-crosshair pointer-events-auto"></svg>
+          </div>
 
-  <!-- NOWA LINIA -->
-  <div id="takeoff-empty" class="absolute inset-0 flex items-center justify-center text-[11px] text-gray-500 text-center p-4 pointer-events-none">Wgraj rzut albo kliknij „Pusty szkic”.</div>
-</div>
+          <!-- NOWA LINIA -->
+          <div id="takeoff-empty" class="absolute inset-0 flex items-center justify-center text-[11px] text-gray-500 text-center p-4 pointer-events-none">Wgraj rzut albo kliknij „Pusty szkic”.</div>
+        </div>
 
         <!-- Pływające powiadomienie instrukcyjne na dole -->
-<div class="absolute bottom-2 left-2 right-2 bg-black/80 text-white text-[10px] p-2 rounded border border-[#333] text-center flex items-center justify-between gap-2 z-20">
-  <span id="tk-instruction" class="flex-1 truncate">Wgraj podkład rzutu lub użyj „Pusty szkic”.</span>
-  <button id="tk-undo-btn" onclick="undoTkPoint()" class="hidden bg-[#2a2a2a] border border-[#444] px-2 py-0.5 rounded whitespace-nowrap">↶ Cofnij</button>
-  <button id="tk-finish-btn" onclick="finishCurrentPolygon()" class="hidden bg-emerald-600 px-2 py-0.5 rounded whitespace-nowrap">Policz pole →</button>
-</div>
+        <div class="absolute bottom-2 left-2 right-2 bg-black/80 text-white text-[10px] p-2 rounded border border-[#333] text-center flex items-center justify-between gap-2 z-20">
+          <span id="tk-instruction" class="flex-1 truncate">Wgraj podkład rzutu lub użyj „Pusty szkic”.</span>
+          <button id="tk-undo-btn" onclick="undoTkPoint()" class="hidden bg-[#2a2a2a] border border-[#444] px-2 py-0.5 rounded whitespace-nowrap">↶ Cofnij</button>
+          <button id="tk-finish-btn" onclick="finishCurrentTakeoff()" class="hidden bg-emerald-600 px-2 py-0.5 rounded whitespace-nowrap">Policz →</button>
+        </div>
         
- </div> <!-- koniec obszaru roboczego rzutu -->
+      </div> <!-- koniec obszaru roboczego rzutu -->
         
       <!-- Prawy panel: Wyniki -->
       <div class="w-full md:w-64 bg-[#111] flex flex-col shrink-0 h-48 md:h-auto border-t md:border-t-0 md:border-l border-[#222]">
@@ -682,49 +685,79 @@
     </div>
   </div>
 
-    <div id="modal-area-measure" class="modal-backdrop fixed inset-0 bg-black/85 backdrop-blur-sm z-[60] hidden items-center justify-center p-2">
-  <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
-    <div class="px-4 py-2.5 border-b border-[#242424] flex justify-between items-center shrink-0">
-      <h3 class="text-xs font-bold text-white flex items-center gap-2"><i data-lucide="ruler" class="w-4 h-4 text-blue-400"></i> Pomiary z natury → pole powierzchni</h3>
-      <button onclick="closeAreaModal()" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
-    </div>
+  <div id="modal-area-measure" class="modal-backdrop fixed inset-0 bg-black/85 backdrop-blur-sm z-[60] hidden items-center justify-center p-2">
+    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-[#242424] flex justify-between items-center shrink-0">
+        <h3 class="text-xs font-bold text-white flex items-center gap-2"><i data-lucide="ruler" class="w-4 h-4 text-blue-400"></i> Pomiary z natury → pole powierzchni</h3>
+        <button onclick="closeAreaModal()" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
 
-    <div class="flex-1 overflow-y-auto p-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
-      <div class="space-y-2">
-        <div class="bg-[#0b0b0b] border border-[#262626] rounded-lg overflow-hidden">
-          <svg id="am-svg" viewBox="0 0 320 240" class="w-full h-52 sm:h-64"></svg>
+      <div class="flex-1 overflow-y-auto p-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+        <div class="space-y-2">
+          <div class="bg-[#0b0b0b] border border-[#262626] rounded-lg overflow-hidden">
+            <svg id="am-svg" viewBox="0 0 320 240" class="w-full h-52 sm:h-64"></svg>
+          </div>
+          <div id="am-caption" class="text-[10px] text-gray-500 text-center"></div>
+          <div id="am-rect-wrap" class="hidden">
+            <label class="flex items-center gap-2 text-gray-200 bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg p-2 cursor-pointer">
+              <input type="checkbox" id="am-rect" onchange="onAmRectToggle()" class="accent-blue-500">
+              Prostokąt (kąty proste) – wystarczą 2 boki
+            </label>
+          </div>
         </div>
-        <div id="am-caption" class="text-[10px] text-gray-500 text-center"></div>
-        <div id="am-rect-wrap" class="hidden">
-          <label class="flex items-center gap-2 text-gray-200 bg-[#1a1a1a] border border-[#2e2e2e] rounded-lg p-2 cursor-pointer">
-            <input type="checkbox" id="am-rect" onchange="onAmRectToggle()" class="accent-blue-500">
-            Prostokąt (kąty proste) – wystarczą 2 boki
-          </label>
+
+        <div class="space-y-2">
+          <div id="am-inputs" class="space-y-1.5"></div>
+          <details id="am-extra" class="hidden bg-[#101010] border border-[#262626] rounded-lg p-2">
+            <summary class="cursor-pointer text-gray-400">Pomiary kontrolne (opcjonalne, wykrywają błędy)</summary>
+            <div id="am-extra-inputs" class="space-y-1.5 mt-2"></div>
+          </details>
+          <div id="am-msgs" class="space-y-1"></div>
         </div>
       </div>
 
-      <div class="space-y-2">
-        <div id="am-inputs" class="space-y-1.5"></div>
-        <details id="am-extra" class="hidden bg-[#101010] border border-[#262626] rounded-lg p-2">
-          <summary class="cursor-pointer text-gray-400">Pomiary kontrolne (opcjonalne, wykrywają błędy)</summary>
-          <div id="am-extra-inputs" class="space-y-1.5 mt-2"></div>
-        </details>
-        <div id="am-msgs" class="space-y-1"></div>
-      </div>
-    </div>
-
-    <div class="px-4 py-2.5 border-t border-[#242424] bg-[#111] flex items-center justify-between gap-3 shrink-0">
-      <div>
-        <div id="am-result" class="text-xl font-black text-blue-400 font-mono leading-tight">—</div>
-        <div id="am-sub" class="text-[10px] text-gray-500"></div>
-      </div>
-      <div class="flex items-center gap-2">
-        <input type="text" id="am-desc" placeholder="Opis (np. Taras)" class="w-32 sm:w-44 bg-[#1b1b1b] border border-[#333] rounded px-2 py-1.5 text-white text-[11px] outline-none">
-        <button id="am-save" onclick="saveAreaFromModal()" disabled class="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-semibold text-[11px] opacity-40">Zapisz</button>
+      <div class="px-4 py-2.5 border-t border-[#242424] bg-[#111] flex items-center justify-between gap-3 shrink-0">
+        <div>
+          <div id="am-result" class="text-xl font-black text-blue-400 font-mono leading-tight">—</div>
+          <div id="am-sub" class="text-[10px] text-gray-500"></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="am-desc" placeholder="Opis (np. Taras)" class="w-32 sm:w-44 bg-[#1b1b1b] border border-[#333] rounded px-2 py-1.5 text-white text-[11px] outline-none">
+          <button id="am-save" onclick="saveAreaFromModal()" disabled class="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-semibold text-[11px] opacity-40">Zapisz</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+
+  <div id="modal-line-measure" class="modal-backdrop fixed inset-0 bg-black/85 backdrop-blur-sm z-[60] hidden items-center justify-center p-2">
+    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-3xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-[#242424] flex justify-between items-center shrink-0">
+        <h3 class="text-xs font-bold text-white flex items-center gap-2"><i data-lucide="ruler" class="w-4 h-4 text-emerald-400"></i> Pomiary z natury → odcinek (mb)</h3>
+        <button onclick="closeLineModal()" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+        <div class="space-y-2">
+          <div class="bg-[#0b0b0b] border border-[#262626] rounded-lg overflow-hidden">
+            <svg id="lm-svg" viewBox="0 0 320 240" class="w-full h-52 sm:h-64"></svg>
+          </div>
+          <div class="text-[10px] text-gray-500 text-center">Szkic poglądowy wieloboku (nie w skali)</div>
+        </div>
+        <div class="space-y-2">
+          <div id="lm-inputs" class="space-y-1.5"></div>
+          <div id="lm-msgs" class="space-y-1"></div>
+        </div>
+      </div>
+      <div class="px-4 py-2.5 border-t border-[#242424] bg-[#111] flex items-center justify-between gap-3 shrink-0">
+        <div>
+          <div id="lm-result" class="text-xl font-black text-emerald-400 font-mono leading-tight">—</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="lm-desc" placeholder="Opis (np. Ściana)" class="w-32 sm:w-44 bg-[#1b1b1b] border border-[#333] rounded px-2 py-1.5 text-white text-[11px] outline-none">
+          <button id="lm-save" onclick="saveLineFromModal()" disabled class="px-4 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-[11px] opacity-40">Zapisz</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     // Wektorowe Logo
@@ -851,7 +884,7 @@
       
       setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y;});
       setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y;});
-      setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y;});
+     setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y; redrawTk();});
       
       renderStructureSubbar(); loadFloor(appState.buildings[0].currentFloorId);
       renderTodos(); renderCalendar(); renderNorms(); renderRoheDefects(); renderRohePhotos();
@@ -1075,7 +1108,7 @@
 
     async function renderRoheReportPages() {
       const c = document.getElementById('rohe-report-container'); c.innerHTML='<div class="text-center py-4">Ładowanie RJ-V...</div>';
-      const mDoc=document.getElementById('rohe-meta-docnum').value, mDat=document.getElementById('rohe-meta-date').value, mAut=document.getElementById('rohe-meta-author').value, mCon=document.getElementById('rohe-meta-contractor').value, mPro=document.getElementById('rohe-meta-project').value, mSub=document.getElementById('rohe-meta-subject').value, mTra=document.getElementById('rohe-meta-trade').value, mLoc=document.getElementById('rohe-meta-loc').value, mRef=document.getElementById('rohe-meta-norms-ref').value, mTxt=document.getElementById('rohe-meta-bodytext').value;
+      const mDoc=document.getElementById('rohe-meta-docnum').value, mDat=document.getElementById('rohe-meta-date').value, mAut=document.getElementById('rohe-meta-author').value, mCon=document.getElementById('rohe-meta-contractor').value, mPro=document.getElementById('rohe-meta-project').value, mSub=document.getElementById('rohe-meta-subject').value, mTra=document.getElementById('rohe-meta-trade')?.value||'', mLoc=document.getElementById('rohe-meta-loc')?.value||'', mRef=document.getElementById('rohe-meta-norms-ref')?.value||'', mTxt=document.getElementById('rohe-meta-bodytext')?.value||'';
       
       let html = '';
       html += `
@@ -1090,10 +1123,7 @@
             <tr><td class="border border-black p-1 bg-gray-50">Projekt:</td><td class="border border-black p-1 font-bold" colspan="3">${mPro}</td></tr>
             <tr><td class="border border-black p-1 bg-gray-50">Sporządził:</td><td class="border border-black p-1">${mAut}</td><td class="border border-black p-1 bg-gray-50">Wykonawca:</td><td class="border border-black p-1 font-bold">${mCon}</td></tr>
             <tr><td class="border border-black p-1 bg-gray-50">Dotyczy:</td><td class="border border-black p-1" colspan="3">${mSub}</td></tr>
-            <tr><td class="border border-black p-1 bg-gray-50">Branża:</td><td class="border border-black p-1">${mTra==='Budowlana'?'☑':'☐'} Budowlana ${mTra==='Sanitarna'?'☑':'☐'} Sanitarna</td><td class="border border-black p-1 bg-gray-50">Lokalizacja:</td><td class="border border-black p-1">${mLoc}</td></tr>
           </table>
-          <div class="text-[9pt] mb-2 text-black leading-relaxed">${mTxt.replace(/\n/g,'<br>')}</div>
-          <div class="text-[9pt] font-semibold mb-3 bg-gray-50 border border-gray-300 p-1.5">Podstawa: <i>${mRef}</i></div>
           <div class="text-[10pt] font-bold text-black mb-1">Wykaz wad:</div>
           <ol class="list-decimal pl-5 text-[9pt] text-black">
             ${appState.roheReport.defectTypes.map(d=>`<li><b>${d.text}</b></li>`).join('')}
@@ -1216,36 +1246,35 @@
     let tkPoints = []; // Ostatnio klikane punkty
     
     function setTkMode(m) {
-  tkMode = m;
-  document.getElementById('tk-mode-line').className = `px-2 rounded-l ${m==='line'?'bg-emerald-600 text-white':'text-gray-400'}`;
-  document.getElementById('tk-mode-area').className = `px-2 rounded-r ${m==='area'?'bg-emerald-600 text-white':'text-gray-400'}`;
-  tkPoints = []; redrawTk(); updateTkInstruction();
-}
+      tkMode = m;
+      document.getElementById('tk-mode-line').className = `px-2 rounded-l ${m==='line'?'bg-emerald-600 text-white':'text-gray-400'}`;
+      document.getElementById('tk-mode-area').className = `px-2 rounded-r ${m==='area'?'bg-emerald-600 text-white':'text-gray-400'}`;
+      tkPoints = []; redrawTk(); updateTkInstruction();
+    }
 
-function updateTkInstruction() {
-  const el = document.getElementById('tk-instruction'); if (!el) return;
-  const s = getActiveTk(), n = tkPoints.length;
-  document.getElementById('tk-undo-btn').classList.toggle('hidden', n === 0);
-  document.getElementById('tk-finish-btn').classList.toggle('hidden', !(tkMode === 'area' && n >= 3));
-  if (!s.blueprints.length) el.innerText = 'Wgraj podkład rzutu lub użyj „Pusty szkic”.';
-  else if (tkMode === 'area') el.innerText = n < 3
-    ? `Pole z pomiarów: klikaj narożniki po kolei dookoła (punkty: ${n}). Rysunek może być z grubsza – liczą się wymiary, które wpiszesz.`
-    : `Punkty: ${n}. Dodaj kolejne albo kliknij „Policz pole →”.`;
-  else if (!s.pxToMeterScale) el.innerText = 'Zaznacz odcinek (2 punkty), aby nadać skalę w metrach.';
-  else el.innerText = 'Skala aktywna. Klikaj punkty.';
-}
+    function updateTkInstruction() {
+      const el = document.getElementById('tk-instruction'); if (!el) return;
+      const s = getActiveTk(), n = tkPoints.length;
+      document.getElementById('tk-undo-btn').classList.toggle('hidden', n === 0);
+      document.getElementById('tk-finish-btn').classList.toggle('hidden', (tkMode === 'area' ? n < 3 : n < 2));
+      document.getElementById('tk-finish-btn').innerHTML = tkMode === 'area' ? 'Policz pole →' : 'Policz mb →';
+      
+      if (!s.blueprints.length) el.innerText = 'Wgraj podkład rzutu lub użyj „Pusty szkic”.';
+      else if (tkMode === 'area') el.innerText = n < 3 ? `Pole z pomiarów: klikaj narożniki (punkty: ${n}).` : `Punkty: ${n}. Dodaj kolejne albo kliknij „Policz pole →”.`;
+      else el.innerText = n < 2 ? `Odcinek mb: zaznacz min. 2 punkty na szkicu.` : `Punkty: ${n}. Kontynuuj linię albo kliknij „Policz mb →”.`;
+    }
 
-function undoTkPoint() { tkPoints.pop(); redrawTk(); updateTkInstruction(); }
+    function undoTkPoint() { tkPoints.pop(); redrawTk(); updateTkInstruction(); }
 
-function useBlankSketch() {
-  const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 1000;
-  const c = cv.getContext('2d'); c.fillStyle = '#ffffff'; c.fillRect(0, 0, 1600, 1000);
-  c.strokeStyle = '#e5e7eb'; c.lineWidth = 2;
-  for (let x = 0; x <= 1600; x += 100) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 1000); c.stroke(); }
-  for (let y = 0; y <= 1000; y += 100) { c.beginPath(); c.moveTo(0, y); c.lineTo(1600, y); c.stroke(); }
-  const s = getActiveTk(); s.blueprints = [cv.toDataURL('image/jpeg', 0.7)]; s.pxToMeterScale = null;
-  persistData(); loadTkSess();
-}
+    function useBlankSketch() {
+      const cv = document.createElement('canvas'); cv.width = 1600; cv.height = 1000;
+      const c = cv.getContext('2d'); c.fillStyle = '#ffffff'; c.fillRect(0, 0, 1600, 1000);
+      c.strokeStyle = '#e5e7eb'; c.lineWidth = 2;
+      for (let x = 0; x <= 1600; x += 100) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 1000); c.stroke(); }
+      for (let y = 0; y <= 1000; y += 100) { c.beginPath(); c.moveTo(0, y); c.lineTo(1600, y); c.stroke(); }
+      const s = getActiveTk(); s.blueprints = [cv.toDataURL('image/jpeg', 0.7)]; s.pxToMeterScale = null;
+      persistData(); loadTkSess();
+    }
     
     function getActiveTk() { let s=appState.takeoffBook.sessions.find(x=>x.id===appState.takeoffBook.activeSessionId); if(!s){s=appState.takeoffBook.sessions[0]; appState.takeoffBook.activeSessionId=s.id;} return s; }
     function openTakeoffModal() { document.getElementById('modal-takeoff').classList.remove('hidden'); document.getElementById('modal-takeoff').classList.add('flex'); renderTkList(); loadTkSess(); }
@@ -1282,318 +1311,465 @@ function useBlankSketch() {
     }
     function fitTakeoffBlueprintToView() { if(!tkImg.naturalWidth) return; const s=Math.min((tkViewport.clientWidth*0.94)/tkImg.naturalWidth, (tkViewport.clientHeight*0.94)/tkImg.naturalHeight, 1.2); tkViewport.setPanZoom(s, (tkViewport.clientWidth-tkImg.naturalWidth*s)/2, (tkViewport.clientHeight-tkImg.naturalHeight*s)/2); }
     
-    function processLineMeasurement(s) {
-      const p1=tkPoints[0], p2=tkPoints[1]; tkPoints=[]; // Reset
-      const pxDist = Math.hypot((p2.x-p1.x)/100*tkImg.naturalWidth, (p2.y-p1.y)/100*tkImg.naturalHeight);
-      
-      let meters = 0;
-      if(!s.pxToMeterScale) {
-        const val = prompt('Zaznaczono pierwszy odcinek referencyjny.\nPodaj jego rzeczywistą długość w metrach (np. 5.5):');
-        if(val && parseFloat(val.replace(',','.'))>0) { meters = parseFloat(val.replace(',','.')); s.pxToMeterScale = pxDist / meters; } else { redrawTk(); return; }
-      } else { meters = pxDist / s.pxToMeterScale; }
-      
-      const desc = prompt('Opis odcinka (np. Ściana):', 'Odcinek mb')||'mb';
-     const id = 'i-' + Date.now();
-s.lines.push({id, type:'line', p1, p2, val:meters}); s.items.push({id, desc, val:meters, unit:'mb'});
-      persistData(); renderTkSheet(); redrawTk();
-    }
-    
     function setupTkInteraction() {
-  tkSvg.onclick = e => {
-    const s = getActiveTk(); if (!s.blueprints.length || !tkImg.naturalWidth) return;
-    const rect = tkWrapper.getBoundingClientRect();
-    const pX = ((e.clientX - rect.left) / tkScale / tkImg.naturalWidth) * 100;
-    const pY = ((e.clientY - rect.top) / tkScale / tkImg.naturalHeight) * 100;
-    tkPoints.push({x: pX, y: pY}); redrawTk(); updateTkInstruction();
-    if (tkMode === 'line' && tkPoints.length === 2) processLineMeasurement(s);
-  };
-}
-      // ================= POLE Z POMIARÓW: TRIANGULACJA + WZÓR HERONA =================
-function amName(i) { return i < 26 ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[i] : 'P' + (i + 1); }
-function amKey(i, j) { return i < j ? `${i}-${j}` : `${j}-${i}`; }
-function heron(a, b, c) { const s = (a + b + c) / 2; return Math.sqrt(Math.max(0, s * (s - a) * (s - b) * (s - c))); }
-let am = null;
-
-// Wybór przekątnych na podstawie KOLEJNOŚCI punktów na szkicu (ear clipping)
-function triangulateSketch(pts) {
-  const n = pts.length, cross = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-  let a2 = 0; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a2 += pts[i].x * pts[j].y - pts[j].x * pts[i].y; }
-  if (Math.abs(a2) < 1e-9) return null;
-  const ccw = a2 > 0;
-  const inTri = (p, a, b, c) => { const d1 = cross(a, b, p), d2 = cross(b, c, p), d3 = cross(c, a, p);
-    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0)); };
-  const idx = [...Array(n).keys()], tris = [];
-  while (idx.length > 3) {
-    let clipped = false;
-    for (let k = 0; k < idx.length; k++) {
-      const ia = idx[(k - 1 + idx.length) % idx.length], ib = idx[k], ic = idx[(k + 1) % idx.length];
-      const cr = cross(pts[ia], pts[ib], pts[ic]);
-      if ((ccw && cr <= 0) || (!ccw && cr >= 0)) continue;
-      if (idx.some(j => j !== ia && j !== ib && j !== ic && inTri(pts[j], pts[ia], pts[ib], pts[ic]))) continue;
-      tris.push([ia, ib, ic]); idx.splice(k, 1); clipped = true; break;
+      tkSvg.onclick = e => {
+        const s = getActiveTk(); if (!s.blueprints.length || !tkImg.naturalWidth) return;
+        const rect = tkWrapper.getBoundingClientRect();
+        const pX = ((e.clientX - rect.left) / tkScale / tkImg.naturalWidth) * 100;
+        const pY = ((e.clientY - rect.top) / tkScale / tkImg.naturalHeight) * 100;
+        tkPoints.push({x: pX, y: pY}); redrawTk(); updateTkInstruction();
+      };
     }
-    if (!clipped) return null; // figura przecina samą siebie
-  }
-  tris.push([idx[0], idx[1], idx[2]]);
-  return tris;
-}
 
-function finishCurrentPolygon() {
-  if (tkPoints.length < 3) { alert('Potrzebujesz min. 3 punktów.'); return; }
-  openAreaModal(tkPoints.map(p => ({...p})), null);
-}
-function editAreaMeasurements(id) {
-  const s = getActiveTk(), l = s.lines.find(x => x.id === id && x.type === 'polygon'), it = s.items.find(x => x.id === id);
-  if (l) openAreaModal(l.pts, {id, vals: l.vals || {}, rect: !!l.rect, desc: it ? it.desc : ''});
-}
-
-function openAreaModal(pts, existing) {
-  const W = tkImg.naturalWidth, H = tkImg.naturalHeight, n = pts.length;
-  const px = pts.map(p => ({x: p.x / 100 * W, y: p.y / 100 * H}));
-  const tris = triangulateSketch(px);
-  if (!tris) { alert('Obrys przecina sam siebie. Zaznaczaj narożniki po kolei dookoła figury (bez „zygzaka”).'); return; }
-  const isSide = (a, b) => { const d = Math.abs(a - b); return d === 1 || d === n - 1; };
-  const diagSet = new Set(), diags = [];
-  tris.forEach(t => [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]].forEach(([a, b]) => {
-    if (!isSide(a, b) && !diagSet.has(amKey(a, b))) { diagSet.add(amKey(a, b)); diags.push([Math.min(a, b), Math.max(a, b)]); }
-  }));
-  const extras = [];
-  for (let a = 0; a < n; a++) for (let b = a + 2; b < n; b++) { if (a === 0 && b === n - 1) continue; if (!diagSet.has(amKey(a, b))) extras.push([a, b]); }
-  am = { pts, px, n, tris, sides: pts.map((_, i) => [i, (i + 1) % n]), diags, extras,
-         vals: existing ? {...existing.vals} : {}, rect: existing ? !!existing.rect : false,
-         editId: existing ? existing.id : null, coords: null, area: null, areaOk: false };
-  document.getElementById('am-desc').value = existing ? existing.desc : '';
-  document.getElementById('am-rect-wrap').classList.toggle('hidden', n !== 4);
-  document.getElementById('am-rect').checked = am.rect;
-  amRenderInputs(); amRecalc();
-  const m = document.getElementById('modal-area-measure'); m.classList.remove('hidden'); m.classList.add('flex');
-  if (window.lucide) lucide.createIcons();
-  setTimeout(() => document.querySelector('#am-inputs input')?.focus(), 80);
-}
-function closeAreaModal() { const m = document.getElementById('modal-area-measure'); m.classList.add('hidden'); m.classList.remove('flex'); }
-function onAmRectToggle() { am.rect = document.getElementById('am-rect').checked; amRenderInputs(); amRecalc(); }
-
-function amRaw(i, j) { const v = parseFloat(String(am.vals[amKey(i, j)] ?? '').replace(',', '.')); return v > 0 ? v : null; }
-function amLen(i, j) {
-  if (!am.rect) return amRaw(i, j);
-  const a = amRaw(0, 1), b = amRaw(1, 2); if (!a || !b) return null;
-  const k = amKey(i, j);
-  if (k === '0-1' || k === '2-3') return a;
-  if (k === '1-2' || k === '0-3') return b;
-  return Math.hypot(a, b);
-}
-
-function amRow(i, j, diag) {
-  const k = amKey(i, j), v = am.vals[k] ?? '';
-  return `<div class="flex items-center gap-2"><span class="w-12 shrink-0 font-bold ${diag ? 'text-amber-400' : 'text-gray-200'}">${amName(i)}–${amName(j)}</span>
-    <input type="text" inputmode="decimal" data-k="${k}" value="${v}" placeholder="0.00" oninput="amOnInput(this)" onkeydown="amEnter(event)"
-      class="flex-1 min-w-0 bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white text-sm outline-none focus:border-blue-500"><span class="text-gray-500">m</span></div>`;
-}
-function amRenderInputs() {
-  const main = document.getElementById('am-inputs'), ex = document.getElementById('am-extra-inputs');
-  let h = '', extras;
-  if (am.rect) {
-    h += `<div class="text-[10px] text-gray-400 uppercase font-bold">Boki prostokąta</div>` + amRow(0, 1, false) + amRow(1, 2, false);
-    extras = [[2, 3], [0, 3], [0, 2]];
-  } else {
-    h += `<div class="text-[10px] text-gray-400 uppercase font-bold">Boki (po obwodzie)</div>` + am.sides.map(([i, j]) => amRow(i, j, false)).join('');
-    if (am.diags.length) h += `<div class="text-[10px] text-amber-400 uppercase font-bold mt-2">Przekątne (przez środek figury)</div>` + am.diags.map(([i, j]) => amRow(i, j, true)).join('');
-    extras = am.extras;
-  }
-  main.innerHTML = h;
-  ex.innerHTML = extras.map(([i, j]) => amRow(i, j, true)).join('');
-  document.getElementById('am-extra').classList.toggle('hidden', extras.length === 0);
-}
-function amOnInput(el) { am.vals[el.dataset.k] = el.value; amRecalc(); }
-function amEnter(e) {
-  if (e.key !== 'Enter') return; e.preventDefault();
-  const all = [...document.querySelectorAll('#am-inputs input')], i = all.indexOf(e.target);
-  (all[i + 1] || e.target).focus();
-}
-
-// Odtworzenie geometrii WYŁĄCZNIE z długości (trilateracja trójkąt po trójkącie)
-function amReconstruct() {
-  const P = new Array(am.n).fill(null), [a, b, c] = am.tris[0];
-  const ab = amLen(a, b), bc = amLen(b, c), ca = amLen(c, a);
-  const cx = (ab * ab + ca * ca - bc * bc) / (2 * ab);
-  P[a] = {x: 0, y: 0}; P[b] = {x: ab, y: 0}; P[c] = {x: cx, y: Math.sqrt(Math.max(0, ca * ca - cx * cx))};
-  const done = new Set([0]); let progress = true;
-  while (done.size < am.tris.length && progress) {
-    progress = false;
-    am.tris.forEach((t, ti) => {
-      if (done.has(ti)) return;
-      const placed = t.filter(v => P[v]); if (placed.length !== 2) return;
-      const [u, v] = placed, nv = t.find(x => !P[x]);
-      const other = am.tris.find((t2, i2) => done.has(i2) && t2.includes(u) && t2.includes(v)); if (!other) return;
-      const w = other.find(x => x !== u && x !== v);
-      const duv = amLen(u, v), dun = amLen(u, nv), dvn = amLen(v, nv);
-      const x = (dun * dun + duv * duv - dvn * dvn) / (2 * duv), h = Math.sqrt(Math.max(0, dun * dun - x * x));
-      const ex = {x: (P[v].x - P[u].x) / duv, y: (P[v].y - P[u].y) / duv}, nr = {x: -ex.y, y: ex.x};
-      const side = (P[w].x - P[u].x) * nr.x + (P[w].y - P[u].y) * nr.y, sg = side > 0 ? -1 : 1; // po przeciwnej stronie niż w
-      P[nv] = {x: P[u].x + ex.x * x + nr.x * h * sg, y: P[u].y + ex.y * x + nr.y * h * sg};
-      done.add(ti); progress = true;
-    });
-  }
-  if (P.some(p => !p)) return null;
-  // dopasuj orientację i obrót do szkicu, żeby rysunek w skali wyglądał jak Twój szkic
-  const sgn = arr => arr.reduce((s, p, i) => { const q = arr[(i + 1) % arr.length]; return s + p.x * q.y - q.x * p.y; }, 0);
-  if (sgn(P) * sgn(am.px) < 0) P.forEach(p => p.y = -p.y);
-  const th = Math.atan2(am.px[1].y - am.px[0].y, am.px[1].x - am.px[0].x) - Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x);
-  const cs = Math.cos(th), sn = Math.sin(th);
-  return P.map(p => ({x: p.x * cs - p.y * sn, y: p.x * sn + p.y * cs}));
-}
-
-function amRecalc() {
-  const msgs = []; am.areaOk = false; am.area = null; am.coords = null;
-  document.querySelectorAll('#modal-area-measure input[data-k]').forEach(e => e.style.borderColor = '');
-  const mark = (i, j, col) => document.querySelectorAll(`[data-k="${amKey(i, j)}"]`).forEach(e => e.style.borderColor = col);
-  const fmt = v => v.toFixed(2), nm = ([i, j]) => amName(i) + '–' + amName(j);
-  const need = am.rect ? [[0, 1], [1, 2]] : [...am.sides, ...am.diags];
-  const missing = need.filter(([i, j]) => !amRaw(i, j));
-  let perim = 0;
-
-  if (missing.length) {
-    msgs.push(['info', `Do wpisania: ${missing.map(nm).join(', ')}`]);
-  } else {
-    let bad = false;
-    am.tris.forEach(([a, b, c]) => {
-      const x = amLen(a, b), y = amLen(b, c), z = amLen(c, a);
-      if (x + y <= z || y + z <= x || z + x <= y) {
-        bad = true; [[a, b], [b, c], [c, a]].forEach(([i, j]) => mark(i, j, '#f43f5e'));
-        msgs.push(['err', `Trójkąt ${amName(a)}${amName(b)}${amName(c)} (${fmt(x)} / ${fmt(y)} / ${fmt(z)} m) jest niemożliwy – najdłuższy bok musi być krótszy niż suma dwóch pozostałych. Sprawdź zaznaczone pomiary.`]);
-      }
-    });
-    if (!bad) {
-      const area = am.tris.reduce((s, [a, b, c]) => s + heron(amLen(a, b), amLen(b, c), amLen(c, a)), 0);
-      const co = amReconstruct();
-      let shoe = 0; if (co) co.forEach((p, i) => { const q = co[(i + 1) % co.length]; shoe += p.x * q.y - q.x * p.y; }); shoe = Math.abs(shoe) / 2;
-      if (!co || Math.abs(shoe - area) > Math.max(0.005 * area, 0.01)) {
-        msgs.push(['err', 'Te wymiary nie pasują do kolejności punktów na szkicu (np. wklęsły narożnik zaznaczony jako wypukły). Zamknij okno i zaznacz punkty tak, by kształt z grubsza odpowiadał rzeczywistemu – zwłaszcza wklęsłe narożniki.']);
+    function finishCurrentTakeoff() {
+      if (tkMode === 'area') {
+        if (tkPoints.length < 3) { alert('Potrzebujesz min. 3 punktów.'); return; }
+        openAreaModal(tkPoints.map(p => ({...p})), null);
       } else {
-        am.area = area; am.coords = co; am.areaOk = true;
-        perim = am.sides.reduce((s, [i, j]) => s + amLen(i, j), 0);
-        // pomiary kontrolne
-        const extras = [...document.querySelectorAll('#am-extra-inputs input')].map(e => e.dataset.k.split('-').map(Number));
-        extras.forEach(([i, j]) => {
-          const meas = amRaw(i, j); if (!meas) return;
-          const pred = am.rect ? amLen(i, j) : Math.hypot(co[i].x - co[j].x, co[i].y - co[j].y), tol = Math.max(0.03, pred * 0.01);
-          if (Math.abs(meas - pred) > tol) { mark(i, j, '#f59e0b'); msgs.push(['warn', `Kontrola ${amName(i)}–${amName(j)}: zmierzono ${fmt(meas)} m, a z pozostałych wymiarów wychodzi ${fmt(pred)} m (różnica ${Math.round(Math.abs(meas - pred) * 100)} cm). Któryś pomiar jest błędny.`]); }
-          else { mark(i, j, '#10b981'); msgs.push(['ok', `Kontrola ${amName(i)}–${amName(j)} zgodna (${fmt(meas)} m).`]); }
+        if (tkPoints.length < 2) { alert('Potrzebujesz min. 2 punktów.'); return; }
+        openLineModal(tkPoints.map(p => ({...p})), null);
+      }
+    }
+
+    function editTakeoffMeasurement(id) {
+      const s = getActiveTk(), l = s.lines.find(x => x.id === id), it = s.items.find(x => x.id === id);
+      if (!l) return;
+      if (l.type === 'polygon') openAreaModal(l.pts, {id, vals: l.vals || {}, rect: !!l.rect, desc: it ? it.desc : ''});
+      else if (l.type === 'line' && l.pts) openLineModal(l.pts, {id, vals: l.vals || {}, desc: it ? it.desc : ''});
+    }
+
+    // ================= POLE Z POMIARÓW: TRIANGULACJA + WZÓR HERONA =================
+    function amName(i) { return i < 26 ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[i] : 'P' + (i + 1); }
+    function amKey(i, j) { return i < j ? `${i}-${j}` : `${j}-${i}`; }
+    function heron(a, b, c) { const s = (a + b + c) / 2; return Math.sqrt(Math.max(0, s * (s - a) * (s - b) * (s - c))); }
+    let am = null;
+
+    // Wybór przekątnych na podstawie KOLEJNOŚCI punktów na szkicu (ear clipping)
+    function triangulateSketch(pts) {
+      const n = pts.length, cross = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+      let a2 = 0; for (let i = 0; i < n; i++) { const j = (i + 1) % n; a2 += pts[i].x * pts[j].y - pts[j].x * pts[i].y; }
+      if (Math.abs(a2) < 1e-9) return null;
+      const ccw = a2 > 0;
+      const inTri = (p, a, b, c) => { const d1 = cross(a, b, p), d2 = cross(b, c, p), d3 = cross(c, a, p);
+        return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0)); };
+      const idx = [...Array(n).keys()], tris = [];
+      while (idx.length > 3) {
+        let clipped = false;
+        for (let k = 0; k < idx.length; k++) {
+          const ia = idx[(k - 1 + idx.length) % idx.length], ib = idx[k], ic = idx[(k + 1) % idx.length];
+          const cr = cross(pts[ia], pts[ib], pts[ic]);
+          if ((ccw && cr <= 0) || (!ccw && cr >= 0)) continue;
+          if (idx.some(j => j !== ia && j !== ib && j !== ic && inTri(pts[j], pts[ia], pts[ib], pts[ic]))) continue;
+          tris.push([ia, ib, ic]); idx.splice(k, 1); clipped = true; break;
+        }
+        if (!clipped) return null; // figura przecina samą siebie
+      }
+      tris.push([idx[0], idx[1], idx[2]]);
+      return tris;
+    }
+
+    function openAreaModal(pts, existing) {
+      const W = tkImg.naturalWidth, H = tkImg.naturalHeight, n = pts.length;
+      const px = pts.map(p => ({x: p.x / 100 * W, y: p.y / 100 * H}));
+      const tris = triangulateSketch(px);
+      if (!tris) { alert('Obrys przecina sam siebie. Zaznaczaj narożniki po kolei dookoła figury (bez „zygzaka”).'); return; }
+      const isSide = (a, b) => { const d = Math.abs(a - b); return d === 1 || d === n - 1; };
+      const diagSet = new Set(), diags = [];
+      tris.forEach(t => [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]].forEach(([a, b]) => {
+        if (!isSide(a, b) && !diagSet.has(amKey(a, b))) { diagSet.add(amKey(a, b)); diags.push([Math.min(a, b), Math.max(a, b)]); }
+      }));
+      const extras = [];
+      for (let a = 0; a < n; a++) for (let b = a + 2; b < n; b++) { if (a === 0 && b === n - 1) continue; if (!diagSet.has(amKey(a, b))) extras.push([a, b]); }
+      am = { pts, px, n, tris, sides: pts.map((_, i) => [i, (i + 1) % n]), diags, extras,
+             vals: existing ? {...existing.vals} : {}, rect: existing ? !!existing.rect : false,
+             editId: existing ? existing.id : null, coords: null, area: null, areaOk: false };
+      document.getElementById('am-desc').value = existing ? existing.desc : '';
+      document.getElementById('am-rect-wrap').classList.toggle('hidden', n !== 4);
+      document.getElementById('am-rect').checked = am.rect;
+      amRenderInputs(); amRecalc();
+      const m = document.getElementById('modal-area-measure'); m.classList.remove('hidden'); m.classList.add('flex');
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => document.querySelector('#am-inputs input')?.focus(), 80);
+    }
+    function closeAreaModal() { const m = document.getElementById('modal-area-measure'); m.classList.add('hidden'); m.classList.remove('flex'); }
+    function onAmRectToggle() { am.rect = document.getElementById('am-rect').checked; amRenderInputs(); amRecalc(); }
+
+    function amRaw(i, j) { const v = parseFloat(String(am.vals[amKey(i, j)] ?? '').replace(',', '.')); return v > 0 ? v : null; }
+    function amLen(i, j) {
+      if (!am.rect) return amRaw(i, j);
+      const a = amRaw(0, 1), b = amRaw(1, 2); if (!a || !b) return null;
+      const k = amKey(i, j);
+      if (k === '0-1' || k === '2-3') return a;
+      if (k === '1-2' || k === '0-3') return b;
+      return Math.hypot(a, b);
+    }
+
+    function amRow(i, j, diag) {
+      const k = amKey(i, j), v = am.vals[k] ?? '';
+      return `<div class="flex items-center gap-2"><span class="w-12 shrink-0 font-bold ${diag ? 'text-amber-400' : 'text-gray-200'}">${amName(i)}–${amName(j)}</span>
+        <input type="text" inputmode="decimal" data-k="${k}" value="${v}" placeholder="0.00" oninput="amOnInput(this)" onkeydown="amEnter(event)"
+          class="flex-1 min-w-0 bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white text-sm outline-none focus:border-blue-500"><span class="text-gray-500">m</span></div>`;
+    }
+    function amRenderInputs() {
+      const main = document.getElementById('am-inputs'), ex = document.getElementById('am-extra-inputs');
+      let h = '', extras;
+      if (am.rect) {
+        h += `<div class="text-[10px] text-gray-400 uppercase font-bold">Boki prostokąta</div>` + amRow(0, 1, false) + amRow(1, 2, false);
+        extras = [[2, 3], [0, 3], [0, 2]];
+      } else {
+        h += `<div class="text-[10px] text-gray-400 uppercase font-bold">Boki (po obwodzie)</div>` + am.sides.map(([i, j]) => amRow(i, j, false)).join('');
+        if (am.diags.length) h += `<div class="text-[10px] text-amber-400 uppercase font-bold mt-2">Przekątne (przez środek figury)</div>` + am.diags.map(([i, j]) => amRow(i, j, true)).join('');
+        extras = am.extras;
+      }
+      main.innerHTML = h;
+      ex.innerHTML = extras.map(([i, j]) => amRow(i, j, true)).join('');
+      document.getElementById('am-extra').classList.toggle('hidden', extras.length === 0);
+    }
+    function amOnInput(el) { am.vals[el.dataset.k] = el.value; amRecalc(); }
+    function amEnter(e) {
+      if (e.key !== 'Enter') return; e.preventDefault();
+      const all = [...document.querySelectorAll('#am-inputs input')], i = all.indexOf(e.target);
+      (all[i + 1] || e.target).focus();
+    }
+
+    function amReconstruct() {
+      const P = new Array(am.n).fill(null), [a, b, c] = am.tris[0];
+      const ab = amLen(a, b), bc = amLen(b, c), ca = amLen(c, a);
+      const cx = (ab * ab + ca * ca - bc * bc) / (2 * ab);
+      P[a] = {x: 0, y: 0}; P[b] = {x: ab, y: 0}; P[c] = {x: cx, y: Math.sqrt(Math.max(0, ca * ca - cx * cx))};
+      const done = new Set([0]); let progress = true;
+      while (done.size < am.tris.length && progress) {
+        progress = false;
+        am.tris.forEach((t, ti) => {
+          if (done.has(ti)) return;
+          const placed = t.filter(v => P[v]); if (placed.length !== 2) return;
+          const [u, v] = placed, nv = t.find(x => !P[x]);
+          const other = am.tris.find((t2, i2) => done.has(i2) && t2.includes(u) && t2.includes(v)); if (!other) return;
+          const w = other.find(x => x !== u && x !== v);
+          const duv = amLen(u, v), dun = amLen(u, nv), dvn = amLen(v, nv);
+          const x = (dun * dun + duv * duv - dvn * dvn) / (2 * duv), h = Math.sqrt(Math.max(0, dun * dun - x * x));
+          const ex = {x: (P[v].x - P[u].x) / duv, y: (P[v].y - P[u].y) / duv}, nr = {x: -ex.y, y: ex.x};
+          const side = (P[w].x - P[u].x) * nr.x + (P[w].y - P[u].y) * nr.y, sg = side > 0 ? -1 : 1; 
+          P[nv] = {x: P[u].x + ex.x * x + nr.x * h * sg, y: P[u].y + ex.y * x + nr.y * h * sg};
+          done.add(ti); progress = true;
         });
       }
+      if (P.some(p => !p)) return null;
+      const sgn = arr => arr.reduce((s, p, i) => { const q = arr[(i + 1) % arr.length]; return s + p.x * q.y - q.x * p.y; }, 0);
+      if (sgn(P) * sgn(am.px) < 0) P.forEach(p => p.y = -p.y);
+      const th = Math.atan2(am.px[1].y - am.px[0].y, am.px[1].x - am.px[0].x) - Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x);
+      const cs = Math.cos(th), sn = Math.sin(th);
+      return P.map(p => ({x: p.x * cs - p.y * sn, y: p.x * sn + p.y * cs}));
     }
-  }
 
-  const cls = {info: 'text-gray-400', err: 'text-rose-400 bg-rose-950/40 border border-rose-900/50 p-1.5 rounded', warn: 'text-amber-300 bg-amber-950/40 border border-amber-900/50 p-1.5 rounded', ok: 'text-emerald-400'};
-  document.getElementById('am-msgs').innerHTML = msgs.map(([t, m]) => `<div class="${cls[t]}">${m}</div>`).join('');
-  document.getElementById('am-result').innerText = am.areaOk ? `${am.area.toFixed(2)} m²` : '—';
-  document.getElementById('am-sub').innerText = am.areaOk ? `Obwód: ${perim.toFixed(2)} m` : '';
-  const btn = document.getElementById('am-save'); btn.disabled = !am.areaOk; btn.classList.toggle('opacity-40', !am.areaOk);
-  amDraw();
-}
+    function amRecalc() {
+      const msgs = []; am.areaOk = false; am.area = null; am.coords = null;
+      document.querySelectorAll('#modal-area-measure input[data-k]').forEach(e => e.style.borderColor = '');
+      const mark = (i, j, col) => document.querySelectorAll(`[data-k="${amKey(i, j)}"]`).forEach(e => e.style.borderColor = col);
+      const fmt = v => v.toFixed(2), nm = ([i, j]) => amName(i) + '–' + amName(j);
+      const need = am.rect ? [[0, 1], [1, 2]] : [...am.sides, ...am.diags];
+      const missing = need.filter(([i, j]) => !amRaw(i, j));
+      let perim = 0;
 
-function amDraw() {
-  const real = am.areaOk, src = real ? am.coords : am.px, n = am.n, Wd = 320, Hd = 240, m = 34;
-  const xs = src.map(p => p.x), ys = src.map(p => p.y), minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const sc = Math.min((Wd - 2 * m) / ((maxX - minX) || 1), (Hd - 2 * m) / ((maxY - minY) || 1));
-  const ox = (Wd - (maxX - minX) * sc) / 2, oy = (Hd - (maxY - minY) * sc) / 2;
-  const P = src.map(p => ({x: ox + (p.x - minX) * sc, y: oy + (p.y - minY) * sc}));
-  const cen = {x: P.reduce((s, p) => s + p.x, 0) / n, y: P.reduce((s, p) => s + p.y, 0) / n};
-  let h = `<polygon points="${P.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="${real ? 'rgba(59,130,246,0.22)' : 'rgba(255,255,255,0.04)'}"/>`;
-  am.diags.forEach(([i, j]) => h += `<line x1="${P[i].x}" y1="${P[i].y}" x2="${P[j].x}" y2="${P[j].y}" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.8"/>`);
-  am.sides.forEach(([i, j]) => {
-    h += `<line x1="${P[i].x}" y1="${P[i].y}" x2="${P[j].x}" y2="${P[j].y}" stroke="${real ? '#60a5fa' : '#9ca3af'}" stroke-width="2"/>`;
-    const v = amLen(i, j); if (!v) return;
-    const mx = (P[i].x + P[j].x) / 2, my = (P[i].y + P[j].y) / 2, dx = mx - cen.x, dy = my - cen.y, d = Math.hypot(dx, dy) || 1;
-    h += `<text x="${mx + dx / d * 11}" y="${my + dy / d * 11 + 3}" font-size="10" fill="#fff" text-anchor="middle" stroke="#0b0b0b" stroke-width="3" paint-order="stroke">${v.toFixed(2)}</text>`;
-  });
-  P.forEach((p, i) => h += `<circle cx="${p.x}" cy="${p.y}" r="9" fill="#111" stroke="${real ? '#60a5fa' : '#9ca3af'}" stroke-width="1.5"/><text x="${p.x}" y="${p.y + 3.5}" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">${amName(i)}</text>`);
-  document.getElementById('am-svg').innerHTML = h;
-  document.getElementById('am-caption').innerText = real ? 'Rysunek W SKALI – odtworzony wyłącznie z wpisanych wymiarów' : 'Szkic poglądowy (nie w skali). Linie przerywane = przekątne do zmierzenia.';
-}
+      if (missing.length) {
+        msgs.push(['info', `Do wpisania: ${missing.map(nm).join(', ')}`]);
+      } else {
+        let bad = false;
+        am.tris.forEach(([a, b, c]) => {
+          const x = amLen(a, b), y = amLen(b, c), z = amLen(c, a);
+          if (x + y <= z || y + z <= x || z + x <= y) {
+            bad = true; [[a, b], [b, c], [c, a]].forEach(([i, j]) => mark(i, j, '#f43f5e'));
+            msgs.push(['err', `Trójkąt ${amName(a)}${amName(b)}${amName(c)} (${fmt(x)} / ${fmt(y)} / ${fmt(z)} m) jest niemożliwy – najdłuższy bok musi być krótszy niż suma dwóch pozostałych. Sprawdź zaznaczone pomiary.`]);
+          }
+        });
+        if (!bad) {
+          const area = am.tris.reduce((s, [a, b, c]) => s + heron(amLen(a, b), amLen(b, c), amLen(c, a)), 0);
+          const co = amReconstruct();
+          let shoe = 0; if (co) co.forEach((p, i) => { const q = co[(i + 1) % co.length]; shoe += p.x * q.y - q.x * p.y; }); shoe = Math.abs(shoe) / 2;
+          if (!co || Math.abs(shoe - area) > Math.max(0.005 * area, 0.01)) {
+            msgs.push(['err', 'Te wymiary nie pasują do kolejności punktów na szkicu (np. wklęsły narożnik zaznaczony jako wypukły). Zamknij okno i zaznacz punkty tak, by kształt z grubsza odpowiadał rzeczywistemu – zwłaszcza wklęsłe narożniki.']);
+          } else {
+            am.area = area; am.coords = co; am.areaOk = true;
+            perim = am.sides.reduce((s, [i, j]) => s + amLen(i, j), 0);
+            const extras = [...document.querySelectorAll('#am-extra-inputs input')].map(e => e.dataset.k.split('-').map(Number));
+            extras.forEach(([i, j]) => {
+              const meas = amRaw(i, j); if (!meas) return;
+              const pred = am.rect ? amLen(i, j) : Math.hypot(co[i].x - co[j].x, co[i].y - co[j].y), tol = Math.max(0.03, pred * 0.01);
+              if (Math.abs(meas - pred) > tol) { mark(i, j, '#f59e0b'); msgs.push(['warn', `Kontrola ${amName(i)}–${amName(j)}: zmierzono ${fmt(meas)} m, a z pozostałych wymiarów wychodzi ${fmt(pred)} m (różnica ${Math.round(Math.abs(meas - pred) * 100)} cm). Któryś pomiar jest błędny.`]); }
+              else { mark(i, j, '#10b981'); msgs.push(['ok', `Kontrola ${amName(i)}–${amName(j)} zgodna (${fmt(meas)} m).`]); }
+            });
+          }
+        }
+      }
 
-function saveAreaFromModal() {
-  if (!am || !am.areaOk) return;
-  const s = getActiveTk(), desc = (document.getElementById('am-desc').value || '').trim() || 'Powierzchnia m2', area = am.area;
-  if (am.editId) {
-    const l = s.lines.find(x => x.id === am.editId), it = s.items.find(x => x.id === am.editId);
-    if (l) { l.val = area; l.vals = {...am.vals}; l.rect = am.rect; }
-    if (it) { it.val = area; it.desc = desc; }
-  } else {
-    const id = 'a-' + Date.now();
-    s.lines.push({id, type: 'polygon', pts: am.pts, val: area, vals: {...am.vals}, rect: am.rect});
-    s.items.push({id, desc, val: area, unit: 'm2'});
-    tkPoints = [];
-  }
-  closeAreaModal(); persistData(); renderTkSheet(); redrawTk(); updateTkInstruction();
-}
-    function redrawTk() {
-  tkSvg.innerHTML = ''; const s = getActiveTk(); if (!s.blueprints.length || !tkImg.naturalWidth) return;
-  const w = tkImg.naturalWidth, h = tkImg.naturalHeight, u = Math.max(w, h) / 900;
-  const X = p => (p.x / 100) * w, Y = p => (p.y / 100) * h;
-  const tag = (x, y, txt, col, wd) => `<rect x="${x - wd * u / 2}" y="${y - 10 * u}" width="${wd * u}" height="${20 * u}" fill="#000" rx="${4 * u}" stroke="${col}" stroke-width="${u}"/><text x="${x}" y="${y + 4 * u}" fill="#fff" font-size="${12 * u}" font-weight="bold" text-anchor="middle">${txt}</text>`;
-  const dot = (x, y, col, letter) => `<circle cx="${x}" cy="${y}" r="${(letter ? 9 : 6) * u}" fill="${col}" stroke="#fff" stroke-width="${2 * u}"/>` +
-    (letter ? `<text x="${x}" y="${y + 3.5 * u}" fill="#fff" font-size="${10 * u}" font-weight="bold" text-anchor="middle">${letter}</text>` : '');
-  let out = '';
-  s.lines.forEach(l => {
-    if (l.type === 'line') {
-      const x1 = X(l.p1), y1 = Y(l.p1), x2 = X(l.p2), y2 = Y(l.p2);
-      out += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#10b981" stroke-width="${4 * u}"/>` + dot(x1, y1, '#10b981') + dot(x2, y2, '#10b981') + tag((x1 + x2) / 2, (y1 + y2) / 2, l.val.toFixed(2), '#10b981', 50);
-    } else if (l.type === 'polygon') {
-      out += `<polygon points="${l.pts.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6" stroke-width="${3 * u}"/>`;
-      l.pts.forEach((p, i) => out += dot(X(p), Y(p), '#3b82f6', amName(i)));
-      const cx = l.pts.reduce((a, p) => a + X(p), 0) / l.pts.length, cy = l.pts.reduce((a, p) => a + Y(p), 0) / l.pts.length;
-      out += tag(cx, cy, l.val.toFixed(2) + ' m²', '#3b82f6', 80);
+      const cls = {info: 'text-gray-400', err: 'text-rose-400 bg-rose-950/40 border border-rose-900/50 p-1.5 rounded', warn: 'text-amber-300 bg-amber-950/40 border border-amber-900/50 p-1.5 rounded', ok: 'text-emerald-400'};
+      document.getElementById('am-msgs').innerHTML = msgs.map(([t, m]) => `<div class="${cls[t]}">${m}</div>`).join('');
+      document.getElementById('am-result').innerText = am.areaOk ? `${am.area.toFixed(2)} m²` : '—';
+      document.getElementById('am-sub').innerText = am.areaOk ? `Obwód: ${perim.toFixed(2)} m` : '';
+      const btn = document.getElementById('am-save'); btn.disabled = !am.areaOk; btn.classList.toggle('opacity-40', !am.areaOk);
+      amDraw();
     }
-  });
-  if (tkPoints.length) {
-    if (tkMode === 'line') out += dot(X(tkPoints[0]), Y(tkPoints[0]), '#ef4444');
-    else {
-      out += `<polyline points="${tkPoints.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="none" stroke="#f59e0b" stroke-width="${2 * u}" stroke-dasharray="${5 * u},${5 * u}"/>`;
-      tkPoints.forEach((p, i) => out += dot(X(p), Y(p), '#f59e0b', amName(i)));
+
+    function amDraw() {
+      const real = am.areaOk, src = real ? am.coords : am.px, n = am.n, Wd = 320, Hd = 240, m = 34;
+      const xs = src.map(p => p.x), ys = src.map(p => p.y), minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const sc = Math.min((Wd - 2 * m) / ((maxX - minX) || 1), (Hd - 2 * m) / ((maxY - minY) || 1));
+      const ox = (Wd - (maxX - minX) * sc) / 2, oy = (Hd - (maxY - minY) * sc) / 2;
+      const P = src.map(p => ({x: ox + (p.x - minX) * sc, y: oy + (p.y - minY) * sc}));
+      const cen = {x: P.reduce((s, p) => s + p.x, 0) / n, y: P.reduce((s, p) => s + p.y, 0) / n};
+      let h = `<polygon points="${P.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="${real ? 'rgba(59,130,246,0.22)' : 'rgba(255,255,255,0.04)'}"/>`;
+      am.diags.forEach(([i, j]) => h += `<line x1="${P[i].x}" y1="${P[i].y}" x2="${P[j].x}" y2="${P[j].y}" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.8"/>`);
+      am.sides.forEach(([i, j]) => {
+        h += `<line x1="${P[i].x}" y1="${P[i].y}" x2="${P[j].x}" y2="${P[j].y}" stroke="${real ? '#60a5fa' : '#9ca3af'}" stroke-width="2"/>`;
+        const v = amLen(i, j); if (!v) return;
+        const mx = (P[i].x + P[j].x) / 2, my = (P[i].y + P[j].y) / 2, dx = mx - cen.x, dy = my - cen.y, d = Math.hypot(dx, dy) || 1;
+        h += `<text x="${mx + dx / d * 11}" y="${my + dy / d * 11 + 3}" font-size="10" fill="#fff" text-anchor="middle" stroke="#0b0b0b" stroke-width="3" paint-order="stroke">${v.toFixed(2)}</text>`;
+      });
+      P.forEach((p, i) => h += `<circle cx="${p.x}" cy="${p.y}" r="9" fill="#111" stroke="${real ? '#60a5fa' : '#9ca3af'}" stroke-width="1.5"/><text x="${p.x}" y="${p.y + 3.5}" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">${amName(i)}</text>`);
+      document.getElementById('am-svg').innerHTML = h;
+      document.getElementById('am-caption').innerText = real ? 'Rysunek W SKALI – odtworzony wyłącznie z wpisanych wymiarów' : 'Szkic poglądowy (nie w skali). Linie przerywane = przekątne do zmierzenia.';
     }
-  }
-  tkSvg.innerHTML = out;
-}
+
+    function saveAreaFromModal() {
+      if (!am || !am.areaOk) return;
+      const s = getActiveTk(), desc = (document.getElementById('am-desc').value || '').trim() || 'Powierzchnia m2', area = am.area;
+      if (am.editId) {
+        const l = s.lines.find(x => x.id === am.editId), it = s.items.find(x => x.id === am.editId);
+        if (l) { l.val = area; l.vals = {...am.vals}; l.rect = am.rect; }
+        if (it) { it.val = area; it.desc = desc; }
+      } else {
+        const id = 'a-' + Date.now();
+        s.lines.push({id, type: 'polygon', pts: am.pts, val: area, vals: {...am.vals}, rect: am.rect});
+        s.items.push({id, desc, val: area, unit: 'm2'});
+        tkPoints = [];
+      }
+      closeAreaModal(); persistData(); renderTkSheet(); redrawTk(); updateTkInstruction();
+    }
+
+    // ================= LOGIKA LINII KONTROLNEJ (MB) =================
+    let lm = null;
+    function openLineModal(pts, existing) {
+      const n = pts.length, segments = [];
+      for (let i = 0; i < n - 1; i++) segments.push([i, i + 1]);
+      lm = { pts, n, segments, vals: existing ? {...existing.vals} : {}, editId: existing ? existing.id : null, total: 0, ok: false };
+      document.getElementById('lm-desc').value = existing ? existing.desc : '';
+      lmRenderInputs(); lmRecalc();
+      const m = document.getElementById('modal-line-measure'); m.classList.remove('hidden'); m.classList.add('flex');
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => document.querySelector('#lm-inputs input')?.focus(), 80);
+    }
+    function closeLineModal() { document.getElementById('modal-line-measure').classList.add('hidden'); document.getElementById('modal-line-measure').classList.remove('flex'); }
+
+    function lmRaw(i, j) { const v = parseFloat(String(lm.vals[`${i}-${j}`] ?? '').replace(',', '.')); return v > 0 ? v : null; }
+    function lmOnInput(el) { lm.vals[el.dataset.k] = el.value; lmRecalc(); }
+    function lmEnter(e) { if (e.key !== 'Enter') return; e.preventDefault(); const all = [...document.querySelectorAll('#lm-inputs input')], i = all.indexOf(e.target); (all[i + 1] || e.target).focus(); }
+
+    function lmRenderInputs() {
+      const main = document.getElementById('lm-inputs');
+      let h = `<div class="text-[10px] text-gray-400 uppercase font-bold">Odcinki składowe trasy</div>`;
+      lm.segments.forEach(([i, j]) => {
+        const k = `${i}-${j}`, v = lm.vals[k] ?? '';
+        h += `<div class="flex items-center gap-2"><span class="w-12 shrink-0 font-bold text-gray-200">${amName(i)}–${amName(j)}</span>
+          <input type="text" inputmode="decimal" data-k="${k}" value="${v}" placeholder="0.00" oninput="lmOnInput(this)" onkeydown="lmEnter(event)"
+            class="flex-1 min-w-0 bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white text-sm outline-none focus:border-emerald-500"><span class="text-gray-500">mb</span></div>`;
+      });
+      main.innerHTML = h;
+    }
+
+    function lmRecalc() {
+      let total = 0, missing = 0;
+      lm.segments.forEach(([i, j]) => { const v = lmRaw(i, j); if (v) total += v; else missing++; });
+      lm.ok = missing === 0; lm.total = total;
+      document.getElementById('lm-msgs').innerHTML = missing ? `<div class="text-gray-400 mt-2">Uzupełnij wszystkie boki, aby otrzymać wynik.</div>` : `<div class="text-emerald-400 mt-2">Trasa poprawna.</div>`;
+      document.getElementById('lm-result').innerText = lm.ok ? `${lm.total.toFixed(2)} mb` : '—';
+      const btn = document.getElementById('lm-save'); btn.disabled = !lm.ok; btn.classList.toggle('opacity-40', !lm.ok);
+      lmDraw();
+    }
+
+    function lmDraw() {
+      const Wd = 320, Hd = 240, m = 30;
+      const xs = lm.pts.map(p => p.x), ys = lm.pts.map(p => p.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const sc = Math.min((Wd - 2 * m) / ((maxX - minX) || 1), (Hd - 2 * m) / ((maxY - minY) || 1));
+      const ox = (Wd - (maxX - minX) * sc) / 2, oy = (Hd - (maxY - minY) * sc) / 2;
+      const P = lm.pts.map(p => ({x: ox + (p.x - minX) * sc, y: oy + (p.y - minY) * sc}));
+
+      let h = `<polyline points="${P.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ')}" fill="none" stroke="#10b981" stroke-width="2"/>`;
+      lm.segments.forEach(([i, j]) => {
+        const v = lmRaw(i, j); if(!v) return;
+        const mx = (P[i].x + P[j].x) / 2, my = (P[i].y + P[j].y) / 2;
+        const dx = P[j].x - P[i].x, dy = P[j].y - P[i].y, d = Math.hypot(dx, dy) || 1;
+        const nx = -dy/d, ny = dx/d;
+        h += `<text x="${mx + nx * 12}" y="${my + ny * 12 + 3}" font-size="10" fill="#fff" text-anchor="middle" stroke="#0b0b0b" stroke-width="3" paint-order="stroke">${v.toFixed(2)}</text>`;
+      });
+      P.forEach((p, i) => h += `<circle cx="${p.x}" cy="${p.y}" r="9" fill="#111" stroke="#10b981" stroke-width="1.5"/><text x="${p.x}" y="${p.y + 3.5}" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle">${amName(i)}</text>`);
+      document.getElementById('lm-svg').innerHTML = h;
+    }
+
+    function saveLineFromModal() {
+      if (!lm || !lm.ok) return;
+      const s = getActiveTk(), desc = (document.getElementById('lm-desc').value || '').trim() || 'Odcinek mb', total = lm.total;
+      if (lm.editId) {
+        const l = s.lines.find(x => x.id === lm.editId), it = s.items.find(x => x.id === lm.editId);
+        if (l) { l.val = total; l.vals = {...lm.vals}; l.pts = lm.pts; }
+        if (it) { it.val = total; it.desc = desc; }
+      } else {
+        const id = 'l-' + Date.now();
+        s.lines.push({id, type: 'line', pts: lm.pts, val: total, vals: {...lm.vals}});
+        s.items.push({id, desc, val: total, unit: 'mb'});
+        tkPoints = [];
+      }
+      closeLineModal(); persistData(); renderTkSheet(); redrawTk(); updateTkInstruction();
+    }
 
     function renderTkSheet() {
-  const c = document.getElementById('takeoff-items-list'); c.innerHTML = '';
-  const s = getActiveTk(); let smb = 0, sm2 = 0;
-  s.items.forEach((i, idx) => {
-    if (i.unit === 'mb') smb += i.val; if (i.unit === 'm2') sm2 += i.val;
-    const editable = i.unit === 'm2' && s.lines.some(l => l.id === i.id && l.type === 'polygon');
-    c.innerHTML += `<div class="flex justify-between items-center bg-[#181818] p-1.5 rounded"><div class="flex-1 truncate text-gray-300 pr-2">${idx + 1}. <input type="text" value="${i.desc}" onchange="updateTkItem('${i.id}', this.value)" class="bg-transparent border-none text-white outline-none w-20 sm:w-28 text-[10px]"></div><span class="font-bold ${i.unit === 'mb' ? 'text-emerald-400' : 'text-blue-400'}">${i.val.toFixed(2)} ${i.unit}</span>${editable ? `<button onclick="editAreaMeasurements('${i.id}')" class="text-gray-400 ml-2" title="Edytuj wymiary"><i data-lucide="pencil" class="w-3 h-3"></i></button>` : ''}<button onclick="deleteTkItem('${i.id}')" class="text-rose-400 ml-2"><i data-lucide="x" class="w-3 h-3"></i></button></div>`;
-  });
-  document.getElementById('tk-sum-mb').innerText = smb.toFixed(2) + ' mb'; document.getElementById('tk-sum-m2').innerText = sm2.toFixed(2) + ' m2';
-  updateTkInstruction(); if (window.lucide) lucide.createIcons();
-}
-function deleteTkItem(id) {
-  const s = getActiveTk(); s.items = s.items.filter(x => x.id !== id); s.lines = s.lines.filter(l => l.id !== id);
-  persistData(); renderTkSheet(); redrawTk();
-}
+      const c = document.getElementById('takeoff-items-list'); c.innerHTML = '';
+      const s = getActiveTk(); let smb = 0, sm2 = 0;
+      s.items.forEach((i, idx) => {
+        if (i.unit === 'mb') smb += i.val; if (i.unit === 'm2') sm2 += i.val;
+        const l = s.lines.find(x => x.id === i.id);
+        const editable = l && (l.type === 'polygon' || (l.type === 'line' && l.pts));
+        c.innerHTML += `<div class="flex justify-between items-center bg-[#181818] p-1.5 rounded"><div class="flex-1 truncate text-gray-300 pr-2">${idx + 1}. <input type="text" value="${i.desc}" onchange="updateTkItem('${i.id}', this.value)" class="bg-transparent border-none text-white outline-none w-20 sm:w-28 text-[10px]"></div><span class="font-bold ${i.unit === 'mb' ? 'text-emerald-400' : 'text-blue-400'}">${i.val.toFixed(2)} ${i.unit}</span>${editable ? `<button onclick="editTakeoffMeasurement('${i.id}')" class="text-gray-400 ml-2" title="Edytuj wymiary"><i data-lucide="pencil" class="w-3 h-3"></i></button>` : ''}<button onclick="deleteTkItem('${i.id}')" class="text-rose-400 ml-2"><i data-lucide="x" class="w-3 h-3"></i></button></div>`;
+      });
+      document.getElementById('tk-sum-mb').innerText = smb.toFixed(2) + ' mb'; document.getElementById('tk-sum-m2').innerText = sm2.toFixed(2) + ' m2';
+      updateTkInstruction(); if (window.lucide) lucide.createIcons();
+    }
+    
+    function deleteTkItem(id) {
+      const s = getActiveTk(); s.items = s.items.filter(x => x.id !== id); s.lines = s.lines.filter(l => l.id !== id);
+      persistData(); renderTkSheet(); redrawTk();
+    }
+
+    function redrawTk() {
+  tkSvg.innerHTML = ''; const s = getActiveTk(); if (!s.blueprints.length || !tkImg.naturalWidth) return;
+  const w = tkImg.naturalWidth, h = tkImg.naturalHeight;
+  
+  // Dynamiczna wartość 'u': pomniejszona bazowo i dzielona przez skalę zoomu
+  const u = (Math.max(w, h) / 1200) / (tkScale || 1);
+      const X = p => (p.x / 100) * w, Y = p => (p.y / 100) * h;
+      const tag = (x, y, txt, col, wd) => `<rect x="${x - wd * u / 2}" y="${y - 10 * u}" width="${wd * u}" height="${20 * u}" fill="#000" rx="${4 * u}" stroke="${col}" stroke-width="${u}"/><text x="${x}" y="${y + 4 * u}" fill="#fff" font-size="${12 * u}" font-weight="bold" text-anchor="middle">${txt}</text>`;
+      const dot = (x, y, col, letter) => `<circle cx="${x}" cy="${y}" r="${(letter ? 9 : 6) * u}" fill="${col}" stroke="#fff" stroke-width="${2 * u}"/>` +
+        (letter ? `<text x="${x}" y="${y + 3.5 * u}" fill="#fff" font-size="${10 * u}" font-weight="bold" text-anchor="middle">${letter}</text>` : '');
+      
+      let out = '';
+      s.lines.forEach(l => {
+        if (l.type === 'line') {
+          const lPts = l.pts || [l.p1, l.p2]; // obsługa starych zapisów mb
+          out += `<polyline points="${lPts.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="none" stroke="#10b981" stroke-width="${4 * u}"/>`;
+          lPts.forEach((p, i) => out += dot(X(p), Y(p), '#10b981', i===0?'':amName(i)));
+          let minX=w, maxX=0, minY=h, maxY=0;
+          lPts.forEach(p=>{let x=X(p), y=Y(p); if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;});
+          out += tag((minX+maxX)/2, (minY+maxY)/2, l.val.toFixed(2) + ' mb', '#10b981', 60);
+        } else if (l.type === 'polygon') {
+          out += `<polygon points="${l.pts.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="rgba(59,130,246,0.3)" stroke="#3b82f6" stroke-width="${3 * u}"/>`;
+          l.pts.forEach((p, i) => out += dot(X(p), Y(p), '#3b82f6', amName(i)));
+          const cx = l.pts.reduce((a, p) => a + X(p), 0) / l.pts.length, cy = l.pts.reduce((a, p) => a + Y(p), 0) / l.pts.length;
+          out += tag(cx, cy, l.val.toFixed(2) + ' m²', '#3b82f6', 80);
+        }
+      });
+
+      if (tkPoints.length) {
+        if (tkMode === 'line') {
+          out += `<polyline points="${tkPoints.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="none" stroke="#10b981" stroke-width="${2 * u}" stroke-dasharray="${5 * u},${5 * u}"/>`;
+          tkPoints.forEach((p, i) => out += dot(X(p), Y(p), '#10b981', amName(i)));
+        } else {
+          out += `<polyline points="${tkPoints.map(p => X(p) + ',' + Y(p)).join(' ')}" fill="none" stroke="#f59e0b" stroke-width="${2 * u}" stroke-dasharray="${5 * u},${5 * u}"/>`;
+          tkPoints.forEach((p, i) => out += dot(X(p), Y(p), '#f59e0b', amName(i)));
+        }
+      }
+      tkSvg.innerHTML = out;
+    }
 
     async function openTakeoffPrintPreview() {
       const s = getActiveTk(); closeTakeoffModal(); switchView('takeoff-print');
       const c = document.getElementById('takeoff-print-container'); c.innerHTML='Generowanie...';
       
-      let snap = '';
+      let snap = '', zoomPagesHtml = '';
       if(s.blueprints.length) {
-        const img=new Image(); img.src=s.blueprints[0]; await new Promise(r=>img.onload=r);
-        const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const ctx=cv.getContext('2d');
-        ctx.filter='grayscale(100%)'; ctx.drawImage(img,0,0); ctx.filter='none';
-        s.lines.forEach(l=>{
-          if(l.type==='line') {
-            const x1=(l.p1.x/100)*img.width, y1=(l.p1.y/100)*img.height, x2=(l.p2.x/100)*img.width, y2=(l.p2.y/100)*img.height;
-            ctx.strokeStyle='#10b981'; ctx.lineWidth=6; ctx.setLineDash([10,10]); ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.setLineDash([]);
-            [x1,x2].forEach((x,i)=>{ctx.fillStyle='#10b981'; ctx.beginPath(); ctx.arc(x,i===0?y1:y2,12,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();});
-            ctx.fillStyle='#000'; ctx.fillRect((x1+x2)/2-40, (y1+y2)/2-15, 80, 30); ctx.fillStyle='#fff'; ctx.font='bold 18px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(l.val.toFixed(2), (x1+x2)/2, (y1+y2)/2);
-          } else if(l.type==='polygon') {
-            ctx.fillStyle='rgba(59,130,246,0.3)'; ctx.strokeStyle='#3b82f6'; ctx.lineWidth=4; ctx.beginPath(); l.pts.forEach((p,i)=>{let x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}); ctx.closePath(); ctx.fill(); ctx.stroke();
-            let minX=img.width, maxX=0, minY=img.height, maxY=0; l.pts.forEach(p=>{let x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;});
-            ctx.fillStyle='#000'; ctx.fillRect((minX+maxX)/2-45, (minY+maxY)/2-15, 90, 30); ctx.fillStyle='#fff'; ctx.font='bold 16px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(l.val.toFixed(2)+' m2', (minX+maxX)/2, (minY+maxY)/2);
+        const img = new Image(); img.src = s.blueprints[0]; await new Promise(r => img.onload = r);
+        const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height; const ctx = cv.getContext('2d');
+        ctx.filter = 'grayscale(100%)'; ctx.drawImage(img, 0, 0); ctx.filter = 'none';
+        
+        s.lines.forEach(l => {
+          if(l.type === 'line') {
+            const pts = l.pts || [l.p1, l.p2];
+            ctx.strokeStyle = '#10b981'; ctx.lineWidth = 6; ctx.setLineDash([10,10]); ctx.beginPath();
+            pts.forEach((p, i) => { const x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+            ctx.stroke(); ctx.setLineDash([]);
+            pts.forEach((p, i) => {
+              const x=(p.x/100)*img.width, y=(p.y/100)*img.height;
+              ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(x,y,12,0,Math.PI*2); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+            });
+            let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
+            pts.forEach(p => { let x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y; });
+            ctx.fillStyle = '#000'; ctx.fillRect((minX+maxX)/2-40, (minY+maxY)/2-15, 80, 30); ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(l.val.toFixed(2), (minX+maxX)/2, (minY+maxY)/2);
+          } else if(l.type === 'polygon') {
+            ctx.fillStyle = 'rgba(59,130,246,0.3)'; ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 4; ctx.beginPath();
+            l.pts.forEach((p,i) => { let x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+            let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
+            l.pts.forEach(p => { let x=(p.x/100)*img.width, y=(p.y/100)*img.height; if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y; });
+            ctx.fillStyle = '#000'; ctx.fillRect((minX+maxX)/2-45, (minY+maxY)/2-15, 90, 30); ctx.fillStyle = '#fff'; ctx.font = 'bold 16px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(l.val.toFixed(2)+' m2', (minX+maxX)/2, (minY+maxY)/2);
           }
         });
-        snap = cv.toDataURL('image/jpeg',0.8);
+        snap = cv.toDataURL('image/jpeg', 0.8);
+
+        const cropsHtml = [];
+        s.items.forEach((item) => {
+          const l = s.lines.find(x => x.id === item.id);
+          if (!l) return;
+          const pts = l.pts || (l.p1 ? [l.p1, l.p2] : []);
+          if (!pts.length) return;
+          
+          let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
+          pts.forEach(p => {
+            let x=(p.x/100)*img.width, y=(p.y/100)*img.height;
+            if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+          });
+          
+          let cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+          let w = maxX-minX, h = maxY-minY;
+          let size = Math.max(w, h, img.width * 0.1) * 2.2; 
+          if (size > img.width) size = img.width;
+          if (size > img.height) size = img.height;
+          
+          let cropX = cx - size/2, cropY = cy - size/2;
+          if (cropX < 0) cropX = 0;
+          if (cropY < 0) cropY = 0;
+          if (cropX + size > img.width) cropX = img.width - size;
+          if (cropY + size > img.height) cropY = img.height - size;
+
+          const cropCv = document.createElement('canvas');
+          cropCv.width = 600; cropCv.height = 600;
+          const cropCtx = cropCv.getContext('2d');
+          cropCtx.fillStyle = '#fff'; cropCtx.fillRect(0,0,600,600);
+          cropCtx.drawImage(cv, cropX, cropY, size, size, 0, 0, 600, 600);
+          
+          cropsHtml.push(`
+            <div class="border border-black flex flex-col h-[120mm]">
+              <div class="flex-1 overflow-hidden relative flex justify-center items-center">
+                <img src="${cropCv.toDataURL('image/jpeg', 0.8)}" class="w-full h-full object-cover">
+              </div>
+              <div class="border-t border-black p-2 text-center text-[10pt] font-bold bg-white">
+                Wartość pomiaru: ${item.val.toFixed(2)} ${item.unit}
+              </div>
+            </div>
+          `);
+        });
+
+        for(let i=0; i<cropsHtml.length; i+=4) {
+          const slice = cropsHtml.slice(i, i+4);
+          zoomPagesHtml += `
+            <div class="a4-page">
+              <div class="flex justify-between items-start mb-4 pb-2 border-b-2 border-black">
+                <div><div class="text-[14pt] font-black uppercase">Zbliżenia pomiarów z natury</div><div class="text-[11pt] font-bold text-emerald-800">${s.title}</div></div>
+              </div>
+              <div class="grid grid-cols-2 gap-4 flex-1">
+                ${slice.join('')}
+              </div>
+            </div>
+          `;
+        }
       }
       
       c.innerHTML = `
@@ -1602,7 +1778,7 @@ function deleteTkItem(id) {
             <div><div class="text-[14pt] font-black uppercase">Obmiar z natury</div><div class="text-[11pt] font-bold text-emerald-800">${s.title}</div></div>
             <div class="text-right text-[9pt]"><b>${appState.project.name}</b><br>${s.date}</div>
           </div>
-          <div class="border border-black w-full h-[150mm] flex items-center justify-center overflow-hidden mb-4"><img src="${snap}" class="max-w-full max-h-full object-contain"></div>
+         <div class="border border-black w-full h-[120mm] flex items-center justify-center overflow-hidden mb-4"><img src="${snap}" class="max-w-full max-h-full object-contain"></div>
           <div class="text-[10pt] font-bold mb-1 text-black">Zestawienie:</div>
           <table class="w-full border-collapse text-[9pt] text-black border border-black mb-4">
             <tr class="bg-gray-100"><th class="border border-black p-1">Lp.</th><th class="border border-black p-1 text-left">Opis</th><th class="border border-black p-1 text-right">Wartość</th><th class="border border-black p-1">Jedn.</th></tr>
@@ -1610,6 +1786,7 @@ function deleteTkItem(id) {
           </table>
           <div class="mt-auto text-[8pt] border-t border-black pt-1">Podpis: .......................</div>
         </div>
+        ${zoomPagesHtml}
       `;
     }
   </script>
