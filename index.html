@@ -668,7 +668,9 @@
   <button id="tk-undo-btn" onclick="undoTkPoint()" class="hidden bg-[#2a2a2a] border border-[#444] px-2 py-0.5 rounded whitespace-nowrap">↶ Cofnij</button>
   <button id="tk-finish-btn" onclick="finishCurrentPolygon()" class="hidden bg-emerald-600 px-2 py-0.5 rounded whitespace-nowrap">Policz pole →</button>
 </div>
-
+        
+ </div> <!-- koniec obszaru roboczego rzutu -->
+        
       <!-- Prawy panel: Wyniki -->
       <div class="w-full md:w-64 bg-[#111] flex flex-col shrink-0 h-48 md:h-auto border-t md:border-t-0 md:border-l border-[#222]">
         <div class="p-2 border-b border-[#222] flex justify-between items-center bg-[#161616]">
@@ -1279,19 +1281,6 @@ function useBlankSketch() {
       renderTkSheet();
     }
     function fitTakeoffBlueprintToView() { if(!tkImg.naturalWidth) return; const s=Math.min((tkViewport.clientWidth*0.94)/tkImg.naturalWidth, (tkViewport.clientHeight*0.94)/tkImg.naturalHeight, 1.2); tkViewport.setPanZoom(s, (tkViewport.clientWidth-tkImg.naturalWidth*s)/2, (tkViewport.clientHeight-tkImg.naturalHeight*s)/2); }
-
-    function setupTkInteraction() {
-      tkSvg.onclick = e => {
-        const s = getActiveTk(); if(!s.blueprints.length || !tkImg.naturalWidth) return;
-        const rect = tkWrapper.getBoundingClientRect();
-        const pX = ((e.clientX - rect.left) / tkScale / tkImg.naturalWidth) * 100;
-        const pY = ((e.clientY - rect.top) / tkScale / tkImg.naturalHeight) * 100;
-        
-        tkPoints.push({x:pX, y:pY}); redrawTk();
-        
-        if(tkMode==='line' && tkPoints.length===2) { processLineMeasurement(s); }
-      };
-    }
     
     function processLineMeasurement(s) {
       const p1=tkPoints[0], p2=tkPoints[1]; tkPoints=[]; // Reset
@@ -1566,16 +1555,6 @@ function saveAreaFromModal() {
   }
   tkSvg.innerHTML = out;
 }
-      
-      // Rysowanie bieżących punktów
-      if(tkPoints.length>0) {
-        if(tkMode==='line') { const x=(tkPoints[0].x/100)*w, y=(tkPoints[0].y/100)*h; tkSvg.innerHTML+=`<circle cx="${x}" cy="${y}" r="6" fill="#ef4444" stroke="#fff" stroke-width="2" class="animate-pulse"/>`; }
-        else {
-          let str = ''; tkPoints.forEach((p,i)=>{ const x=(p.x/100)*w, y=(p.y/100)*h; str+=`${x},${y} `; tkSvg.innerHTML+=`<circle cx="${x}" cy="${y}" r="5" fill="#f59e0b"/>`; });
-          tkSvg.innerHTML+=`<polyline points="${str}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,5"/>`;
-        }
-      }
-    }
 
     function renderTkSheet() {
   const c = document.getElementById('takeoff-items-list'); c.innerHTML = '';
