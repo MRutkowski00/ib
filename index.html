@@ -45,20 +45,26 @@
     }
     .panning { cursor: grabbing !important; }
 
-    .pin-marker {
+  .pin-marker {
       position: absolute;
-      width: 32px; height: 32px;
+      width: 40px; height: 40px;
+      margin-top: -40px;
       border-radius: 50% 50% 50% 0;
-      transform: translate(-50%, -100%) rotate(-45deg);
+      transform-origin: 0% 100%;
+      transform: scale(var(--pin-scale, 1)) rotate(-45deg);
       background: #e11d48;
-      border: 2px solid #ffffff;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.85);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      z-index: 50; transition: transform 0.1s;
+      z-index: 50;
+    }
+    .pin-marker:hover {
+      background: #f43f5e;
+      z-index: 60;
     }
     .pin-marker span {
-      transform: rotate(45deg); color: #ffffff; font-weight: 900; font-size: 13px;
+      transform: rotate(45deg); color: #ffffff; font-weight: 900; font-size: 15px; line-height: 1;
     }
 
     .a4-page {
@@ -920,7 +926,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       history.replaceState({view:'dashboard'},'');
       const st = await loadFromDB(); if(st) appState = {...appState, ...st};
       
-      setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y;});
+     setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y; planWrapper.style.setProperty('--pin-scale', (1 / s).toFixed(4));});
       setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y;});
      setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y; redrawTk();});
       
@@ -942,37 +948,201 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       document.getElementById('header-active-info').innerText = `Pro: ${appState.project.name} (${act?act.name:''})`;
     }
 
-    // STRUKTURA
+   // STRUKTURA (BUDYNKI I PIĘTRA)
     function getCurrentBuilding() { return appState.buildings.find(b=>b.id===appState.currentBuildingId)||appState.buildings[0]; }
     function getCurrentFloor() { const b=getCurrentBuilding(); return b.floors.find(f=>f.id===b.currentFloorId)||b.floors[0]; }
+
     function renderStructureSubbar() {
-      const bc=document.getElementById('buildings-chips-list'), fc=document.getElementById('floors-chips-list');
-      bc.innerHTML=''; fc.innerHTML=''; const cb=getCurrentBuilding();
-      appState.buildings.forEach(b=>{ bc.innerHTML+=`<button onclick="switchBuilding('${b.id}')" class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold ${b.id===cb.id?'bg-blue-600 text-white':'bg-[#181818] border border-[#333] text-gray-400'}">${b.name}</button>`; });
-      cb.floors.forEach(f=>{ fc.innerHTML+=`<button onclick="switchFloor('${f.id}')" class="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold ${f.id===cb.currentFloorId?'bg-amber-600 text-white':'bg-[#181818] border border-[#333] text-gray-400'}">${f.name}</button>`; });
+      const bc = document.getElementById('buildings-chips-list'), fc = document.getElementById('floors-chips-list');
+      if(!bc || !fc) return;
+      bc.innerHTML = ''; fc.innerHTML = '';
+      const cb = getCurrentBuilding();
+
+      appState.buildings.forEach(b => {
+        const active = b.id === cb.id;
+        bc.innerHTML += `
+          <div class="inline-flex items-center rounded overflow-hidden border shrink-0 ${active ? 'bg-blue-600 border-blue-500 text-white' : 'bg-[#181818] border-[#333] text-gray-400'}">
+            <button onclick="switchBuilding('${b.id}')" class="px-2 py-0.5 text-[10px] sm:text-[11px] font-bold hover:text-white">${b.name}</button>
+            <button onclick="promptRenameBuilding('${b.id}')" class="px-1 py-0.5 hover:bg-black/30 text-[10px] border-l ${active ? 'border-blue-400/40 text-blue-100' : 'border-[#2a2a2a] text-gray-500'} hover:text-white" title="Zmień nazwę budynku">✎</button>
+            <button onclick="deleteBuilding('${b.id}')" class="px-1 py-0.5 hover:bg-rose-600 text-[10px] border-l ${active ? 'border-blue-400/40 text-blue-100' : 'border-[#2a2a2a] text-gray-500'} hover:text-white" title="Usuń budynek">✕</button>
+          </div>`;
+      });
+
+      cb.floors.forEach(f => {
+        const active = f.id === cb.currentFloorId;
+        fc.innerHTML += `
+          <div class="inline-flex items-center rounded overflow-hidden border shrink-0 ${active ? 'bg-amber-600 border-amber-500 text-white' : 'bg-[#181818] border-[#333] text-gray-400'}">
+            <button onclick="switchFloor('${f.id}')" class="px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold hover:text-white">${f.name}</button>
+            <button onclick="promptRenameFloor('${f.id}')" class="px-1 py-0.5 hover:bg-black/30 text-[10px] border-l ${active ? 'border-amber-400/40 text-amber-100' : 'border-[#2a2a2a] text-gray-500'} hover:text-white" title="Zmień nazwę piętra">✎</button>
+            <button onclick="deleteFloor('${f.id}')" class="px-1 py-0.5 hover:bg-rose-600 text-[10px] border-l ${active ? 'border-amber-400/40 text-amber-100' : 'border-[#2a2a2a] text-gray-500'} hover:text-white" title="Usuń piętro">✕</button>
+          </div>`;
+      });
     }
-    function switchBuilding(id) { appState.currentBuildingId=id; renderStructureSubbar(); loadFloor(getCurrentFloor().id); updateDashboardCounts(); }
-    function switchFloor(id) { getCurrentBuilding().currentFloorId=id; renderStructureSubbar(); loadFloor(id); updateDashboardCounts(); }
-    
+
+    function switchBuilding(id) {
+      appState.currentBuildingId = id;
+      const b = getCurrentBuilding();
+      if(!b.floors.find(f => f.id === b.currentFloorId)) b.currentFloorId = b.floors[0].id;
+      persistData();
+      renderStructureSubbar();
+      loadFloor(b.currentFloorId);
+      updateDashboardCounts();
+    }
+
+    function switchFloor(id) {
+      getCurrentBuilding().currentFloorId = id;
+      persistData();
+      renderStructureSubbar();
+      loadFloor(id);
+      updateDashboardCounts();
+    }
+
+    function promptNewBuilding() {
+      const name = prompt('Podaj nazwę nowego budynku:', 'Budynek ' + (appState.buildings.length + 1));
+      if(!name || !name.trim()) return;
+      const bId = 'b-' + Date.now();
+      const fId = bId + '-f0';
+      appState.buildings.push({
+        id: bId,
+        name: name.trim(),
+        currentFloorId: fId,
+        floors: [{ id: fId, name: 'Parter', blueprint: null, pins: [] }]
+      });
+      appState.currentBuildingId = bId;
+      persistData();
+      renderStructureSubbar();
+      loadFloor(fId);
+      updateDashboardCounts();
+    }
+
+    function promptRenameBuilding(id) {
+      const b = appState.buildings.find(x => x.id === id);
+      if(!b) return;
+      const newName = prompt('Nowa nazwa budynku:', b.name);
+      if(!newName || !newName.trim()) return;
+      b.name = newName.trim();
+      b.floors.forEach(f => f.pins.forEach(p => p.bn = b.name));
+      persistData();
+      renderStructureSubbar();
+      updateDashboardCounts();
+    }
+
+    function deleteBuilding(id) {
+      const b = appState.buildings.find(x => x.id === id);
+      if(!b) return;
+      if(appState.buildings.length <= 1) {
+        if(confirm(`"${b.name}" to jedyny budynek w projekcie. Czy chcesz wyczyścić wszystkie jego rzuty i usterki?`)) {
+          const fId = 'f-' + Date.now();
+          b.floors = [{ id: fId, name: 'Rzut Główny', blueprint: null, pins: [] }];
+          b.currentFloorId = fId;
+          persistData();
+          renderStructureSubbar();
+          loadFloor(fId);
+          updateDashboardCounts();
+        }
+        return;
+      }
+      if(confirm(`Czy na pewno usunąć budynek "${b.name}" wraz ze wszystkimi jego piętrami i usterkami?`)) {
+        appState.buildings = appState.buildings.filter(x => x.id !== id);
+        appState.currentBuildingId = appState.buildings[0].id;
+        persistData();
+        renderStructureSubbar();
+        loadFloor(getCurrentFloor().id);
+        updateDashboardCounts();
+      }
+    }
+
+    function promptNewFloor() {
+      const b = getCurrentBuilding();
+      const name = prompt('Podaj nazwę nowego piętra / rzutu:', 'Piętro ' + b.floors.length);
+      if(!name || !name.trim()) return;
+      const fId = 'f-' + Date.now();
+      b.floors.push({ id: fId, name: name.trim(), blueprint: null, pins: [] });
+      b.currentFloorId = fId;
+      persistData();
+      renderStructureSubbar();
+      loadFloor(fId);
+      updateDashboardCounts();
+    }
+
+    function promptRenameFloor(id) {
+      const b = getCurrentBuilding();
+      const f = b.floors.find(x => x.id === id);
+      if(!f) return;
+      const newName = prompt('Nowa nazwa piętra / rzutu:', f.name);
+      if(!newName || !newName.trim()) return;
+      f.name = newName.trim();
+      f.pins.forEach(p => p.fn = f.name);
+      persistData();
+      renderStructureSubbar();
+    }
+
+    function deleteFloor(id) {
+      const b = getCurrentBuilding();
+      const f = b.floors.find(x => x.id === id);
+      if(!f) return;
+      if(b.floors.length <= 1) {
+        if(confirm(`"${f.name}" to jedyne piętro w tym budynku. Czy chcesz usunąć z niego podkład i usterki?`)) {
+          f.blueprint = null;
+          f.pins = [];
+          persistData();
+          loadFloor(f.id);
+          updateDashboardCounts();
+        }
+        return;
+      }
+      if(confirm(`Czy na pewno usunąć piętro "${f.name}" oraz jego podkład i usterki?`)) {
+        b.floors = b.floors.filter(x => x.id !== id);
+        b.currentFloorId = b.floors[0].id;
+        persistData();
+        renderStructureSubbar();
+        loadFloor(b.currentFloorId);
+        updateDashboardCounts();
+      }
+    }
+
     // RZUT ROBOCZY (PLAN)
     function loadFloor(id) {
-      const f = getCurrentFloor(); pinsLayer.innerHTML='';
-      if(f.blueprint) {
-        document.getElementById('plan-empty-state').style.display='none';
+      const f = getCurrentFloor();
+      pinsLayer.innerHTML = '';
+      if(f && f.blueprint) {
+        document.getElementById('plan-empty-state').style.display = 'none';
+        planImg.classList.remove('hidden');
+        planImg.onload = () => {
+          planWrapper.style.width = planImg.naturalWidth + 'px';
+          planWrapper.style.height = planImg.naturalHeight + 'px';
+          fitBlueprintToView();
+          renderPins();
+        };
         planImg.src = f.blueprint;
-        planImg.onload = () => { planWrapper.style.width=planImg.naturalWidth+'px'; planWrapper.style.height=planImg.naturalHeight+'px'; fitBlueprintToView(); renderPins(); };
-      } else { document.getElementById('plan-empty-state').style.display='flex'; planImg.src=''; planWrapper.style.width='0px'; }
+      } else {
+        document.getElementById('plan-empty-state').style.display = 'flex';
+        planImg.onload = null;
+        planImg.removeAttribute('src');
+        planImg.classList.add('hidden');
+        planWrapper.style.width = '0px';
+        planWrapper.style.height = '0px';
+      }
     }
+
     function fitBlueprintToView() {
-      if(!planImg.naturalWidth) return; const s = Math.min((viewport.clientWidth*0.94)/planImg.naturalWidth, (viewport.clientHeight*0.94)/planImg.naturalHeight, 1.5);
+      if(!planImg.naturalWidth) return;
+      const s = Math.min((viewport.clientWidth*0.94)/planImg.naturalWidth, (viewport.clientHeight*0.94)/planImg.naturalHeight, 1.5);
       viewport.setPanZoom(s, (viewport.clientWidth-planImg.naturalWidth*s)/2, (viewport.clientHeight-planImg.naturalHeight*s)/2);
     }
+
     async function handlePlanUploadUniversal(e) {
       const file = e.target.files[0]; if(!file) return;
       const f = getCurrentFloor();
-      if(file.type==='application/pdf' || file.name.endsWith('.pdf')) { f.blueprint = await renderPdfToDataUrl(file); }
-      else { f.blueprint = await new Promise(r=>{const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file);}); }
-      e.target.value=''; persistData(); loadFloor(f.id);
+      if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        f.blueprint = await renderPdfToDataUrl(file);
+      } else {
+        f.blueprint = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+      }
+      f.pins.forEach(p => p.bp = f.blueprint);
+      e.target.value = '';
+      persistData();
+      loadFloor(f.id);
     }
     
     function setupBlueprintClick() {
