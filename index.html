@@ -79,17 +79,22 @@
     }
 
    @page { size: A4; margin: 0; }
-    @media print {
-      html, body { width: 100%; height: auto !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
+   @media print {
+      html, body { width: 210mm !important; height: auto !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: visible !important; }
+      main { overflow: visible !important; height: auto !important; display: block !important; position: static !important; }
       .no-print, header, nav, #structure-subbar, #floating-tools-container, .modal-backdrop { display: none !important; }
       .view-panel { display: none !important; }
-      .view-panel:not(.hidden) { display: block !important; position: static !important; overflow: visible !important; height: auto !important; }
+      .view-panel:not(.hidden) { display: block !important; position: static !important; overflow: visible !important; height: auto !important; padding: 0 !important; margin: 0 !important; }
+      #rohe-report-container, #quick-report-container, #takeoff-print-container { display: block !important; margin: 0 !important; padding: 0 !important; }
+      #rohe-report-container > *, #quick-report-container > *, #takeoff-print-container > * { margin-top: 0 !important; margin-bottom: 0 !important; }
       .a4-page { 
-        width: 100% !important; margin: 0 auto !important; padding: 10mm 15mm !important; 
-        box-shadow: none !important; border: none !important; 
-        page-break-after: always; break-inside: avoid; min-height: auto !important;
+        width: 210mm !important; height: 296mm !important; max-height: 296mm !important;
+        margin: 0 auto !important; padding: 10mm 15mm !important; 
+        box-shadow: none !important; border: none !important; overflow: hidden !important;
+        display: flex !important; flex-direction: column !important;
+        page-break-after: always !important; break-after: page !important; break-inside: avoid !important;
       }
-      .a4-page:last-child { page-break-after: auto; }
+      .a4-page:last-child { page-break-after: auto !important; break-after: auto !important; }
     }
     
   </style>
@@ -120,8 +125,7 @@
       <button onclick="switchView('todo')" id="nav-btn-todo" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> To-Do</button>
       <button onclick="switchView('calendar')" id="nav-btn-calendar" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Kalendarz</button>
       <button onclick="switchView('norms')" id="nav-btn-norms" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Normy</button>
-      <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Raport RJ-V</button>
-    </nav>
+     <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Protokół odbiorowy/jakościowy</button>
 
     <!-- Zarządzanie projektem -->
     <div class="flex items-center gap-2 shrink-0">
@@ -206,7 +210,7 @@
           <div onclick="switchView('report-rohe')" class="bg-[#141414] border border-[#262626] hover:border-rose-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
             <div>
               <div class="w-10 h-10 rounded-xl bg-rose-600/20 text-rose-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="file-text" class="w-5 h-5"></i></div>
-              <h3 class="font-bold text-white text-sm sm:text-base">Raport Jakościowy RJ-V</h3>
+             <h3 class="font-bold text-white text-sm sm:text-base">Protokół odbiorowy/jakościowy</h3>
               <p class="text-[11px] text-gray-400 mt-1">Wykaz wad, dedykowany rzut i zdjęcia do wydruku.</p>
             </div>
             <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Wzorzec:</span><span class="text-rose-400 font-bold">ROHE</span></div>
@@ -263,8 +267,9 @@
       <div class="max-w-4xl mx-auto space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
           <h2 class="text-lg font-black text-white flex items-center gap-2"><i data-lucide="check-square" class="w-5 h-5 text-emerald-500"></i> Zadania & Notatnik</h2>
-          <div class="flex items-center gap-1.5 bg-[#171717] p-1 rounded-xl border border-[#262626] overflow-x-auto shrink-0">
+         <div class="flex items-center gap-1.5 bg-[#171717] p-1 rounded-xl border border-[#262626] overflow-x-auto shrink-0">
             <button onclick="setTodoFilter('all')" id="todofilter-all" class="text-[11px] px-2.5 py-1 rounded-lg bg-blue-600 text-white">Wszystkie</button>
+            <button onclick="setTodoFilter('urgent')" id="todofilter-urgent" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">🔥 Pilne</button>
             <button onclick="setTodoFilter('order')" id="todofilter-order" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">📦 Zamówienia</button>
             <button onclick="setTodoFilter('call')" id="todofilter-call" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">📞 Kontakt</button>
             <button onclick="setTodoFilter('inspection')" id="todofilter-inspection" class="text-[11px] px-2.5 py-1 rounded-lg text-gray-400 hover:text-white">🔍 Odbiór</button>
@@ -334,67 +339,131 @@
       </div>
     </div>
 
-    <div id="view-report-rohe" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#070707] print-panel">
+   <div id="view-report-rohe" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#070707] print-panel">
       <div class="max-w-[920px] mx-auto space-y-4">
         
-        <div class="no-print bg-[#131313] border border-[#282828] rounded-2xl p-4 shadow-xl space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-2">
-            <h3 class="text-sm font-bold text-white flex items-center gap-1.5"><i data-lucide="file-check" class="w-4 h-4 text-rose-500"></i> Generator RJ-V</h3>
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <button onclick="toggleElement('rohe-blueprint-manager')" class="bg-[#1e1e1e] border border-[#333] text-gray-200 text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3 text-amber-400"></i> Rzut PDF</button>
-              <button onclick="window.print()" class="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-md"><i data-lucide="printer" class="w-3 h-3"></i> Drukuj A4</button>
+        <div class="no-print bg-[#131313] border border-[#282828] rounded-2xl p-4 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-3">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="file-check" class="w-4 h-4 text-rose-500"></i> Protokół odbiorowy / jakościowy</h3>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="toggleElement('rohe-blueprint-manager'); if(!document.getElementById('rohe-blueprint-manager').classList.contains('hidden')) setTimeout(fitRoheBlueprintToView, 60);" class="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i> Rzuty i pinezki (<span id="rohe-sheets-count">1</span>)</button>
+              <button onclick="window.print()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Drukuj / PDF (A4)</button>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
-            <div><label class="text-gray-400 uppercase">Nr dok:</label><input type="text" id="rohe-meta-docnum" value="RJ-B-004-2026" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
-            <div><label class="text-gray-400 uppercase">Data:</label><input type="text" id="rohe-meta-date" value="09.10.2026" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
-            <div><label class="text-gray-400 uppercase">Sporządził:</label><input type="text" id="rohe-meta-author" value="Inżynier Budowy" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
-            <div><label class="text-gray-400 uppercase">Wykonawca:</label><input type="text" id="rohe-meta-contractor" value="KAEMDE Sp. z o.o." oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
-            <div class="col-span-2"><label class="text-gray-400 uppercase">Projekt:</label><input type="text" id="rohe-meta-project" value="Inwestycja Mieszkaniowa" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
-            <div class="col-span-2"><label class="text-gray-400 uppercase">Dotyczy:</label><input type="text" id="rohe-meta-subject" value="Usterki z odbioru" oninput="renderRoheReportPages()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
-          </div>
-          
-          <div class="border-t border-[#222] pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <div class="flex items-center justify-between mb-1 text-[10px]">
-                <span class="text-gray-400 font-bold uppercase">Baza uwag w raporcie:</span>
+          <!-- Dane podstawowe i strony procesu budowlanego -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-[11px]">
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nr dokumentu:</label><input type="text" id="rohe-meta-docnum" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Data wystawienia:</label><input type="text" id="rohe-meta-date" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Tytuł nagłówkowy dokumentu:</label><input type="text" id="rohe-meta-title" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white font-bold"></div>
+
+            <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nazwa projektu:</label><input type="text" id="rohe-meta-project" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Zamawiający (Inwestor):</label><input type="text" id="rohe-meta-investor" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nadzór Inwestorski:</label><input type="text" id="rohe-meta-supervision" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Generalny Wykonawca:</label><input type="text" id="rohe-meta-gw" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Przekazujący:</label><input type="text" id="rohe-meta-sender" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Adresat (Podwykonawca):</label><input type="text" id="rohe-meta-contractor" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Lokalizacja:</label><input type="text" id="rohe-meta-loc" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+
+            <div class="sm:col-span-2">
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Branża (można zaznaczyć kilka):</label>
+              <div class="flex items-center gap-4 bg-[#1b1b1b] border border-[#333] rounded-lg px-3 py-1.5 text-white">
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="rohe-trade-bud" onchange="syncRoheMetaFromInputs()" class="accent-rose-600"> Budowlana</label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="rohe-trade-san" onchange="syncRoheMetaFromInputs()" class="accent-rose-600"> Sanitarna</label>
+                <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="rohe-trade-ele" onchange="syncRoheMetaFromInputs()" class="accent-rose-600"> Elektryczna</label>
               </div>
-              <div id="rohe-defect-types-list" class="space-y-1 max-h-32 overflow-y-auto text-[10px]"></div>
+            </div>
+            <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Dotyczy:</label><input type="text" id="rohe-meta-subject" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+
+            <div class="sm:col-span-4">
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-gray-400 text-[10px] font-bold uppercase">Normy / Podstawa odbiorowa (opcjonalnie):</label>
+                <select id="rohe-norm-picker" onchange="appendNormToRohe(this)" class="bg-[#1b1b1b] border border-[#333] text-[10px] text-purple-300 rounded px-2 py-0.5 outline-none">
+                  <option value="">+ Wstaw z Twojej bazy norm...</option>
+                </select>
+              </div>
+              <input type="text" id="rohe-meta-norms" placeholder="np. Warunki techniczne wykonania i odbioru robót budowlanych ITB..." oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white">
+            </div>
+
+            <div class="sm:col-span-4">
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Treść raportu (zdanie wprowadzające nad listą usterek):</label>
+              <textarea id="rohe-meta-bodytext" rows="2" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg p-2 text-white"></textarea>
+            </div>
+
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Sporządził (Imię i Nazwisko):</label><input type="text" id="rohe-meta-author" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Sporządził dnia (w tabeli końcowej):</label><input type="text" id="rohe-meta-signdate" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+            <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Załączniki (pole w tabeli podpisów):</label><input type="text" id="rohe-meta-attnote" placeholder="np. Zgodnie z wykazem" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+          </div>
+
+          <details class="bg-[#101010] border border-[#242424] rounded-xl p-2.5 text-[11px]">
+            <summary class="cursor-pointer text-gray-400 font-semibold text-[10px] uppercase">Edytuj dane adresowe nagłówka i stopki (ROHE)</summary>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              <div><label class="text-gray-500 text-[9px] uppercase">Nagłówek - linia 1:</label><input type="text" id="rohe-meta-h1" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+              <div><label class="text-gray-500 text-[9px] uppercase">Nagłówek - linia 2:</label><input type="text" id="rohe-meta-h2" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+              <div><label class="text-gray-500 text-[9px] uppercase">Stopka:</label><input type="text" id="rohe-meta-foot" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded px-2 py-1 text-white"></div>
+            </div>
+          </details>
+
+          <div class="border-t border-[#222] pt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-gray-400 text-[10px] font-bold uppercase">Lista wykrytych wad (numeracja na rzucie i w treści):</span>
+                <button onclick="addManualRoheDefect()" class="text-[10px] bg-rose-600/20 text-rose-400 border border-rose-800/40 px-2 py-0.5 rounded hover:bg-rose-600 hover:text-white">+ Dodaj wadę</button>
+              </div>
+              <div id="rohe-defect-types-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1 text-xs"></div>
             </div>
             <div>
-              <div class="flex items-center justify-between mb-1 text-[10px]">
-                <span class="text-gray-400 font-bold uppercase">Załączniki zdjęciowe (Widoczne w PDF):</span>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-gray-400 text-[10px] font-bold uppercase">Załączniki zdjęciowe w raporcie:</span>
               </div>
-              <div id="rohe-photos-selection-list" class="space-y-1.5 max-h-32 overflow-y-auto pr-1"></div>
+              <div id="rohe-photos-selection-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1"></div>
             </div>
           </div>
         </div>
 
-        <!-- Menedżer Rzutu RJ-V -->
-        <div id="rohe-blueprint-manager" class="no-print hidden bg-[#141414] border border-[#282828] rounded-xl p-3 relative shadow-2xl">
-          <div class="flex items-center justify-between border-b border-[#222] pb-2 mb-2">
-            <span class="text-xs font-bold text-white"><i data-lucide="map" class="inline w-3 h-3 text-rose-500 mr-1"></i> Rzut dla RJ-V</span>
+        <!-- Menedżer wielu rzutów protokołu -->
+        <div id="rohe-blueprint-manager" class="no-print bg-[#141414] border border-[#282828] rounded-2xl p-3.5 relative shadow-2xl space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#222] pb-2">
+            <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0 mr-1"><i data-lucide="layers" class="inline w-3.5 h-3.5 text-rose-500"></i> Rzuty:</span>
+              <div id="rohe-sheets-chips" class="flex items-center gap-1.5 shrink-0"></div>
+              <button onclick="promptNewRoheSheet()" class="bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] text-gray-200 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1 shrink-0"><i data-lucide="plus" class="w-3 h-3 text-rose-400"></i> Dodaj rzut</button>
+            </div>
             <div class="flex items-center gap-1.5">
               <input type="file" id="rohe-plan-file-input" accept="image/*,application/pdf,.pdf" class="hidden" onchange="handleRohePlanUploadUniversal(event)">
-              <button onclick="document.getElementById('rohe-plan-file-input').click()" class="bg-[#222] text-gray-200 text-[10px] px-2 py-1 rounded border border-[#333]">Wgraj podkład</button>
-              <button onclick="clearRohePins()" class="text-rose-400 text-[10px] px-2 py-1 rounded border border-rose-950 bg-rose-950/30">Wyczyść pinezki</button>
-              <button onclick="toggleElement('rohe-blueprint-manager')" class="text-gray-500 p-1"><i data-lucide="x" class="w-3 h-3"></i></button>
+              <button onclick="document.getElementById('rohe-plan-file-input').click()" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold px-3 py-1 rounded-lg flex items-center gap-1"><i data-lucide="upload" class="w-3 h-3"></i> Wgraj podkład</button>
+              <button onclick="clearRohePins()" class="text-rose-400 text-[11px] px-2.5 py-1 rounded-lg border border-rose-950 bg-rose-950/30 hover:bg-rose-900/40">Wyczyść pinezki rzutu</button>
+              <button onclick="toggleElement('rohe-blueprint-manager')" class="text-gray-400 hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
           </div>
-          <div class="absolute right-4 top-14 flex flex-col gap-1.5 z-30">
-            <button onclick="fitRoheBlueprintToView()" class="w-8 h-8 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="focus" class="w-3 h-3"></i></button>
-            <button onclick="zoomManual(1.3, roheViewport)" class="w-8 h-8 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="zoom-in" class="w-3 h-3"></i></button>
-            <button onclick="zoomManual(0.7, roheViewport)" class="w-8 h-8 rounded bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="zoom-out" class="w-3 h-3"></i></button>
+
+          <div class="text-[10px] text-gray-400 flex items-center justify-between px-1">
+            <span>Kliknij na rzut, aby wstawić punkt i przypisać nową lub istniejącą wadę (np. 1, 2, 3...).</span>
+            <span id="rohe-active-sheet-caption" class="text-amber-400 font-semibold"></span>
           </div>
-          <div id="rohe-viewport" class="w-full h-[45vh] sm:h-80 relative bg-[#070707] rounded-lg overflow-hidden border border-[#222]">
+
+          <div class="absolute right-6 top-24 flex flex-col gap-1.5 z-30">
+            <button onclick="fitRoheBlueprintToView()" class="w-8 h-8 rounded-lg bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="focus" class="w-3.5 h-3.5"></i></button>
+            <button onclick="zoomManual(1.3, roheViewport)" class="w-8 h-8 rounded-lg bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button>
+            <button onclick="zoomManual(0.7, roheViewport)" class="w-8 h-8 rounded-lg bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-md"><i data-lucide="zoom-out" class="w-3.5 h-3.5"></i></button>
+          </div>
+
+          <div id="rohe-viewport" class="w-full h-[50vh] sm:h-96 relative bg-[#070707] rounded-xl overflow-hidden border border-[#222]">
             <div id="rohe-plan-wrapper" class="absolute origin-top-left will-change-transform">
               <img id="rohe-plan-img" class="block pointer-events-none select-none max-w-none" />
               <div id="rohe-pins-layer" class="absolute inset-0 pointer-events-auto"></div>
             </div>
-            <div id="rohe-empty-state" class="absolute inset-0 flex items-center justify-center text-[10px] text-gray-500 text-center p-4 pointer-events-none">Brak podkładu RJ-V.</div>
+            <div id="rohe-empty-state" class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs text-gray-500 text-center p-4 pointer-events-none">
+              <i data-lucide="file-up" class="w-7 h-7 text-rose-400"></i>
+              <span>Brak podkładu dla wybranego rzutu. Kliknij „Wgraj podkład” powyżej.</span>
+            </div>
           </div>
         </div>
+
+        <div id="rohe-report-container" class="space-y-6"></div>
+      </div>
+    </div>
 
         <div id="rohe-report-container" class="space-y-4"></div>
       </div>
@@ -468,28 +537,48 @@
     </div>
   </div>
 
-  <div id="modal-rohe-pin" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
-    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-sm flex flex-col shadow-2xl">
+ <div id="modal-rohe-pin" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+    <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
       <div class="px-4 py-3 border-b border-[#242424] flex justify-between items-center">
-        <h3 class="text-xs font-bold text-white"><i data-lucide="map-pin" class="inline w-3 h-3 text-rose-500"></i> Wada w RJ-V</h3>
-        <button onclick="closeRohePinModal()" class="text-gray-400"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <h3 class="text-xs font-bold text-white flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-rose-500"></i> Punkt usterki na rzucie protokołu</h3>
+        <button onclick="closeRohePinModal()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
-      <div class="p-4 space-y-3 text-[11px]">
-        <div class="flex gap-4 border-b border-[#222] pb-2">
-          <label class="flex items-center gap-1 cursor-pointer text-gray-300"><input type="radio" name="r-mode" id="rohe-mode-existing" checked onchange="toggleRoheDefectMode()" class="text-rose-600"> Baza</label>
-          <label class="flex items-center gap-1 cursor-pointer text-gray-300"><input type="radio" name="r-mode" id="rohe-mode-new" onchange="toggleRoheDefectMode()" class="text-rose-600"> Nowa</label>
+      <div class="p-4 space-y-3 text-xs">
+        <div class="flex gap-4 border-b border-[#222] pb-2.5">
+          <label class="flex items-center gap-1.5 cursor-pointer text-gray-200 font-semibold">
+            <input type="radio" name="r-mode" id="rohe-mode-existing" checked onchange="toggleRoheDefectMode()" class="accent-rose-600"> Wybierz z listy wad (grupuj)
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer text-gray-200 font-semibold">
+            <input type="radio" name="r-mode" id="rohe-mode-new" onchange="toggleRoheDefectMode()" class="accent-rose-600"> Dodaj nową wadę
+          </label>
         </div>
-        <select id="modal-rohe-pin-select-defect" class="w-full bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white"></select>
-        <input type="text" id="modal-rohe-pin-new-text" placeholder="Treść nowej wady..." class="hidden w-full bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white">
-        <input type="text" id="modal-rohe-pin-loc" placeholder="Podpis zdjęcia (np. Parter, P.01)..." class="w-full bg-[#1c1c1c] border border-[#333] rounded px-2 py-1.5 text-white">
+
+        <div id="rohe-field-existing">
+          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Przypisz numer istniejącej wady:</label>
+          <select id="modal-rohe-pin-select-defect" class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-rose-500"></select>
+        </div>
+
+        <div id="rohe-field-new" class="hidden">
+          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Nazwa nowej wady (utworzy kolejny nr w treści raportu):</label>
+          <input type="text" id="modal-rohe-pin-new-text" placeholder="np. Skrzydło do regulacji" class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-rose-500">
+        </div>
+
         <div>
-          <label class="block text-gray-400 font-bold mb-1">Załącznik:</label>
-          <input type="file" id="modal-rohe-photo-input" accept="image/*" class="w-full text-gray-400" onchange="handleRohePinPhotoUpload(event)">
-          <div id="modal-rohe-photo-preview-box" class="mt-2 hidden"><img id="modal-rohe-photo-preview-img" class="w-full h-32 object-cover rounded border border-[#333]" /></div>
+          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Podpis załącznika zdjęciowego (opcjonalnie):</label>
+          <input type="text" id="modal-rohe-pin-loc" placeholder="np. Listwa do wymiany okno O3L w osiach 8 – 9 B" class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-rose-500">
+        </div>
+
+        <div>
+          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Zdjęcie do załącznika (opcjonalnie):</label>
+          <input type="file" id="modal-rohe-photo-input" accept="image/*" class="w-full text-gray-400 text-[11px]" onchange="handleRohePinPhotoUpload(event)">
+          <div id="modal-rohe-photo-preview-box" class="mt-2 hidden">
+            <img id="modal-rohe-photo-preview-img" class="w-full h-36 object-cover rounded-xl border border-[#333]" />
+          </div>
         </div>
       </div>
-      <div class="px-4 py-2 border-t border-[#242424] bg-[#111] flex justify-end rounded-b-2xl">
-        <button onclick="saveRohePinFromModal()" class="px-4 py-1.5 rounded bg-rose-600 text-white font-semibold text-[11px]">Wstaw do raportu</button>
+      <div class="px-4 py-2.5 border-t border-[#242424] bg-[#111] flex justify-end gap-2">
+        <button onclick="closeRohePinModal()" class="px-3 py-1.5 rounded-xl border border-[#333] text-gray-300 text-xs">Anuluj</button>
+        <button onclick="saveRohePinFromModal()" class="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow">Wstaw do raportu</button>
       </div>
     </div>
   </div>
@@ -800,10 +889,16 @@
   </div>
 
   <script>
-    // Wektorowe Logo
+  // Wektorowe Logo ROHE
     const ROHE_LOGO_SVG = `
-      <svg class="h-[28mm] w-auto" viewBox="0 0 160 40" fill="#000000" xmlns="http://www.w3.org/2000/svg">
-        <text x="0" y="32" font-family="Arial, sans-serif" font-weight="900" font-size="34" letter-spacing="-1">ROHE</text>
+      <svg class="h-11 w-auto shrink-0" viewBox="0 0 1129 289" version="1.1" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 0 C372.57 0 745.14 0 1129 0 C1129 95.37 1129 190.74 1129 289 C756.43 289 383.86 289 0 289 C0 193.63 0 98.26 0 0 Z " fill="#FEFEFE" transform="translate(0,0)"/>
+        <path d="M0 0 C13.58 11.23 19.02 27.3 20.8 44.38 C22.1 59.44 22.33 74.95 19.31 89.81 C19.18 90.53 19.05 91.24 18.91 91.97 C15.62 107.22 8.26 119.67 -4.89 128.25 C-15.98 134.42 -27.97 135.07 -40.38 135.12 C-41.92 135.13 -41.92 135.13 -43.5 135.14 C-59.91 134.99 -74.3 131.47 -86.52 120.11 C-94.71 111.61 -98.53 100.21 -100.69 88.81 C-100.89 87.73 -101.1 86.65 -101.31 85.54 C-105.29 60.7 -104.46 30.96 -90.31 9.44 C-81.85 -1.94 -70.01 -7.41 -56.17 -9.86 C-37.72 -12.28 -15.51 -11.29 0 0 Z " fill="#FEFEFE" transform="translate(450.6875,78.1875)"/>
+        <path d="M0 0 C1.2 0 1.2 0 2.42 0 C26.17 0.08 48.34 4.66 66.25 21.62 C84.34 40.69 88.88 66.38 88.82 91.68 C88.81 94.11 88.84 96.54 88.86 98.97 C88.92 113.05 87.52 127.23 82.88 140.62 C82.62 141.36 82.37 142.1 82.11 142.86 C75.74 160.33 62.81 174.63 45.94 182.58 C43.48 183.61 41.02 184.51 38.5 185.38 C37.75 185.65 36.99 185.93 36.21 186.21 C11.66 194.49 -20.32 192.62 -43.77 181.88 C-51.41 178.03 -57.49 173.44 -63.5 167.38 C-64.12 166.78 -64.75 166.19 -65.39 165.59 C-83.05 147.53 -85.94 119.06 -85.81 95.19 C-85.81 94.42 -85.81 93.66 -85.8 92.87 C-85.67 65.64 -81.35 41.17 -62.25 20.56 C-54.71 13.45 -45.97 8.68 -36.38 5 C-35.44 4.64 -35.44 4.64 -34.5 4.28 C-23.25 0.23 -11.82 -0.03 0 0 Z M-44.33 36.9 C-52.67 46.41 -56.18 57.17 -58.5 69.38 C-58.72 70.47 -58.95 71.56 -59.18 72.69 C-63.47 97.12 -61.85 126.91 -48.08 148.2 C-40.87 158.12 -30.45 163.86 -18.5 166.38 C2.02 169.61 24.85 169.32 42.5 157.38 C55.22 147.29 60.8 131.77 62.79 116.1 C65 95.08 66.15 68.34 55.5 49.38 C54.97 48.41 54.45 47.45 53.9 46.46 C46.44 33.83 36.26 27.61 22.24 23.95 C0.08 19.27 -27.1 20.58 -44.33 36.9 Z " fill="#686868" transform="translate(408.5,45.625)"/>
+        <path d="M0 0 C43.56 0 87.12 0 132 0 C132 7.26 132 14.52 132 22 C96.69 22 61.38 22 25 22 C25 41.47 25 60.94 25 81 C41.5 81 58 81 75 81 C75 88.26 75 95.52 75 103 C58.5 103 42 103 25 103 C25 121.81 25 140.62 25 160 C60.97 160 96.94 160 134 160 C134 167.26 134 174.52 134 182 C89.78 182 45.56 182 0 182 C0 121.94 0 61.88 0 0 Z " fill="#686868" transform="translate(911,50)"/>
+        <path d="M0 0 C11.83 -0.07 23.66 -0.12 35.5 -0.16 C40.99 -0.17 46.49 -0.19 51.98 -0.23 C57.3 -0.26 62.62 -0.28 67.93 -0.28 C69.95 -0.29 71.96 -0.3 73.98 -0.32 C94.14 -0.47 116.41 0.27 131.97 14.85 C143.14 26.78 143.56 41.25 143.31 56.76 C142.85 69.57 139.41 81.5 130.19 90.83 C122.17 97.42 110.39 102 100 102 C100.43 102.61 100.85 103.23 101.29 103.86 C110.96 117.74 120.61 131.63 130.14 145.61 C131.24 147.22 132.34 148.83 133.44 150.44 C133.98 151.23 134.52 152.02 135.07 152.83 C139.36 159.1 143.72 165.31 148.13 171.48 C148.6 172.14 149.06 172.79 149.54 173.46 C149.94 174.03 150.35 174.59 150.76 175.17 C152.27 177.4 153.63 179.69 155 182 C127.5 184.36 127.5 184.36 120.68 180.79 C117.27 177.55 115.62 173.47 113.93 169.15 C112.35 165.51 110.01 162.45 107.69 159.25 C106.75 157.9 105.82 156.56 104.9 155.21 C104.43 154.52 103.95 153.83 103.46 153.13 C101.44 150.18 99.42 147.23 97.41 144.28 C91.1 135.03 84.72 125.82 78.29 116.65 C77.65 115.73 77 114.8 76.34 113.85 C75.76 113.04 75.19 112.22 74.6 111.38 C74.07 110.59 73.55 109.81 73 109 C72.44 108.18 71.88 107.37 71.31 106.53 C69.82 103.66 69.65 101.91 69.71 98.7 C69.72 97.72 69.73 96.75 69.74 95.74 C69.76 94.73 69.79 93.73 69.81 92.69 C69.83 91.66 69.84 90.63 69.85 89.58 C69.89 87.05 69.94 84.53 70 82 C71.22 81.95 72.44 81.9 73.7 81.85 C93.54 81.87 93.54 81.87 111 74 C117.65 65.29 117.96 52.86 116.69 42.45 C115.55 36.41 113.19 32.25 108.88 27.81 C101.88 23.4 94.16 22.55 86.05 22.57 C85.11 22.56 84.18 22.55 83.21 22.54 C80.15 22.51 77.09 22.5 74.02 22.49 C71.89 22.47 69.75 22.45 67.61 22.43 C62.01 22.39 56.41 22.36 50.81 22.33 C45.09 22.3 39.36 22.25 33.64 22.21 C22.42 22.12 11.21 22.06 0 22 C0 14.74 0 7.48 0 0 Z " fill="#686868" transform="translate(56,50)"/>
+        <path d="M0 0 C8.25 0 16.5 0 25 0 C25 60.06 25 120.12 25 182 C16.75 182 8.5 182 0 182 C0 154.94 0 127.88 0 100 C-16.17 100 -32.34 100 -49 100 C-49 92.74 -49 85.48 -49 78 C-32.83 78 -16.66 78 0 78 C0 52.26 0 26.52 0 0 Z " fill="#686868" transform="translate(746,50)"/>
+        <path d="M0 0 C8.25 0 16.5 0 25 0 C25 60.06 25 120.12 25 182 C16.75 182 8.5 182 0 182 C0 121.94 0 61.88 0 0 Z " fill="#686868" transform="translate(628,50)"/>
       </svg>
     `;
 
@@ -862,7 +957,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       if(activePanel) activePanel.classList.remove('hidden');
       const structBar = document.getElementById('structure-subbar');
       if(structBar) { if(view === 'plan') structBar.classList.remove('hidden'); else structBar.classList.add('hidden'); }
-      if(view === 'report-rohe') { renderRoheDefects(); renderRohePhotos(); renderRoheReportPages(); if(rohePlanImg.naturalWidth>0)fitRoheBlueprintToView(); }
+     if(view === 'report-rohe') { initRoheModuleUI(); renderRoheReportPages(); }
       if(view === 'plan' && planImg.naturalWidth>0) fitBlueprintToView();
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
     }
@@ -927,13 +1022,13 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       const st = await loadFromDB(); if(st) appState = {...appState, ...st};
       
      setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y; planWrapper.style.setProperty('--pin-scale', (1 / s).toFixed(4));});
-      setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y;});
+     setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y; rohePlanWrapper.style.setProperty('--pin-scale', (1 / s).toFixed(4));});
      setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y; redrawTk();});
       
       renderStructureSubbar(); loadFloor(appState.buildings[0].currentFloorId);
       renderTodos(); renderCalendarGrid(); renderCalendarList('all'); renderNorms(); renderRoheDefects(); renderRohePhotos();
       
-      if(appState.roheReport.blueprint) { rohePlanImg.src=appState.roheReport.blueprint; rohePlanImg.onload=()=>{rohePlanWrapper.style.width=rohePlanImg.naturalWidth+'px'; rohePlanWrapper.style.height=rohePlanImg.naturalHeight+'px'; renderRohePins(); fitRoheBlueprintToView();} }
+     initRoheModuleUI();
       
       setupBlueprintClick(); setupRoheBlueprintClick(); setupTkInteraction();
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
@@ -1232,138 +1327,754 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       } c.innerHTML=html;
     }
 
-    // RAPORT ROHE (RJ-V)
-    async function handleRohePlanUploadUniversal(e) {
-      const file = e.target.files[0]; if(!file) return;
-      if(file.type==='application/pdf' || file.name.endsWith('.pdf')) { appState.roheReport.blueprint = await renderPdfToDataUrl(file); }
-      else { appState.roheReport.blueprint = await new Promise(r=>{const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(file);}); }
-      e.target.value=''; persistData();
-      rohePlanImg.src=appState.roheReport.blueprint; rohePlanImg.onload=()=>{rohePlanWrapper.style.width=rohePlanImg.naturalWidth+'px'; rohePlanWrapper.style.height=rohePlanImg.naturalHeight+'px'; document.getElementById('rohe-empty-state').style.display='none'; fitRoheBlueprintToView(); renderRohePins();};
+    // PROTOKÓŁ ODBIOROWY / JAKOŚCIOWY (ROHE RJ-V)
+    function ensureRoheState() {
+      if (!appState.roheReport) appState.roheReport = {};
+      const r = appState.roheReport;
+      if (!Array.isArray(r.defectTypes)) r.defectTypes = [];
+      if (!Array.isArray(r.pins)) r.pins = [];
+      if (!Array.isArray(r.sheets) || r.sheets.length === 0) {
+        const sId = 'rs-1';
+        r.sheets = [{ id: sId, name: 'rzut pierwszego piętra z zaznaczonymi uwagami', blueprint: r.blueprint || null }];
+        r.activeSheetId = sId;
+        r.pins.forEach(p => { if (!p.sheetId) p.sheetId = sId; });
+      }
+      if (!r.activeSheetId || !r.sheets.find(s => s.id === r.activeSheetId)) {
+        r.activeSheetId = r.sheets[0].id;
+      }
+      const defaultMeta = {
+        title: 'Protokół odbiorowy / jakościowy',
+        docNum: 'RJ-B-004-2026',
+        date: '30.06.2026',
+        project: 'Inwestycja Visla ul. Wał Zawadowski Warszawa',
+        investor: 'ROHE VISLA Sp. z o. o. Sp. k.',
+        supervision: 'ROHE VISLA Sp. z o. o. Sp. k.',
+        gw: 'ROHE Sp. z o. o.',
+        sender: 'ROHE Sp. z o. o.',
+        contractor: 'KAEMDE Sp. z o.o.',
+        trades: ['Budowlana'],
+        loc: 'Etap 2',
+        subject: 'Usterki wykazane podczas odbioru stolarki okiennej',
+        norms: '',
+        bodyText: 'GW zwraca uwagę na wady wykryte podczas odbioru stolarki okiennej:',
+        author: 'Adrian Krysik',
+        signDate: '29.05.2026',
+        attNote: '',
+        h1: 'Al. Jerozolimskie 200 lok. 150 | 02-486 Warszawa',
+        h2: 'tel. 22 270 24 21 | biuro@rohe.pl',
+        foot: 'ROHE Sp. z o.o. | Al. Jerozolimskie 200 lok. 150 | 02-486 Warszawa | NIP: 9512397152 | www.rohe.pl'
+      };
+      r.meta = { ...defaultMeta, ...(r.meta || {}) };
+    }
+
+    function getActiveRoheSheet() {
+      ensureRoheState();
+      return appState.roheReport.sheets.find(s => s.id === appState.roheReport.activeSheetId) || appState.roheReport.sheets[0];
+    }
+
+    function initRoheModuleUI() {
+      ensureRoheState();
+      const m = appState.roheReport.meta;
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+      setVal('rohe-meta-docnum', m.docNum);
+      setVal('rohe-meta-date', m.date);
+      setVal('rohe-meta-title', m.title);
+      setVal('rohe-meta-project', m.project);
+      setVal('rohe-meta-investor', m.investor);
+      setVal('rohe-meta-supervision', m.supervision);
+      setVal('rohe-meta-gw', m.gw);
+      setVal('rohe-meta-sender', m.sender);
+      setVal('rohe-meta-contractor', m.contractor);
+      setVal('rohe-meta-loc', m.loc);
+      setVal('rohe-meta-subject', m.subject);
+      setVal('rohe-meta-norms', m.norms);
+      setVal('rohe-meta-bodytext', m.bodyText);
+      setVal('rohe-meta-author', m.author);
+      setVal('rohe-meta-signdate', m.signDate);
+      setVal('rohe-meta-attnote', m.attNote);
+      setVal('rohe-meta-h1', m.h1);
+      setVal('rohe-meta-h2', m.h2);
+      setVal('rohe-meta-foot', m.foot);
+
+      const trades = Array.isArray(m.trades) ? m.trades : ['Budowlana'];
+      const bEl = document.getElementById('rohe-trade-bud'), sEl = document.getElementById('rohe-trade-san'), eEl = document.getElementById('rohe-trade-ele');
+      if (bEl) bEl.checked = trades.includes('Budowlana');
+      if (sEl) sEl.checked = trades.includes('Sanitarna');
+      if (eEl) eEl.checked = trades.includes('Elektryczna');
+
+      const normPicker = document.getElementById('rohe-norm-picker');
+      if (normPicker) {
+        normPicker.innerHTML = `<option value="">+ Wstaw z Twojej bazy norm...</option>`;
+        (appState.customNormCategories || []).forEach(n => {
+          normPicker.innerHTML += `<option value="${n.title.replace(/"/g, '&quot;')}">${n.short} – ${n.title}</option>`;
+        });
+      }
+
+      renderRoheSheetsBar();
+      loadActiveRoheSheet();
+      renderRoheDefects();
+      renderRohePhotos();
+    }
+
+    function appendNormToRohe(sel) {
+      if (!sel.value) return;
+      const inp = document.getElementById('rohe-meta-norms');
+      inp.value = inp.value ? `${inp.value}; ${sel.value}` : sel.value;
+      sel.value = '';
+      syncRoheMetaFromInputs();
+    }
+
+    function syncRoheMetaFromInputs() {
+      ensureRoheState();
+      const m = appState.roheReport.meta;
+      const getVal = id => document.getElementById(id)?.value || '';
+      m.docNum = getVal('rohe-meta-docnum');
+      m.date = getVal('rohe-meta-date');
+      m.title = getVal('rohe-meta-title');
+      m.project = getVal('rohe-meta-project');
+      m.investor = getVal('rohe-meta-investor');
+      m.supervision = getVal('rohe-meta-supervision');
+      m.gw = getVal('rohe-meta-gw');
+      m.sender = getVal('rohe-meta-sender');
+      m.contractor = getVal('rohe-meta-contractor');
+      m.loc = getVal('rohe-meta-loc');
+      m.subject = getVal('rohe-meta-subject');
+      m.norms = getVal('rohe-meta-norms');
+      m.bodyText = getVal('rohe-meta-bodytext');
+      m.author = getVal('rohe-meta-author');
+      m.signDate = getVal('rohe-meta-signdate');
+      m.attNote = getVal('rohe-meta-attnote');
+      m.h1 = getVal('rohe-meta-h1');
+      m.h2 = getVal('rohe-meta-h2');
+      m.foot = getVal('rohe-meta-foot');
+
+      const trades = [];
+      if (document.getElementById('rohe-trade-bud')?.checked) trades.push('Budowlana');
+      if (document.getElementById('rohe-trade-san')?.checked) trades.push('Sanitarna');
+      if (document.getElementById('rohe-trade-ele')?.checked) trades.push('Elektryczna');
+      m.trades = trades;
+
+      persistData();
       renderRoheReportPages();
     }
-    function fitRoheBlueprintToView() {
-      if(!rohePlanImg.naturalWidth) return; const s = Math.min((roheViewport.clientWidth*0.94)/rohePlanImg.naturalWidth, (roheViewport.clientHeight*0.94)/rohePlanImg.naturalHeight, 1.2);
-      roheViewport.setPanZoom(s, (roheViewport.clientWidth-rohePlanImg.naturalWidth*s)/2, (roheViewport.clientHeight-rohePlanImg.naturalHeight*s)/2);
+
+    // Wielorzutowość w protokole (Dodawanie, edycja nazwy, usuwanie rzutów)
+    function renderRoheSheetsBar() {
+      ensureRoheState();
+      const c = document.getElementById('rohe-sheets-chips');
+      const countEl = document.getElementById('rohe-sheets-count');
+      if (countEl) countEl.innerText = appState.roheReport.sheets.length;
+      if (!c) return;
+      c.innerHTML = '';
+      const active = getActiveRoheSheet();
+      appState.roheReport.sheets.forEach((s, idx) => {
+        const isAct = s.id === active.id;
+        c.innerHTML += `
+          <div class="inline-flex items-center rounded-lg overflow-hidden border shrink-0 ${isAct ? 'bg-rose-600 border-rose-500 text-white' : 'bg-[#1b1b1b] border-[#333] text-gray-300'}">
+            <button onclick="switchRoheSheet('${s.id}')" class="px-2.5 py-1 text-[11px] font-bold hover:text-white max-w-[180px] truncate" title="Załącznik ${idx + 1}: ${s.name}">Zał. ${idx + 1}: ${s.name}</button>
+            <button onclick="promptRenameRoheSheet('${s.id}')" class="px-1.5 py-1 hover:bg-black/30 text-[10px] border-l ${isAct ? 'border-rose-400/40 text-rose-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Zmień nazwę rzutu">✎</button>
+            <button onclick="deleteRoheSheet('${s.id}')" class="px-1.5 py-1 hover:bg-rose-800 text-[10px] border-l ${isAct ? 'border-rose-400/40 text-rose-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Usuń rzut">✕</button>
+          </div>`;
+      });
+      const cap = document.getElementById('rohe-active-sheet-caption');
+      if (cap) cap.innerText = `Aktywny: ${active.name}`;
     }
+
+    function switchRoheSheet(id) {
+      appState.roheReport.activeSheetId = id;
+      persistData();
+      renderRoheSheetsBar();
+      loadActiveRoheSheet();
+    }
+
+    function promptNewRoheSheet() {
+      ensureRoheState();
+      const nextIdx = appState.roheReport.sheets.length + 1;
+      const name = prompt('Podaj opis nowego rzutu (pojawi się w podpisie załącznika):', `rzut ${nextIdx}. kondygnacji z zaznaczonymi uwagami`);
+      if (!name || !name.trim()) return;
+      const id = 'rs-' + Date.now();
+      appState.roheReport.sheets.push({ id, name: name.trim(), blueprint: null });
+      appState.roheReport.activeSheetId = id;
+      persistData();
+      renderRoheSheetsBar();
+      loadActiveRoheSheet();
+      renderRoheReportPages();
+    }
+
+    function promptRenameRoheSheet(id) {
+      const s = appState.roheReport.sheets.find(x => x.id === id);
+      if (!s) return;
+      const n = prompt('Nowy podpis rzutu w załączniku:', s.name);
+      if (!n || !n.trim()) return;
+      s.name = n.trim();
+      persistData();
+      renderRoheSheetsBar();
+      renderRoheReportPages();
+    }
+
+    function deleteRoheSheet(id) {
+      ensureRoheState();
+      const s = appState.roheReport.sheets.find(x => x.id === id);
+      if (!s) return;
+      if (appState.roheReport.sheets.length <= 1) {
+        if (confirm(`Czy wyczyścić podkład i pinezki z rzutu "${s.name}"?`)) {
+          s.blueprint = null;
+          appState.roheReport.pins = appState.roheReport.pins.filter(p => p.sheetId !== s.id);
+          persistData();
+          loadActiveRoheSheet();
+          renderRohePhotos();
+          renderRoheReportPages();
+        }
+        return;
+      }
+      if (confirm(`Czy na pewno usunąć rzut "${s.name}" wraz z jego pinezkami?`)) {
+        appState.roheReport.sheets = appState.roheReport.sheets.filter(x => x.id !== id);
+        appState.roheReport.pins = appState.roheReport.pins.filter(p => p.sheetId !== id);
+        appState.roheReport.activeSheetId = appState.roheReport.sheets[0].id;
+        persistData();
+        renderRoheSheetsBar();
+        loadActiveRoheSheet();
+        renderRohePhotos();
+        renderRoheReportPages();
+      }
+    }
+
+    function loadActiveRoheSheet() {
+      const s = getActiveRoheSheet();
+      rohePinsLayer.innerHTML = '';
+      if (s && s.blueprint) {
+        document.getElementById('rohe-empty-state').style.display = 'none';
+        rohePlanImg.classList.remove('hidden');
+        rohePlanImg.onload = () => {
+          rohePlanWrapper.style.width = rohePlanImg.naturalWidth + 'px';
+          rohePlanWrapper.style.height = rohePlanImg.naturalHeight + 'px';
+          fitRoheBlueprintToView();
+          renderRohePins();
+        };
+        rohePlanImg.src = s.blueprint;
+      } else {
+        document.getElementById('rohe-empty-state').style.display = 'flex';
+        rohePlanImg.onload = null;
+        rohePlanImg.removeAttribute('src');
+        rohePlanImg.classList.add('hidden');
+        rohePlanWrapper.style.width = '0px';
+        rohePlanWrapper.style.height = '0px';
+      }
+    }
+
+    async function handleRohePlanUploadUniversal(e) {
+      const file = e.target.files[0]; if (!file) return;
+      const s = getActiveRoheSheet();
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        s.blueprint = await renderPdfToDataUrl(file);
+      } else {
+        s.blueprint = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+      }
+      e.target.value = '';
+      persistData();
+      loadActiveRoheSheet();
+      renderRoheReportPages();
+    }
+
+    function fitRoheBlueprintToView() {
+      if (!rohePlanImg.naturalWidth || !roheViewport.clientWidth) return;
+      const s = Math.min((roheViewport.clientWidth * 0.94) / rohePlanImg.naturalWidth, (roheViewport.clientHeight * 0.94) / rohePlanImg.naturalHeight, 1.2);
+      roheViewport.setPanZoom(s, (roheViewport.clientWidth - rohePlanImg.naturalWidth * s) / 2, (roheViewport.clientHeight - rohePlanImg.naturalHeight * s) / 2);
+    }
+
     function setupRoheBlueprintClick() {
       roheViewport.addEventListener('click', e => {
-        if(e.target.closest('button') || e.target.closest('.pin-marker') || !appState.roheReport.blueprint) return;
+        const s = getActiveRoheSheet();
+        if (e.target.closest('button') || e.target.closest('.pin-marker') || !s || !s.blueprint) return;
         const rect = rohePlanWrapper.getBoundingClientRect();
-        openRohePinModal( ((e.clientX-rect.left)/roheScale/rohePlanImg.naturalWidth)*100, ((e.clientY-rect.top)/roheScale/rohePlanImg.naturalHeight)*100 );
+        openRohePinModal(
+          ((e.clientX - rect.left) / roheScale / rohePlanImg.naturalWidth) * 100,
+          ((e.clientY - rect.top) / roheScale / rohePlanImg.naturalHeight) * 100
+        );
       });
     }
+
     function renderRohePins() {
-      rohePinsLayer.innerHTML=''; appState.roheReport.pins.forEach(p=>{
-        const m = document.createElement('div'); m.className='pin-marker'; m.style.left=`${p.x}%`; m.style.top=`${p.y}%`; m.innerHTML=`<span>${p.dNum}</span>`;
-        m.onclick=(e)=>{e.stopPropagation(); if(confirm(`Usunąć wadę #${p.dNum}?`)){ appState.roheReport.pins=appState.roheReport.pins.filter(x=>x.id!==p.id); persistData(); renderRohePins(); renderRohePhotos(); renderRoheReportPages(); }};
+      rohePinsLayer.innerHTML = '';
+      const s = getActiveRoheSheet();
+      if (!s) return;
+      appState.roheReport.pins.filter(p => p.sheetId === s.id).forEach(p => {
+        const m = document.createElement('div');
+        m.className = 'pin-marker';
+        m.style.left = `${p.x}%`;
+        m.style.top = `${p.y}%`;
+        m.innerHTML = `<span>${p.dNum}</span>`;
+        m.title = `Wada #${p.dNum}: ${p.dTxt || ''} (Kliknij, aby usunąć punkt)`;
+        m.onclick = (e) => {
+          e.stopPropagation();
+          if (confirm(`Usunąć ten punkt wady #${p.dNum} z rzutu?`)) {
+            appState.roheReport.pins = appState.roheReport.pins.filter(x => x.id !== p.id);
+            persistData();
+            renderRohePins();
+            renderRohePhotos();
+            renderRoheReportPages();
+          }
+        };
         rohePinsLayer.appendChild(m);
       });
     }
-    function clearRohePins() { if(confirm('Wyczyścić RJ-V?')){ appState.roheReport.pins=[]; persistData(); renderRohePins(); renderRohePhotos(); renderRoheReportPages();} }
 
-    function openRohePinModal(x,y) {
-      document.getElementById('modal-rohe-photo-input').value=''; tempRohePhoto=null; document.getElementById('modal-rohe-photo-preview-box').classList.add('hidden'); document.getElementById('modal-rohe-pin-new-text').value=''; document.getElementById('modal-rohe-pin-loc').value='';
-      window._tmpRPin = {x,y};
-      const sel=document.getElementById('modal-rohe-pin-select-defect'); sel.innerHTML='';
-      if(!appState.roheReport.defectTypes.length){ document.getElementById('rohe-mode-new').checked=true; toggleRoheDefectMode(); }
-      else { document.getElementById('rohe-mode-existing').checked=true; toggleRoheDefectMode(); appState.roheReport.defectTypes.forEach(d=>{sel.innerHTML+=`<option value="${d.num}">${d.num}. ${d.text}</option>`;}); }
-      document.getElementById('modal-rohe-pin').classList.remove('hidden'); document.getElementById('modal-rohe-pin').classList.add('flex');
+    function clearRohePins() {
+      const s = getActiveRoheSheet();
+      if (confirm(`Wyczyścić wszystkie pinezki z rzutu "${s.name}"?`)) {
+        appState.roheReport.pins = appState.roheReport.pins.filter(p => p.sheetId !== s.id);
+        persistData();
+        renderRohePins();
+        renderRohePhotos();
+        renderRoheReportPages();
+      }
     }
-    function closeRohePinModal() { document.getElementById('modal-rohe-pin').classList.add('hidden'); document.getElementById('modal-rohe-pin').classList.remove('flex'); }
+
+    function openRohePinModal(x, y) {
+      ensureRoheState();
+      document.getElementById('modal-rohe-photo-input').value = '';
+      tempRohePhoto = null;
+      document.getElementById('modal-rohe-photo-preview-box').classList.add('hidden');
+      document.getElementById('modal-rohe-pin-new-text').value = '';
+      document.getElementById('modal-rohe-pin-loc').value = '';
+      window._tmpRPin = { x, y };
+
+      const sel = document.getElementById('modal-rohe-pin-select-defect');
+      sel.innerHTML = '';
+      if (!appState.roheReport.defectTypes.length) {
+        document.getElementById('rohe-mode-new').checked = true;
+        toggleRoheDefectMode();
+      } else {
+        document.getElementById('rohe-mode-existing').checked = true;
+        appState.roheReport.defectTypes.forEach(d => {
+          sel.innerHTML += `<option value="${d.num}">${d.num}. ${d.text}</option>`;
+        });
+        toggleRoheDefectMode();
+      }
+      document.getElementById('modal-rohe-pin').classList.remove('hidden');
+      document.getElementById('modal-rohe-pin').classList.add('flex');
+    }
+
+    function closeRohePinModal() {
+      document.getElementById('modal-rohe-pin').classList.add('hidden');
+      document.getElementById('modal-rohe-pin').classList.remove('flex');
+    }
+
     function toggleRoheDefectMode() {
       const isNew = document.getElementById('rohe-mode-new').checked;
-      document.getElementById('rohe-field-existing').classList.toggle('hidden', isNew);
-      document.getElementById('modal-rohe-pin-new-text').classList.toggle('hidden', !isNew);
+      document.getElementById('rohe-field-existing')?.classList.toggle('hidden', isNew);
+      document.getElementById('rohe-field-new')?.classList.toggle('hidden', !isNew);
     }
+
     function handleRohePinPhotoUpload(e) {
-      const file = e.target.files[0]; if(!file) return; const r = new FileReader(); r.onload=ev=>{
-        const img = new Image(); img.onload=()=>{
-          const cv=document.createElement('canvas'); let w=img.width, h=img.height, m=1000;
-          if(w>h&&w>m){h=Math.round(h*m/w);w=m;}else if(h>m){w=Math.round(w*m/h);h=m;}
-          cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
-          tempRohePhoto=cv.toDataURL('image/jpeg',0.8);
-          document.getElementById('modal-rohe-photo-preview-box').classList.remove('hidden'); document.getElementById('modal-rohe-photo-preview-img').src=tempRohePhoto;
-        }; img.src=ev.target.result;
-      }; r.readAsDataURL(file);
+      const file = e.target.files[0]; if (!file) return;
+      const r = new FileReader();
+      r.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+          const cv = document.createElement('canvas');
+          let w = img.width, h = img.height, m = 1200;
+          if (w > h && w > m) { h = Math.round(h * m / w); w = m; }
+          else if (h > m) { w = Math.round(w * m / h); h = m; }
+          cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          tempRohePhoto = cv.toDataURL('image/jpeg', 0.85);
+          document.getElementById('modal-rohe-photo-preview-box').classList.remove('hidden');
+          document.getElementById('modal-rohe-photo-preview-img').src = tempRohePhoto;
+        };
+        img.src = ev.target.result;
+      };
+      r.readAsDataURL(file);
     }
+
     function saveRohePinFromModal() {
-      const isNew = document.getElementById('rohe-mode-new').checked; let num, txt;
-      if(isNew) {
-        txt = document.getElementById('modal-rohe-pin-new-text').value || 'Wada'; num = appState.roheReport.defectTypes.length+1;
-        appState.roheReport.defectTypes.push({id:'dt-'+Date.now(), num:num, text:txt}); renderRoheDefects();
-      } else { num = parseInt(document.getElementById('modal-rohe-pin-select-defect').value); txt = appState.roheReport.defectTypes.find(d=>d.num===num).text; }
-      
-      appState.roheReport.pins.push({ id:'rp-'+Date.now(), x:window._tmpRPin.x, y:window._tmpRPin.y, dNum:num, dTxt:txt, loc:document.getElementById('modal-rohe-pin-loc').value, photo:tempRohePhoto, pr:true });
-      closeRohePinModal(); persistData(); renderRohePins(); renderRohePhotos(); renderRoheReportPages();
+      ensureRoheState();
+      const isNew = document.getElementById('rohe-mode-new').checked;
+      let num, txt;
+      if (isNew || appState.roheReport.defectTypes.length === 0) {
+        txt = document.getElementById('modal-rohe-pin-new-text').value.trim() || 'Wada';
+        num = appState.roheReport.defectTypes.length + 1;
+        appState.roheReport.defectTypes.push({ id: 'dt-' + Date.now(), num, text: txt });
+        renderRoheDefects();
+      } else {
+        num = parseInt(document.getElementById('modal-rohe-pin-select-defect').value);
+        const found = appState.roheReport.defectTypes.find(d => d.num === num);
+        txt = found ? found.text : 'Wada';
+      }
+
+      const activeSheet = getActiveRoheSheet();
+      const locInput = document.getElementById('modal-rohe-pin-loc').value.trim();
+
+      appState.roheReport.pins.push({
+        id: 'rp-' + Date.now(),
+        sheetId: activeSheet.id,
+        x: window._tmpRPin.x,
+        y: window._tmpRPin.y,
+        dNum: num,
+        dTxt: txt,
+        loc: locInput || txt,
+        photo: tempRohePhoto,
+        pr: true
+      });
+
+      closeRohePinModal();
+      persistData();
+      renderRohePins();
+      renderRohePhotos();
+      renderRoheReportPages();
     }
-    
+
+    function addManualRoheDefect() {
+      ensureRoheState();
+      const txt = prompt('Podaj opis nowej pozycji w wykazie wad:');
+      if (!txt || !txt.trim()) return;
+      const num = appState.roheReport.defectTypes.length + 1;
+      appState.roheReport.defectTypes.push({ id: 'dt-' + Date.now(), num, text: txt.trim() });
+      persistData();
+      renderRoheDefects();
+      renderRoheReportPages();
+    }
+
     function renderRoheDefects() {
-      const c = document.getElementById('rohe-defect-types-list'); c.innerHTML='';
+      ensureRoheState();
+      const c = document.getElementById('rohe-defect-types-list');
+      if (!c) return;
+      c.innerHTML = '';
+      if (appState.roheReport.defectTypes.length === 0) {
+        c.innerHTML = `<div class="text-[11px] text-gray-500 italic py-2">Brak zdefiniowanych wad. Kliknij na rzut lub „+ Dodaj wadę”.</div>`;
+        return;
+      }
       appState.roheReport.defectTypes.forEach(d => {
-        c.innerHTML += `<div class="flex items-center justify-between border-b border-[#222] py-1 gap-2"><div class="flex items-center gap-1.5 min-w-0"><span class="text-rose-400 font-bold">${d.num}.</span><input type="text" value="${d.text}" onchange="updateRoheDefect('${d.id}', this.value)" class="bg-transparent border-none text-white outline-none text-[10px] w-full truncate"></div><button onclick="deleteRoheDefect('${d.id}')" class="text-gray-500 shrink-0"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`;
-      }); if(window.lucide) lucide.createIcons();
+        const safeVal = (d.text || '').replace(/"/g, '&quot;');
+        c.innerHTML += `
+          <div class="flex items-center justify-between bg-[#1b1b1b] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 gap-2">
+            <div class="flex items-center gap-1.5 flex-1 min-w-0">
+              <span class="text-rose-400 font-bold text-xs shrink-0">${d.num}.</span>
+              <input type="text" value="${safeVal}" oninput="updateRoheDefect('${d.id}', this.value)" class="bg-transparent border-none text-white outline-none text-xs w-full">
+            </div>
+            <button onclick="deleteRoheDefect('${d.id}')" class="text-gray-500 hover:text-rose-400 shrink-0"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+          </div>`;
+      });
+      if (window.lucide) lucide.createIcons();
     }
-    function updateRoheDefect(id, val) { const d = appState.roheReport.defectTypes.find(x=>x.id===id); if(d) { d.text=val; persistData(); renderRoheReportPages(); } }
-    function deleteRoheDefect(id) { appState.roheReport.defectTypes = appState.roheReport.defectTypes.filter(x=>x.id!==id); appState.roheReport.defectTypes.forEach((x,i)=>x.num=i+1); persistData(); renderRoheDefects(); renderRoheReportPages(); }
-    
+
+    function updateRoheDefect(id, val) {
+      const d = appState.roheReport.defectTypes.find(x => x.id === id);
+      if (d) {
+        d.text = val;
+        appState.roheReport.pins.forEach(p => { if (p.dNum === d.num) p.dTxt = val; });
+        persistData();
+        renderRoheReportPages();
+      }
+    }
+
+    function deleteRoheDefect(id) {
+      const target = appState.roheReport.defectTypes.find(x => x.id === id);
+      if (!target) return;
+      if (!confirm(`Usunąć wadę nr ${target.num} ("${target.text}") oraz powiązane z nią punkty?`)) return;
+      appState.roheReport.pins = appState.roheReport.pins.filter(p => p.dNum !== target.num);
+      appState.roheReport.defectTypes = appState.roheReport.defectTypes.filter(x => x.id !== id);
+      appState.roheReport.defectTypes.forEach((x, i) => {
+        const oldNum = x.num;
+        const newNum = i + 1;
+        x.num = newNum;
+        appState.roheReport.pins.forEach(p => { if (p.dNum === oldNum) p.dNum = newNum; });
+      });
+      persistData();
+      renderRoheDefects();
+      renderRohePins();
+      renderRohePhotos();
+      renderRoheReportPages();
+    }
+
     function renderRohePhotos() {
-      const c = document.getElementById('rohe-photos-selection-list'); c.innerHTML='';
-      appState.roheReport.pins.filter(p=>p.photo).forEach(p => {
-        c.innerHTML += `<div class="flex gap-2 items-center bg-[#111] p-1.5 rounded border border-[#222]"><img src="${p.photo}" class="w-8 h-8 object-cover rounded border border-[#333] shrink-0"><div class="flex-1 min-w-0"><div class="text-[9px] text-white truncate">#${p.dNum} ${p.loc}</div><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" ${p.pr?'checked':''} onchange="toggleRohePhoto('${p.id}')" class="w-2.5 h-2.5 accent-rose-600"><span class="text-[8px] text-gray-400">Drukuj</span></label></div></div>`;
+      ensureRoheState();
+      const c = document.getElementById('rohe-photos-selection-list');
+      if (!c) return;
+      c.innerHTML = '';
+      const photoPins = appState.roheReport.pins.filter(p => p.photo);
+      if (photoPins.length === 0) {
+        c.innerHTML = `<div class="text-[11px] text-gray-500 italic py-2">Brak zdjęć. Dodaj zdjęcie podczas stawiania punktu na rzucie.</div>`;
+        return;
+      }
+      photoPins.forEach(p => {
+        const safeLoc = (p.loc || '').replace(/"/g, '&quot;');
+        c.innerHTML += `
+          <div class="flex gap-2 items-center bg-[#1b1b1b] p-1.5 rounded-lg border border-[#2a2a2a]">
+            <img src="${p.photo}" class="w-10 h-10 object-cover rounded border border-[#333] shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] font-bold text-rose-400 shrink-0">#${p.dNum}</span>
+                <input type="text" value="${safeLoc}" oninput="updateRohePhotoCaption('${p.id}', this.value)" class="bg-transparent text-[11px] text-white border-b border-transparent focus:border-[#444] outline-none w-full" placeholder="Podpis zdjęcia...">
+              </div>
+              <label class="flex items-center gap-1.5 cursor-pointer mt-0.5">
+                <input type="checkbox" ${p.pr ? 'checked' : ''} onchange="toggleRohePhoto('${p.id}')" class="w-3 h-3 accent-rose-600">
+                <span class="text-[10px] text-gray-400">Widoczne w PDF</span>
+              </label>
+            </div>
+          </div>`;
       });
     }
-    function toggleRohePhoto(id) { const p=appState.roheReport.pins.find(x=>x.id===id); if(p){p.pr=!p.pr; persistData(); renderRoheReportPages();} }
+
+    function updateRohePhotoCaption(id, val) {
+      const p = appState.roheReport.pins.find(x => x.id === id);
+      if (p) { p.loc = val; persistData(); renderRoheReportPages(); }
+    }
+
+    function toggleRohePhoto(id) {
+      const p = appState.roheReport.pins.find(x => x.id === id);
+      if (p) { p.pr = !p.pr; persistData(); renderRoheReportPages(); }
+    }
+
+    function removeRohePhotoPrint(id) {
+      toggleRohePhoto(id);
+      renderRohePhotos();
+    }
+
+    async function renderRoheSheetSnapshot(sheet) {
+      const img = new Image();
+      img.src = sheet.blueprint;
+      await new Promise(r => { img.onload = r; img.onerror = r; });
+      if (!img.width) return sheet.blueprint;
+      const cv = document.createElement('canvas');
+      cv.width = img.width;
+      cv.height = img.height;
+      const ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const pins = appState.roheReport.pins.filter(p => p.sheetId === sheet.id);
+      pins.forEach(p => {
+        const px = (p.x / 100) * img.width;
+        const py = (p.y / 100) * img.height;
+        const boxSize = Math.max(img.width * 0.022, 28);
+        // Czytelny znacznik z numerem wady na rzucie
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(px - boxSize / 2, py - boxSize / 2, boxSize, boxSize);
+        ctx.lineWidth = Math.max(2, boxSize * 0.08);
+        ctx.strokeStyle = '#000000';
+        ctx.strokeRect(px - boxSize / 2, py - boxSize / 2, boxSize, boxSize);
+        ctx.fillStyle = '#000000';
+        ctx.font = `bold ${Math.round(boxSize * 0.65)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(p.dNum), px, py);
+      });
+      return cv.toDataURL('image/jpeg', 0.88);
+    }
 
     async function renderRoheReportPages() {
-      const c = document.getElementById('rohe-report-container'); c.innerHTML='<div class="text-center py-4">Ładowanie RJ-V...</div>';
-      const mDoc=document.getElementById('rohe-meta-docnum').value, mDat=document.getElementById('rohe-meta-date').value, mAut=document.getElementById('rohe-meta-author').value, mCon=document.getElementById('rohe-meta-contractor').value, mPro=document.getElementById('rohe-meta-project').value, mSub=document.getElementById('rohe-meta-subject').value, mTra=document.getElementById('rohe-meta-trade')?.value||'', mLoc=document.getElementById('rohe-meta-loc')?.value||'', mRef=document.getElementById('rohe-meta-norms-ref')?.value||'', mTxt=document.getElementById('rohe-meta-bodytext')?.value||'';
-      
-      let html = '';
-      html += `
-        <div class="a4-page">
-          <div class="flex justify-between items-start mb-4 pb-2">
-            <div class="text-[9pt] leading-snug text-black"><div class="font-bold">Generalny Wykonawca / Dział Kontroli Jakości</div><div>Raport Techniczno-Odbiorczy</div></div>
-            <div class="flex justify-end">${ROHE_LOGO_SVG}</div>
+      ensureRoheState();
+      const c = document.getElementById('rohe-report-container');
+      if (!c) return;
+      const m = appState.roheReport.meta;
+      const trades = Array.isArray(m.trades) ? m.trades : [];
+
+      // Przygotowanie wszystkich załączników (rzuty z wgranym podkładem + wybrane zdjęcia)
+      const activeSheets = appState.roheReport.sheets.filter(s => s.blueprint);
+      const sheetAttachments = [];
+      for (const s of activeSheets) {
+        const snap = await renderRoheSheetSnapshot(s);
+        sheetAttachments.push({ type: 'sheet', img: snap, caption: s.name });
+      }
+
+      const photoAttachments = appState.roheReport.pins
+        .filter(p => p.photo && p.pr)
+        .map(p => ({ type: 'photo', id: p.id, img: p.photo, caption: p.loc || p.dTxt || `Wada #${p.dNum}` }));
+
+      // Pierwszy rzut idzie na stronę 2 pod „Treść raportu” (dokładnie jak w RJ-V-004.pdf),
+      // a pozostałe rzuty oraz zdjęcia układają się po 2 załączniki na stronę
+      const firstAttachment = sheetAttachments.length > 0 ? sheetAttachments[0] : null;
+      const restAttachments = [
+        ...sheetAttachments.slice(firstAttachment ? 1 : 0),
+        ...photoAttachments
+      ];
+
+      const extraPages = [];
+      for (let i = 0; i < restAttachments.length; i += 2) {
+        extraPages.push(restAttachments.slice(i, i + 2));
+      }
+
+      // Wyliczenie całkowitej liczby stron ("Strona X z Y")
+      const totalPages = 1 + 1 + extraPages.length + 1;
+      let currentPage = 1;
+
+      const makeHeader = () => `
+        <div class="flex justify-between items-start mb-4 pb-1">
+          <div class="text-[8.5pt] leading-snug text-[#444]">
+            <div>${m.h1}</div>
+            <div>${m.h2}</div>
           </div>
-          <table class="w-full border-collapse mb-4 text-[9pt] text-black"><tr><td class="border border-black p-1">Nr dokumentu:</td><td class="border border-black p-1 font-bold">${mDoc}</td><td class="border border-black p-1">Data:</td><td class="border border-black p-1 font-bold">${mDat}</td></tr></table>
-          <div class="text-[14pt] font-bold mb-3 text-black">Raport jakościowy</div>
-          <table class="w-full border-collapse mb-4 text-[9pt] text-black">
-            <tr><td class="border border-black p-1 bg-gray-50">Projekt:</td><td class="border border-black p-1 font-bold" colspan="3">${mPro}</td></tr>
-            <tr><td class="border border-black p-1 bg-gray-50">Sporządził:</td><td class="border border-black p-1">${mAut}</td><td class="border border-black p-1 bg-gray-50">Wykonawca:</td><td class="border border-black p-1 font-bold">${mCon}</td></tr>
-            <tr><td class="border border-black p-1 bg-gray-50">Dotyczy:</td><td class="border border-black p-1" colspan="3">${mSub}</td></tr>
-          </table>
-          <div class="text-[10pt] font-bold text-black mb-1">Wykaz wad:</div>
-          <ol class="list-decimal pl-5 text-[9pt] text-black">
-            ${appState.roheReport.defectTypes.map(d=>`<li><b>${d.text}</b></li>`).join('')}
-          </ol>
+          <div class="flex justify-end">${ROHE_LOGO_SVG}</div>
         </div>
       `;
 
-      if(appState.roheReport.blueprint) {
-        const img = new Image(); img.src=appState.roheReport.blueprint; await new Promise(r=>img.onload=r);
-        const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0);
-        appState.roheReport.pins.forEach(p => {
-          const px=(p.x/100)*img.width, py=(p.y/100)*img.height, r=Math.max(img.width*0.016, 20);
-          ctx.fillStyle='#e11d48'; ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.fill();
-          ctx.lineWidth=r*0.15; ctx.strokeStyle='#fff'; ctx.stroke();
-          ctx.fillStyle='#fff'; ctx.font=`bold ${Math.round(r)}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.dNum,px,py);
-        });
-        html += `<div class="a4-page"><div class="flex justify-between items-start mb-2"><div class="text-[9pt]">Załącznik graficzny</div>${ROHE_LOGO_SVG}</div><div class="border border-black w-full h-[230mm] flex justify-center items-center overflow-hidden"><img src="${cv.toDataURL('image/jpeg',0.8)}" class="max-w-full max-h-full object-contain"></div></div>`;
-      }
+      const makeFooter = () => `
+        <div class="mt-auto pt-2 text-center text-[8pt] text-[#555]">
+          <div class="mb-0.5">Strona ${currentPage++} z ${totalPages}</div>
+          <div class="border-t border-gray-300 pt-1">${m.foot}</div>
+        </div>
+      `;
 
-      const photos = appState.roheReport.pins.filter(p=>p.photo && p.pr);
-      for(let i=0; i<photos.length; i+=2) {
-        html += `<div class="a4-page"><div class="flex justify-between items-start mb-2"><div class="text-[9pt]">Dokumentacja fotograficzna</div>${ROHE_LOGO_SVG}</div><div class="flex flex-col gap-4">`;
-        [photos[i], photos[i+1]].filter(Boolean).forEach(p => {
-          html += `<div class="relative"><button onclick="removeRohePhotoPrint('${p.id}')" class="no-print absolute top-1 right-1 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded">✕ Usuń ze zdjęć</button><div class="border border-black w-full h-[110mm] flex justify-center items-center overflow-hidden"><img src="${p.photo}" class="max-w-full max-h-full object-contain"></div><div class="text-[9pt] mt-1 text-black"><b>Wada #${p.dNum}:</b> ${p.loc}</div></div>`;
-        });
-        html += `</div></div>`;
-      }
-      
-      html += `<div class="a4-page"><div class="flex justify-between items-start mb-4"><div class="text-[12pt] font-bold text-black">Protokół Usunięcia Wad</div>${ROHE_LOGO_SVG}</div><table class="w-full border-collapse text-[9pt] text-black"><tr><td class="border border-black p-3 h-24 align-top w-1/2">Przekazał:<br><br>Podpis: .......................</td><td class="border border-black p-3 align-top w-1/2">Odebrał:<br><br>Podpis: .......................</td></tr><tr><td colspan="2" class="border border-black p-3 h-32 align-top">Akceptacja naprawy GW:<br><br>☐ Akceptacja bez uwag &nbsp;&nbsp;&nbsp; ☐ Akceptacja z uwagami<br><br>Podpis: .......................</td></tr></table></div>`;
+      let html = '';
+
+      // STRONA 1: Tabela tytułowa i metryka projektu
+      html += `
+        <div class="a4-page">
+          ${makeHeader()}
+          <table class="w-full border-collapse mb-8 text-[10pt] text-black">
+            <tr>
+              <td class="border border-black p-2 w-[22%]">Nr dokumentu:</td>
+              <td class="border border-black p-2 font-bold text-center w-[28%]">${m.docNum}</td>
+              <td class="border border-black p-2 w-[22%]">Data wystawienia:</td>
+              <td class="border border-black p-2 font-bold text-center w-[28%]">${m.date}</td>
+            </tr>
+          </table>
+
+          <div class="text-[16pt] font-bold mb-6 text-black">${m.title}</div>
+
+          <table class="w-full border-collapse text-[10pt] text-black">
+            <tr>
+              <td class="border border-black p-3.5 w-[24%]">Nazwa projektu:</td>
+              <td class="border border-black p-3.5 font-bold" colspan="3">${m.project}</td>
+            </tr>
+            <tr>
+              <td class="border border-black p-3.5">Zamawiający:</td>
+              <td class="border border-black p-3.5 font-bold w-[26%]">${m.investor}</td>
+              <td class="border border-black p-3.5 w-[22%]">Nadzór Inwestorski:</td>
+              <td class="border border-black p-3.5 font-bold w-[28%]">${m.supervision}</td>
+            </tr>
+            <tr>
+              <td class="border border-black p-3.5">Generalny Wykonawca:</td>
+              <td class="border border-black p-3.5 font-bold" colspan="3">${m.gw}</td>
+            </tr>
+            <tr>
+              <td class="border border-black p-3.5">Przekazujący:</td>
+              <td class="border border-black p-3.5 font-bold">${m.sender}</td>
+              <td class="border border-black p-3.5">Adresat:</td>
+              <td class="border border-black p-3.5 font-bold">${m.contractor}</td>
+            </tr>
+            <tr>
+              <td class="border border-black p-3.5 align-middle">Branża:</td>
+              <td class="border border-black p-3.5 leading-relaxed">
+                <div>${trades.includes('Budowlana') ? '☒' : '☐'} Budowlana</div>
+                <div>${trades.includes('Sanitarna') ? '☒' : '☐'} Sanitarna</div>
+                <div>${trades.includes('Elektryczna') ? '☒' : '☐'} Elektryczna</div>
+              </td>
+              <td class="border border-black p-3.5 align-middle">Lokalizacja:</td>
+              <td class="border border-black p-3.5 font-bold align-middle">${m.loc}</td>
+            </tr>
+            <tr>
+              <td class="border border-black p-3.5">Dotyczy:</td>
+              <td class="border border-black p-3.5 font-bold" colspan="3">${m.subject}</td>
+            </tr>
+            ${m.norms ? `
+            <tr>
+              <td class="border border-black p-3.5">Podstawa normowa:</td>
+              <td class="border border-black p-3.5 font-bold" colspan="3">${m.norms}</td>
+            </tr>` : ''}
+          </table>
+
+          ${makeFooter()}
+        </div>
+      `;
+
+      // STRONA 2: Treść raportu + wykaz wad + Załącznik 1 (pierwszy rzut)
+      let attCounter = 1;
+      html += `
+        <div class="a4-page">
+          ${makeHeader()}
+          <div class="border border-black flex-1 flex flex-col p-3 text-[10pt] text-black overflow-hidden">
+            <div class="italic mb-2">Treść raportu:</div>
+            <div class="italic mb-2">${(m.bodyText || '').replace(/\n/g, '<br>')}</div>
+            ${m.norms ? `<div class="italic text-[9pt] mb-2">Normy odniesienia: ${m.norms}</div>` : ''}
+            <ol class="list-decimal pl-8 italic space-y-0.5 mb-4">
+              ${appState.roheReport.defectTypes.length > 0
+                ? appState.roheReport.defectTypes.map(d => `<li>${d.text}</li>`).join('')
+                : '<li>Brak wpisanych uwag.</li>'}
+            </ol>
+
+            ${firstAttachment ? `
+              <div class="flex-1 flex flex-col justify-center min-h-0 mt-1">
+                <div class="flex-1 flex items-center justify-center overflow-hidden max-h-[165mm]">
+                  <img src="${firstAttachment.img}" class="max-w-full max-h-full object-contain" />
+                </div>
+                <div class="italic text-[9.5pt] mt-1.5 pt-1">Załącznik ${attCounter++}${firstAttachment.caption}</div>
+              </div>
+            ` : ''}
+          </div>
+          ${makeFooter()}
+        </div>
+      `;
+
+      // STRONY 3+: Kolejne rzuty oraz dokumentacja fotograficzna (po 2 załączniki na stronę)
+      extraPages.forEach(pair => {
+        html += `
+          <div class="a4-page">
+            ${makeHeader()}
+            <div class="border border-black flex-1 flex flex-col justify-between p-3 gap-3 overflow-hidden text-black">
+              ${pair.map(att => {
+                const isDot = att.type === 'photo' ? '.' : '';
+                return `
+                  <div class="flex-1 flex flex-col min-h-0 relative">
+                    ${att.type === 'photo' ? `<button onclick="removeRohePhotoPrint('${att.id}')" class="no-print absolute top-1 right-1 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded shadow">✕ Ukryj w PDF</button>` : ''}
+                    <div class="flex-1 flex items-center justify-center overflow-hidden max-h-[102mm]">
+                      <img src="${att.img}" class="max-w-full max-h-full object-contain" />
+                    </div>
+                    <div class="italic text-[9.5pt] mt-1">Załącznik ${attCounter++}${isDot}${att.caption}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            ${makeFooter()}
+          </div>
+        `;
+      });
+
+      // STRONA KOŃCOWA: Tabela podpisów i akceptacji naprawy
+      html += `
+        <div class="a4-page">
+          ${makeHeader()}
+          <table class="w-full border-collapse border border-black flex-1 text-[9.5pt] text-black mb-2">
+            <tr class="h-1/2">
+              <td class="border border-black p-3 align-top w-1/2">
+                <div class="flex justify-between"><span>Sporządził dnia:</span><span class="font-bold">${m.signDate}</span></div>
+                <div class="flex justify-between mt-3"><span>Imię i Nazwisko</span><span class="font-bold">${m.author}</span></div>
+                <div class="mt-4">Załączniki: ${m.attNote || (attCounter > 1 ? `Załączniki 1 – ${attCounter - 1}` : '')}</div>
+                <div class="mt-24">Podpis:</div>
+              </td>
+              <td class="border border-black p-3 align-top w-1/2">
+                <div class="flex justify-between"><span>Odpowiedź Podwykonawcy:</span><span>Dnia: ........................</span></div>
+                <div class="mt-28">Imię i Nazwisko:</div>
+                <div class="mt-6">Podpis:</div>
+              </td>
+            </tr>
+            <tr class="h-1/2">
+              <td class="border border-black p-3 align-top w-1/2">
+                <div>Akceptacja sposobu naprawy przez GW:</div>
+                <div class="mt-2">Uwagi:</div>
+                <div class="mt-24">Dnia:</div>
+                <div class="mt-2">Imię i Nazwisko:</div>
+                <div class="mt-6">Podpis:</div>
+              </td>
+              <td class="border border-black p-3 align-top w-1/2">
+                <div>Potwierdzenie naprawy przez GW:</div>
+                <div class="mt-3 space-y-1.5 pl-4">
+                  <div>☐ Akceptacja bez uwag</div>
+                  <div>☐ Akceptacja z uwagami</div>
+                  <div>☐ Brak akceptacji</div>
+                </div>
+                <div class="mt-12">Dnia:</div>
+                <div class="mt-2">Imię i Nazwisko:</div>
+                <div class="mt-6">Podpis:</div>
+              </td>
+            </tr>
+          </table>
+          ${makeFooter()}
+        </div>
+      `;
+
       c.innerHTML = html;
     }
-    function removeRohePhotoPrint(id) { toggleRohePhoto(id); renderRohePhotos(); }
 
     // TO-DO
     function setTodoFilter(f) { todoFilter=f; document.querySelectorAll('[id^="todofilter-"]').forEach(b=>b.classList.remove('bg-blue-600','text-white')); document.getElementById('todofilter-'+f).classList.add('bg-blue-600','text-white'); renderTodos(); }
