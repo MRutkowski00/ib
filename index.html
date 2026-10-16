@@ -45,26 +45,26 @@
     }
     .panning { cursor: grabbing !important; }
 
-  .pin-marker {
+.pin-marker {
       position: absolute;
-      width: 40px; height: 40px;
-      margin-top: -40px;
+      width: 26px; height: 26px;
       border-radius: 50% 50% 50% 0;
-      transform-origin: 0% 100%;
-      transform: scale(var(--pin-scale, 1)) rotate(-45deg);
+      transform: translate(-50%, -100%) rotate(-45deg);
       background: #e11d48;
-      border: 2.5px solid #ffffff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.85);
+      border: 2px solid #ffffff;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.8);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       z-index: 50;
+      transition: transform 0.1s ease-out;
     }
     .pin-marker:hover {
+      transform: translate(-50%, -105%) rotate(-45deg) scale(1.15);
       background: #f43f5e;
       z-index: 60;
     }
     .pin-marker span {
-      transform: rotate(45deg); color: #ffffff; font-weight: 900; font-size: 15px; line-height: 1;
+      transform: rotate(45deg); color: #ffffff; font-weight: 900; font-size: 11px; line-height: 1;
     }
 
     .a4-page {
@@ -126,6 +126,7 @@
       <button onclick="switchView('calendar')" id="nav-btn-calendar" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Kalendarz</button>
       <button onclick="switchView('norms')" id="nav-btn-norms" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Normy</button>
      <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Protokół odbiorowy/jakościowy</button>
+      </nav>
 
     <!-- Zarządzanie projektem -->
     <div class="flex items-center gap-2 shrink-0">
@@ -353,9 +354,9 @@
 
           <!-- Dane podstawowe i strony procesu budowlanego -->
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-[11px]">
-            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nr dokumentu:</label><input type="text" id="rohe-meta-docnum" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
-            <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Data wystawienia:</label><input type="text" id="rohe-meta-date" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
-            <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Tytuł nagłówkowy dokumentu:</label><input type="text" id="rohe-meta-title" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white font-bold"></div>
+
+            <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Sporządził (Imię i Nazwisko):</label><input type="text" id="rohe-meta-author" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
+         <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Sporządził dnia (w tabeli końcowej):</label><input type="text" id="rohe-meta-signdate" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
 
             <div class="sm:col-span-2"><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nazwa projektu:</label><input type="text" id="rohe-meta-project" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
             <div><label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Zamawiający (Inwestor):</label><input type="text" id="rohe-meta-investor" oninput="syncRoheMetaFromInputs()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white"></div>
@@ -461,13 +462,9 @@
           </div>
         </div>
 
-        <div id="rohe-report-container" class="space-y-6"></div>
-      </div>
-    </div>
-
-        <div id="rohe-report-container" class="space-y-4"></div>
-      </div>
-    </div>
+      <div id="rohe-report-container" class="space-y-6"></div>
+   </div>
+ </div>
 
     <div id="view-quick-report" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-6 pb-28 bg-[#070707] print-panel">
       <div class="max-w-[920px] mx-auto space-y-4">
@@ -1020,9 +1017,9 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
     window.addEventListener('DOMContentLoaded', async () => {
       history.replaceState({view:'dashboard'},'');
       const st = await loadFromDB(); if(st) appState = {...appState, ...st};
-      
-     setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y; planWrapper.style.setProperty('--pin-scale', (1 / s).toFixed(4));});
-     setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y; rohePlanWrapper.style.setProperty('--pin-scale', (1 / s).toFixed(4));});
+
+      setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y;});
+      setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y;});
      setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y; redrawTk();});
       
       renderStructureSubbar(); loadFloor(appState.buildings[0].currentFloorId);
@@ -1831,7 +1828,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       renderRohePhotos();
     }
 
-    async function renderRoheSheetSnapshot(sheet) {
+   async function renderRoheSheetSnapshot(sheet) {
       const img = new Image();
       img.src = sheet.blueprint;
       await new Promise(r => { img.onload = r; img.onerror = r; });
@@ -1846,18 +1843,34 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       pins.forEach(p => {
         const px = (p.x / 100) * img.width;
         const py = (p.y / 100) * img.height;
-        const boxSize = Math.max(img.width * 0.022, 28);
-        // Czytelny znacznik z numerem wady na rzucie
+        const r = Math.max(img.width * 0.013, 16);
+        const cy = py - r * Math.SQRT2;
+
+        ctx.save();
+        // Kształt pinezki (łezka wskazująca czubkiem dokładnie w punkt px, py)
+        ctx.beginPath();
+        ctx.arc(px, cy, r, Math.PI * 0.75, Math.PI * 0.25, false);
+        ctx.lineTo(px, py);
+        ctx.closePath();
+
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = Math.max(4, r * 0.25);
+        ctx.shadowOffsetY = Math.max(2, r * 0.1);
+        ctx.fillStyle = '#e11d48';
+        ctx.fill();
+
+        ctx.shadowColor = 'transparent';
+        ctx.lineWidth = Math.max(2, r * 0.16);
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        // Numer wady wewnątrz główki pinezki
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(px - boxSize / 2, py - boxSize / 2, boxSize, boxSize);
-        ctx.lineWidth = Math.max(2, boxSize * 0.08);
-        ctx.strokeStyle = '#000000';
-        ctx.strokeRect(px - boxSize / 2, py - boxSize / 2, boxSize, boxSize);
-        ctx.fillStyle = '#000000';
-        ctx.font = `bold ${Math.round(boxSize * 0.65)}px Arial`;
+        ctx.font = `bold ${Math.round(r * 1.05)}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(String(p.dNum), px, py);
+        ctx.fillText(String(p.dNum), px, cy);
+        ctx.restore();
       });
       return cv.toDataURL('image/jpeg', 0.88);
     }
@@ -1869,7 +1882,6 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       const m = appState.roheReport.meta;
       const trades = Array.isArray(m.trades) ? m.trades : [];
 
-      // Przygotowanie wszystkich załączników (rzuty z wgranym podkładem + wybrane zdjęcia)
       const activeSheets = appState.roheReport.sheets.filter(s => s.blueprint);
       const sheetAttachments = [];
       for (const s of activeSheets) {
@@ -1881,8 +1893,6 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
         .filter(p => p.photo && p.pr)
         .map(p => ({ type: 'photo', id: p.id, img: p.photo, caption: p.loc || p.dTxt || `Wada #${p.dNum}` }));
 
-      // Pierwszy rzut idzie na stronę 2 pod „Treść raportu” (dokładnie jak w RJ-V-004.pdf),
-      // a pozostałe rzuty oraz zdjęcia układają się po 2 załączniki na stronę
       const firstAttachment = sheetAttachments.length > 0 ? sheetAttachments[0] : null;
       const restAttachments = [
         ...sheetAttachments.slice(firstAttachment ? 1 : 0),
@@ -1894,7 +1904,6 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
         extraPages.push(restAttachments.slice(i, i + 2));
       }
 
-      // Wyliczenie całkowitej liczby stron ("Strona X z Y")
       const totalPages = 1 + 1 + extraPages.length + 1;
       let currentPage = 1;
 
@@ -1998,7 +2007,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
                 <div class="flex-1 flex items-center justify-center overflow-hidden max-h-[165mm]">
                   <img src="${firstAttachment.img}" class="max-w-full max-h-full object-contain" />
                 </div>
-                <div class="italic text-[9.5pt] mt-1.5 pt-1">Załącznik ${attCounter++}${firstAttachment.caption}</div>
+                <div class="italic text-[9.5pt] mt-1.5 pt-1">Załącznik ${attCounter++}.${firstAttachment.caption}</div>
               </div>
             ` : ''}
           </div>
@@ -2012,60 +2021,101 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
           <div class="a4-page">
             ${makeHeader()}
             <div class="border border-black flex-1 flex flex-col justify-between p-3 gap-3 overflow-hidden text-black">
-              ${pair.map(att => {
-                const isDot = att.type === 'photo' ? '.' : '';
-                return `
-                  <div class="flex-1 flex flex-col min-h-0 relative">
-                    ${att.type === 'photo' ? `<button onclick="removeRohePhotoPrint('${att.id}')" class="no-print absolute top-1 right-1 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded shadow">✕ Ukryj w PDF</button>` : ''}
-                    <div class="flex-1 flex items-center justify-center overflow-hidden max-h-[102mm]">
-                      <img src="${att.img}" class="max-w-full max-h-full object-contain" />
-                    </div>
-                    <div class="italic text-[9.5pt] mt-1">Załącznik ${attCounter++}${isDot}${att.caption}</div>
+              ${pair.map(att => `
+                <div class="flex-1 flex flex-col min-h-0 relative">
+                  ${att.type === 'photo' ? `<button onclick="removeRohePhotoPrint('${att.id}')" class="no-print absolute top-1 right-1 bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded shadow">✕ Ukryj w PDF</button>` : ''}
+                  <div class="flex-1 flex items-center justify-center overflow-hidden max-h-[102mm]">
+                    <img src="${att.img}" class="max-w-full max-h-full object-contain" />
                   </div>
-                `;
-              }).join('')}
+                  <div class="italic text-[9.5pt] mt-1">Załącznik ${attCounter++}.${att.caption}</div>
+                </div>
+              `).join('')}
             </div>
             ${makeFooter()}
           </div>
         `;
       });
 
-      // STRONA KOŃCOWA: Tabela podpisów i akceptacji naprawy
+      // STRONA KOŃCOWA: Tabela podpisów i akceptacji naprawy (wszystkie pola ręczne wykropkowane, bez "Załączników")
       html += `
         <div class="a4-page">
           ${makeHeader()}
           <table class="w-full border-collapse border border-black flex-1 text-[9.5pt] text-black mb-2">
             <tr class="h-1/2">
-              <td class="border border-black p-3 align-top w-1/2">
-                <div class="flex justify-between"><span>Sporządził dnia:</span><span class="font-bold">${m.signDate}</span></div>
-                <div class="flex justify-between mt-3"><span>Imię i Nazwisko</span><span class="font-bold">${m.author}</span></div>
-                <div class="mt-4">Załączniki: ${m.attNote || (attCounter > 1 ? `Załączniki 1 – ${attCounter - 1}` : '')}</div>
-                <div class="mt-24">Podpis:</div>
+              <td class="border border-black p-3.5 align-top w-1/2">
+                <div class="flex justify-between items-baseline">
+                  <span>Sporządził dnia:</span>
+                  <span class="font-bold">${m.signDate ? m.signDate : '................................................'}</span>
+                </div>
+                <div class="flex justify-between items-baseline mt-4">
+                  <span>Imię i Nazwisko:</span>
+                  <span class="font-bold">${m.author ? m.author : '................................................'}</span>
+                </div>
+                <div class="mt-28 flex justify-between items-baseline">
+                  <span>Podpis:</span>
+                  <span>............................................................</span>
+                </div>
               </td>
-              <td class="border border-black p-3 align-top w-1/2">
-                <div class="flex justify-between"><span>Odpowiedź Podwykonawcy:</span><span>Dnia: ........................</span></div>
-                <div class="mt-28">Imię i Nazwisko:</div>
-                <div class="mt-6">Podpis:</div>
+              <td class="border border-black p-3.5 align-top w-1/2">
+                <div class="flex justify-between items-baseline">
+                  <span>Odpowiedź Podwykonawcy:</span>
+                  <span>Dnia: ..............................</span>
+                </div>
+                <div class="mt-6 space-y-4 text-gray-500">
+                  <div>........................................................................................</div>
+                  <div>........................................................................................</div>
+                  <div>........................................................................................</div>
+                </div>
+                <div class="mt-10 flex justify-between items-baseline">
+                  <span>Imię i Nazwisko:</span>
+                  <span>................................................</span>
+                </div>
+                <div class="mt-6 flex justify-between items-baseline">
+                  <span>Podpis:</span>
+                  <span>............................................................</span>
+                </div>
               </td>
             </tr>
             <tr class="h-1/2">
-              <td class="border border-black p-3 align-top w-1/2">
+              <td class="border border-black p-3.5 align-top w-1/2">
                 <div>Akceptacja sposobu naprawy przez GW:</div>
                 <div class="mt-2">Uwagi:</div>
-                <div class="mt-24">Dnia:</div>
-                <div class="mt-2">Imię i Nazwisko:</div>
-                <div class="mt-6">Podpis:</div>
+                <div class="mt-3 space-y-4 text-gray-500">
+                  <div>........................................................................................</div>
+                  <div>........................................................................................</div>
+                </div>
+                <div class="mt-10 flex justify-between items-baseline">
+                  <span>Dnia:</span>
+                  <span>............................................................</span>
+                </div>
+                <div class="mt-4 flex justify-between items-baseline">
+                  <span>Imię i Nazwisko:</span>
+                  <span>................................................</span>
+                </div>
+                <div class="mt-6 flex justify-between items-baseline">
+                  <span>Podpis:</span>
+                  <span>............................................................</span>
+                </div>
               </td>
-              <td class="border border-black p-3 align-top w-1/2">
+              <td class="border border-black p-3.5 align-top w-1/2">
                 <div>Potwierdzenie naprawy przez GW:</div>
                 <div class="mt-3 space-y-1.5 pl-4">
                   <div>☐ Akceptacja bez uwag</div>
                   <div>☐ Akceptacja z uwagami</div>
                   <div>☐ Brak akceptacji</div>
                 </div>
-                <div class="mt-12">Dnia:</div>
-                <div class="mt-2">Imię i Nazwisko:</div>
-                <div class="mt-6">Podpis:</div>
+                <div class="mt-12 flex justify-between items-baseline">
+                  <span>Dnia:</span>
+                  <span>............................................................</span>
+                </div>
+                <div class="mt-4 flex justify-between items-baseline">
+                  <span>Imię i Nazwisko:</span>
+                  <span>................................................</span>
+                </div>
+                <div class="mt-6 flex justify-between items-baseline">
+                  <span>Podpis:</span>
+                  <span>............................................................</span>
+                </div>
               </td>
             </tr>
           </table>
