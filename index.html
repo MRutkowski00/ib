@@ -47,24 +47,24 @@
 
 .pin-marker {
       position: absolute;
-      width: 26px; height: 26px;
+      width: 32px; height: 32px;
       border-radius: 50% 50% 50% 0;
-      transform: translate(-50%, -100%) rotate(-45deg);
+      transform-origin: 50% 100%;
+      transform: translate(-50%, -100%) scale(var(--pin-scale, 1)) rotate(-45deg);
       background: #e11d48;
-      border: 2px solid #ffffff;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.8);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.85);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       z-index: 50;
-      transition: transform 0.1s ease-out;
+      transition: background 0.1s;
     }
     .pin-marker:hover {
-      transform: translate(-50%, -105%) rotate(-45deg) scale(1.15);
       background: #f43f5e;
       z-index: 60;
     }
     .pin-marker span {
-      transform: rotate(45deg); color: #ffffff; font-weight: 900; font-size: 11px; line-height: 1;
+      transform: rotate(45deg); color: #ffffff; font-weight: 900; font-size: 13px; line-height: 1;
     }
 
     .a4-page {
@@ -1018,8 +1018,8 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       history.replaceState({view:'dashboard'},'');
       const st = await loadFromDB(); if(st) appState = {...appState, ...st};
 
-      setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y;});
-      setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y;});
+     setupUniversalPanZoom(viewport, planWrapper, (s,x,y)=>{scale=s;panX=x;panY=y; planWrapper.style.setProperty('--pin-scale', Math.pow(1 / s, 0.8).toFixed(3));});
+      setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y; rohePlanWrapper.style.setProperty('--pin-scale', Math.pow(1 / s, 0.8).toFixed(3));});
      setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y; redrawTk();});
       
       renderStructureSubbar(); loadFloor(appState.buildings[0].currentFloorId);
