@@ -85,8 +85,8 @@
       .no-print, header, nav, #structure-subbar, #floating-tools-container, .modal-backdrop { display: none !important; }
       .view-panel { display: none !important; }
       .view-panel:not(.hidden) { display: block !important; position: static !important; overflow: visible !important; height: auto !important; padding: 0 !important; margin: 0 !important; }
-      #rohe-report-container, #quick-report-container, #takeoff-print-container { display: block !important; margin: 0 !important; padding: 0 !important; }
-      #rohe-report-container > *, #quick-report-container > *, #takeoff-print-container > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+     #rohe-report-container, #quick-report-container, #takeoff-print-container, #leveling-print-container { display: block !important; margin: 0 !important; padding: 0 !important; }
+      #rohe-report-container > *, #quick-report-container > *, #takeoff-print-container > *, #leveling-print-container > * { margin-top: 0 !important; margin-bottom: 0 !important; }
       .a4-page { 
         width: 210mm !important; height: 296mm !important; max-height: 296mm !important;
         margin: 0 auto !important; padding: 10mm 15mm !important; 
@@ -125,9 +125,10 @@
       <button onclick="switchView('todo')" id="nav-btn-todo" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> To-Do</button>
       <button onclick="switchView('calendar')" id="nav-btn-calendar" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Kalendarz</button>
       <button onclick="switchView('norms')" id="nav-btn-norms" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Normy</button>
-     <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Protokół odbiorowy/jakościowy</button>
-      </nav>
-
+      <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Protokół odbiorowy/jakościowy</button>
+      <button onclick="switchView('leveling')" id="nav-btn-leveling" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Niwelacja</button>
+    </nav>
+    
     <!-- Zarządzanie projektem -->
     <div class="flex items-center gap-2 shrink-0">
       <div id="sync-status" class="hidden md:flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-2 py-1 rounded-full">
@@ -223,6 +224,14 @@
               <p class="text-[11px] text-gray-400 mt-1">Mierzenie linii (mb) i powierzchni (m2) na rzutach.</p>
             </div>
             <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Karty:</span><span class="font-bold text-emerald-400" id="dash-count-takeoffs">0</span></div>
+          </div>
+          <div onclick="switchView('leveling')" class="bg-[#141414] border border-[#262626] hover:border-cyan-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-cyan-600/20 text-cyan-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="arrow-up-down" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Niwelacja & Koty (▽)</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Reper, kalkulator górka/dołek, punkty na rzucie i protokół A4.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Punkty pomiarowe:</span><span class="font-bold text-cyan-400" id="dash-count-leveling">0</span></div>
           </div>
         </div>
       </div>
@@ -494,6 +503,232 @@
         <div id="takeoff-print-container" class="space-y-4"></div>
       </div>
     </div>
+<!-- MODUŁ: KARTA POMIARU NIWELACYJNEGO -->
+    <div id="view-leveling" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#0c0c0c]">
+      <div class="max-w-5xl mx-auto space-y-4">
+
+        <!-- Pasek tytułowy, wybór karty i przełącznik jednostek -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+              <i data-lucide="arrow-up-down" class="w-5 h-5 text-cyan-400"></i> Karta Pomiaru Niwelacyjnego
+            </h2>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex bg-[#171717] p-1 rounded-xl border border-[#2a2a2a] text-xs font-bold">
+              <button id="lvl-btn-mm" onclick="setLevelingUnit('mm')" class="px-3 py-1 rounded-lg bg-cyan-600 text-white transition-colors">Łata w mm</button>
+              <button id="lvl-btn-cm" onclick="setLevelingUnit('cm')" class="px-3 py-1 rounded-lg text-gray-400 hover:text-white transition-colors">Łata w cm</button>
+            </div>
+            <button onclick="openLevelingPrintPreview()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Drukuj Kartę (PDF)
+            </button>
+          </div>
+        </div>
+
+        <!-- Pasek kart pomiarowych (Sesje niwelacji) -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+            <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0 mr-1"><i data-lucide="layers" class="inline w-3.5 h-3.5 text-cyan-400"></i> Karty pomiarowe:</span>
+            <div id="lvl-sessions-chips" class="flex items-center gap-1.5 shrink-0"></div>
+            <button onclick="promptNewLevelingSession()" class="bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] text-gray-200 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1 shrink-0">
+              <i data-lucide="plus" class="w-3 h-3 text-cyan-400"></i> Nowa karta
+            </button>
+          </div>
+        </div>
+
+        <!-- Metryka Karty Obmiaru Niwelacyjnego -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-4 shadow-lg space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-wider bg-[#222] text-gray-300 px-2.5 py-1 rounded-md">Metryka Karty Niwelacyjnej (Do Raportu A4)</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
+            <div>
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Inwestycja / Budowa:</label>
+              <input type="text" id="lvl-meta-project" oninput="updateLevelingUI()" placeholder="Inwestycja..." class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-cyan-500">
+            </div>
+            <div>
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Element / Strefa:</label>
+              <input type="text" id="lvl-meta-element" oninput="updateLevelingUI()" placeholder="np. Płyta stropowa / Posadzka" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-cyan-500">
+            </div>
+            <div>
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Wykonał (Inżynier / Inspektor):</label>
+              <input type="text" id="lvl-meta-inspector" oninput="updateLevelingUI()" placeholder="Imię i nazwisko..." class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-cyan-500">
+            </div>
+            <div>
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Data pomiaru:</label>
+              <input type="date" id="lvl-meta-date" oninput="updateLevelingUI()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-cyan-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- KROK 1: BAZA STANOWISKA I POZIOM DOCELOWY -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-4 shadow-lg space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-black px-2.5 py-1 rounded-md">1. Baza Stanowiska i Poziom Docelowy</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <!-- 1A: Wysokość Repera -->
+            <div class="bg-[#101010] border border-[#262626] rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[11px] text-gray-400 font-semibold mb-2">1A. Wysokość Repera (Kota bazy, np. +1.00 m na ścianie)</span>
+              <div class="relative">
+                <input type="number" id="lvl-reper-elev" value="1.00" step="0.01" onclick="this.select()" oninput="onLevelingBaseChange()" class="w-full bg-[#070707] border-2 border-amber-500/80 text-amber-300 text-2xl font-black py-2 pr-10 pl-3 rounded-xl text-center outline-none">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">m</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 mt-2">
+                <button onclick="setLevelingReperElev(0.00)" id="lvl-chip-rep0" class="py-1.5 px-2 rounded-lg text-[11px] font-bold border border-[#333] bg-[#1a1a1a] text-gray-300">▽ 0.00 m</button>
+                <button onclick="setLevelingReperElev(1.00)" id="lvl-chip-rep1" class="py-1.5 px-2 rounded-lg text-[11px] font-bold border border-amber-500 bg-amber-500/20 text-amber-300">▽ +1.00 m</button>
+              </div>
+            </div>
+
+            <!-- 1B: Odczyt z łaty na Reperze -->
+            <div class="bg-[#101010] border border-[#262626] rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[11px] text-gray-400 font-semibold mb-2">1B. Odczyt z łaty na Reperze (Ile niwelator jest wyżej od repera)</span>
+              <div class="relative">
+                <input type="number" id="lvl-reper-rod" value="500" inputmode="numeric" onclick="this.select()" oninput="onLevelingBaseChange()" class="w-full bg-[#070707] border-2 border-amber-500/80 text-amber-300 text-2xl font-black py-2 pr-12 pl-3 rounded-xl text-center outline-none">
+                <span class="lvl-unit-label absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">mm</span>
+              </div>
+              <div class="text-[10px] text-gray-500 text-center mt-2 py-1">Wpisz odczyt z łaty przyłożonej do repera</div>
+            </div>
+
+            <!-- 1C: Poziom docelowy -->
+            <div class="bg-[#101010] border border-[#262626] rounded-xl p-3 flex flex-col justify-between">
+              <span class="text-[11px] text-gray-400 font-semibold mb-2">1C. Poziom docelowy (Projekt), którego szukasz (np. 0.00 m)</span>
+              <div class="relative">
+                <input type="number" id="lvl-target-elev" value="0.00" step="0.01" onclick="this.select()" oninput="onLevelingBaseChange()" class="w-full bg-[#070707] border-2 border-emerald-500/80 text-emerald-300 text-2xl font-black py-2 pr-10 pl-3 rounded-xl text-center outline-none">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">m</span>
+              </div>
+              <div class="grid grid-cols-2 gap-1.5 mt-2">
+                <button onclick="setLevelingTargetElev(0.00)" id="lvl-chip-targ0" class="py-1.5 px-2 rounded-lg text-[11px] font-bold border border-emerald-500 bg-emerald-500/20 text-emerald-300">Cel: ▽ 0.00 m</button>
+                <button onclick="setLevelingTargetSameAsReper()" id="lvl-chip-targrep" class="py-1.5 px-2 rounded-lg text-[11px] font-bold border border-[#333] bg-[#1a1a1a] text-gray-300">Równo z reperem</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <div class="bg-[#0a0a0a] border border-[#222] border-l-4 border-l-amber-400 px-3 py-2 rounded-lg flex justify-between items-center text-xs">
+              <span class="text-gray-400">Wysokość osi niwelatora (H_i):</span>
+              <strong id="lvl-hi-display" class="text-amber-300 font-mono text-sm">▽ +1.500 m</strong>
+            </div>
+            <div class="bg-[#0a0a0a] border border-[#222] border-l-4 border-l-emerald-400 px-3 py-2 rounded-lg flex justify-between items-center text-xs">
+              <span class="text-gray-400">Odczyt na łacie dający poziom docelowy:</span>
+              <strong id="lvl-target-rod-display" class="text-emerald-300 font-mono text-sm">1500 mm</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- KROK 2: ODCZYT Z ŁATY W BADANYM MIEJSCU (KALKULATOR GÓRKA / DOŁEK) -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-4 shadow-lg space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider bg-blue-600 text-white px-2.5 py-1 rounded-md">2. Odczyt z łaty w badanym miejscu</span>
+            <span class="text-[11px] text-gray-400">Szybki kalkulator przed naniesieniem na rzut</span>
+          </div>
+
+          <div class="relative">
+            <input type="number" id="lvl-point-rod" value="1535" inputmode="numeric" onclick="this.select()" oninput="updateLevelingUI()" class="w-full bg-[#070707] border-2 border-[#333] focus:border-cyan-500 text-white text-2xl font-black py-2.5 pr-12 pl-3 rounded-xl text-center outline-none">
+            <span class="lvl-unit-label absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">mm</span>
+          </div>
+
+          <div class="grid grid-cols-6 gap-1.5 text-xs font-extrabold">
+            <button onclick="adjustLevelingPointRod(-50)" class="py-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded-lg text-white active:scale-95">-50</button>
+            <button onclick="adjustLevelingPointRod(-10)" class="py-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded-lg text-white active:scale-95">-10</button>
+            <button onclick="adjustLevelingPointRod(-1)" class="py-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded-lg text-white active:scale-95">-1</button>
+            <button onclick="adjustLevelingPointRod(1)" class="py-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded-lg text-white active:scale-95">+1</button>
+            <button onclick="adjustLevelingPointRod(10)" class="py-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded-lg text-white active:scale-95">+10</button>
+            <button onclick="adjustLevelingPointRod(50)" class="py-2 bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] rounded-lg text-white active:scale-95">+50</button>
+          </div>
+
+          <!-- Pasek anty-pomyłkowy -->
+          <div class="grid grid-cols-3 items-center bg-[#0a0a0a] border border-[#262626] rounded-xl p-2 text-center text-[11px] gap-2">
+            <div id="lvl-cheat-gorka" class="p-2 rounded-lg opacity-40 transition-all">
+              <div class="text-orange-400 font-black">⬆️ GÓRKA (Za wysoko)</div>
+              <div class="text-gray-300 mt-0.5">Gdy na łacie <b>MNIEJ</b> niż <span class="lvl-target-rod-txt">1500 mm</span></div>
+            </div>
+            <div class="border-x border-dashed border-[#333] py-1 px-2 text-emerald-400 font-black">
+              <div class="text-[10px] text-gray-400">CEL NA ŁACIE</div>
+              <div class="lvl-target-rod-txt text-sm mt-0.5">1500 mm</div>
+            </div>
+            <div id="lvl-cheat-dolek" class="p-2 rounded-lg opacity-40 transition-all">
+              <div class="text-cyan-400 font-black">⬇️ DOŁEK (Spadek)</div>
+              <div class="text-gray-300 mt-0.5">Gdy na łacie <b>WIĘCEJ</b> niż <span class="lvl-target-rod-txt">1500 mm</span></div>
+            </div>
+          </div>
+
+          <!-- Wyniki na żywo -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div id="lvl-diff-box" class="p-3.5 rounded-xl border-2 border-cyan-500 bg-cyan-950/20 flex flex-col justify-center">
+              <div id="lvl-diff-header" class="text-[10px] uppercase font-bold text-gray-300">Względem celu (▽ 0.00 m):</div>
+              <div id="lvl-diff-title" class="text-xl font-black text-cyan-400 my-1">⬇️ DOŁEK: -35 mm</div>
+              <div id="lvl-diff-desc" class="text-xs text-gray-200 leading-relaxed"></div>
+            </div>
+            <div class="p-3.5 rounded-xl border-2 border-purple-500/80 bg-purple-950/20 text-center flex flex-col justify-center">
+              <div class="text-[10px] uppercase font-bold text-purple-300">Rzeczywista kota miejsca:</div>
+              <div id="lvl-kota-display" class="text-2xl font-black text-purple-200 my-1 font-mono">▽ -0.035 m</div>
+              <div id="lvl-kota-formula" class="text-[11px] text-gray-400"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KROK 3: RZUT KONTROLNY + LISTA PUNKTÓW -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-4 shadow-lg space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#222] pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider bg-[#2a2a2a] text-white px-2.5 py-1 rounded-md">3. Rzut Kontrolny — Kliknij w rzut, aby zapisać punkt</span>
+              <span id="lvl-points-counter" class="text-xs font-bold text-cyan-400">0 pkt</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] text-gray-200 text-xs font-semibold px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5">
+                <i data-lucide="upload" class="w-3.5 h-3.5 text-cyan-400"></i> Wgraj Rzut (PDF / Obraz)
+                <input type="file" id="lvl-upload-plan" accept="image/*,application/pdf,.pdf" class="hidden" onchange="handleLevelingPlanUpload(event)">
+              </label>
+              <button onclick="resetLevelingPlanToDefault()" class="bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] text-gray-300 text-xs px-2.5 py-1.5 rounded-xl" title="Przywróć siatkę szkicu">Siatka</button>
+              <button onclick="clearAllLevelingPoints()" class="bg-rose-950/40 hover:bg-rose-900/50 border border-rose-900/50 text-rose-400 text-xs px-2.5 py-1.5 rounded-xl flex items-center gap-1" title="Wyczyść punkty">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Wyczyść punkty
+              </button>
+            </div>
+          </div>
+
+          <!-- Interaktywny obszar rzutu (bez ucinania pionowych rzutów) -->
+          <div id="lvl-plan-stage" onclick="onLevelingStageClick(event)" class="relative w-full bg-[#070a12] border-2 border-[#2a2a2a] rounded-xl cursor-crosshair select-none overflow-hidden">
+            <svg id="lvl-default-svg" viewBox="0 0 600 360" class="w-full h-auto block">
+              <rect width="600" height="360" fill="#070a12"/>
+              <g stroke="#1e293b" stroke-width="1">
+                <line x1="0" y1="90" x2="600" y2="90"/><line x1="0" y1="180" x2="600" y2="180"/><line x1="0" y1="270" x2="600" y2="270"/>
+                <line x1="150" y1="0" x2="150" y2="360"/><line x1="300" y1="0" x2="300" y2="360"/><line x1="450" y1="0" x2="450" y2="360"/>
+              </g>
+              <rect x="55" y="40" width="490" height="280" fill="rgba(6,182,212,0.03)" stroke="#334155" stroke-width="2.5"/>
+              <circle cx="55" cy="40" r="8" fill="#eab308"/>
+              <text x="70" y="45" fill="#fde047" font-size="12" font-weight="bold" id="lvl-svg-reper-label">◀ REPER (▽ +1.00 m)</text>
+              <text x="300" y="185" fill="#64748b" font-size="13" font-weight="bold" text-anchor="middle">WGRAJ RZUT (PDF / JPG / PNG) LUB KLIKNIJ TUTAJ, ABY DODAĆ PUNKT</text>
+            </svg>
+            <img id="lvl-custom-img" class="w-full h-auto hidden pointer-events-none block" alt="Rzut niwelacyjny" />
+            <div id="lvl-pins-container" class="absolute inset-0 pointer-events-auto"></div>
+          </div>
+
+          <!-- Lista zapisanych punktów pod rzutem -->
+          <div id="lvl-points-list" class="space-y-2 pt-2"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- WIDOK WYDRUKU A4: KARTA POMIARU NIWELACYJNEGO -->
+    <div id="view-leveling-print" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-6 pb-28 bg-[#070707] print-panel">
+      <div class="max-w-[920px] mx-auto space-y-4">
+        <div class="no-print bg-[#131313] border border-[#282828] rounded-xl p-3 flex justify-between items-center shadow-xl">
+          <div>
+            <h3 class="text-sm font-bold text-white"><i data-lucide="arrow-up-down" class="inline w-3.5 h-3.5 text-cyan-400 mr-1"></i> Karta Pomiaru Niwelacyjnego (Wydruk A4)</h3>
+            <p class="text-[10px] text-gray-400">Format zunifikowany z Księgą Obmiarów</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="switchView('leveling')" class="px-3 py-1 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
+            <button onclick="window.print()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Drukuj / PDF</button>
+          </div>
+        </div>
+        <div id="leveling-print-container" class="space-y-4"></div>
+      </div>
+    </div>
+    
   </main>
 
   <div id="floating-tools-container" class="no-print fixed bottom-4 sm:bottom-6 left-3 sm:left-5 z-40 flex flex-col-reverse items-start gap-2.5 select-none">
@@ -508,6 +743,10 @@
       <button onclick="openTakeoffModal(); toggleQuickToolsMenu();" class="flex items-center gap-2.5 bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] px-3 py-2 rounded-xl shadow-lg">
         <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center"><i data-lucide="ruler" class="w-3.5 h-3.5"></i></div>
         <div class="text-left text-gray-200"><div class="text-[11px] font-bold">Obmiary & Pola</div></div>
+      </button>
+      <button onclick="switchView('leveling'); toggleQuickToolsMenu();" class="flex items-center gap-2.5 bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] px-3 py-2 rounded-xl shadow-lg">
+        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i></div>
+        <div class="text-left text-gray-200"><div class="text-[11px] font-bold">Niwelacja & Koty</div></div>
       </button>
     </div>
   </div>
@@ -885,6 +1124,34 @@
     </div>
   </div>
 
+  <!-- MODAL: DODAWANIE PUNKTU NIWELACYJNEGO NA RZUCIE -->
+  <div id="modal-leveling-point" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+    <div class="bg-[#141414] border-2 border-cyan-500/80 rounded-2xl w-full max-w-sm flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-[#242424] flex justify-between items-center">
+        <span id="lvl-modal-title" class="text-xs font-black text-white uppercase tracking-wider">NOWY PUNKT P1</span>
+        <span id="lvl-modal-kota-badge" class="bg-purple-950/60 border border-purple-500/60 text-purple-200 px-2 py-0.5 rounded-md font-mono font-bold text-xs">▽ 0.000 m</span>
+      </div>
+      <div class="p-4 space-y-3 text-xs">
+        <div>
+          <label class="block text-gray-300 font-bold mb-1.5">Odczyt z łaty w tym punkcie:</label>
+          <div class="relative">
+            <input type="number" id="lvl-modal-rod" inputmode="numeric" onclick="this.select()" oninput="updateLevelingModalPreview()" onkeydown="if(event.key==='Enter') confirmLevelingPoint()" class="w-full bg-[#090909] border-2 border-[#333] focus:border-cyan-500 text-white text-2xl font-black py-2 pr-12 pl-3 rounded-xl text-center outline-none">
+            <span class="lvl-unit-label absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">mm</span>
+          </div>
+        </div>
+        <div id="lvl-modal-diff-preview" class="text-center font-extrabold text-xs py-1.5 px-2 rounded-lg bg-[#0d0d0d] border border-[#222]"></div>
+        <div>
+          <label class="block text-gray-400 font-bold mb-1">Lokalizacja / Uwagi (opcjonalnie):</label>
+          <input type="text" id="lvl-modal-note" placeholder="np. Oś B/3, wpust, narożnik płyty" onkeydown="if(event.key==='Enter') confirmLevelingPoint()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-cyan-500">
+        </div>
+      </div>
+      <div class="px-4 py-3 border-t border-[#242424] bg-[#111] flex justify-end gap-2">
+        <button onclick="closeLevelingModal()" class="px-3.5 py-1.5 rounded-xl border border-[#333] text-gray-300 text-xs font-semibold">Anuluj</button>
+        <button onclick="confirmLevelingPoint()" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow">✅ Zapisz punkt</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   // Wektorowe Logo ROHE
     const ROHE_LOGO_SVG = `
@@ -948,13 +1215,23 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       if(navStack[navStack.length-1] !== view) { navStack.push(view); history.pushState({view:view},''); }
       switchViewCore(view, true);
     }
-    function switchViewCore(view, fromClick) {
+   function switchViewCore(view, fromClick) {
       document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
       const activePanel = document.getElementById(`view-${view}`);
       if(activePanel) activePanel.classList.remove('hidden');
+      document.querySelectorAll('.nav-tab').forEach(b => {
+        b.classList.remove('text-white', 'bg-[#2d2d2d]', 'shadow-sm');
+        b.classList.add('text-gray-400');
+      });
+      const activeNav = document.getElementById(`nav-btn-${view}`);
+      if(activeNav) {
+        activeNav.classList.remove('text-gray-400');
+        activeNav.classList.add('text-white', 'bg-[#2d2d2d]', 'shadow-sm');
+      }
       const structBar = document.getElementById('structure-subbar');
       if(structBar) { if(view === 'plan') structBar.classList.remove('hidden'); else structBar.classList.add('hidden'); }
-     if(view === 'report-rohe') { initRoheModuleUI(); renderRoheReportPages(); }
+      if(view === 'report-rohe') { initRoheModuleUI(); renderRoheReportPages(); }
+      if(view === 'leveling') { initLevelingUI(); }
       if(view === 'plan' && planImg.naturalWidth>0) fitBlueprintToView();
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
     }
@@ -1026,6 +1303,8 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       renderTodos(); renderCalendarGrid(); renderCalendarList('all'); renderNorms(); renderRoheDefects(); renderRohePhotos();
       
      initRoheModuleUI();
+      initRoheModuleUI();
+      ensureLevelingState();
       
       setupBlueprintClick(); setupRoheBlueprintClick(); setupTkInteraction();
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
@@ -1036,6 +1315,12 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       document.getElementById('dash-count-pins').innerText = pins; document.getElementById('nav-count-pins').innerText = pins;
       document.getElementById('dash-count-todos').innerText = appState.todos.filter(t=>!t.completed).length;
       document.getElementById('dash-count-takeoffs').innerText = appState.takeoffBook.sessions.length;
+      let lvlPts = 0;
+      if (appState.levelingBook && Array.isArray(appState.levelingBook.sessions)) {
+        appState.levelingBook.sessions.forEach(s => lvlPts += (s.points ? s.points.length : 0));
+      }
+      const lvlEl = document.getElementById('dash-count-leveling');
+      if (lvlEl) lvlEl.innerText = lvlPts;
       const act = getCurrentBuilding();
       document.getElementById('header-active-info').innerText = `Pro: ${appState.project.name} (${act?act.name:''})`;
     }
@@ -3050,6 +3335,684 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
           <div class="mt-auto text-[8pt] border-t border-black pt-1">Podpis: .......................</div>
         </div>
         ${zoomPagesHtml}
+      `;
+    }
+
+    // ================= MODUŁ: NIWELACJA & KOTY (KARTA POMIARU NIWELACYJNEGO) =================
+    let lvlPendingCoords = null;
+
+    function ensureLevelingState() {
+      if (!appState.levelingBook || !Array.isArray(appState.levelingBook.sessions) || appState.levelingBook.sessions.length === 0) {
+        appState.levelingBook = {
+          activeSessionId: 'lvl-1',
+          sessions: [{
+            id: 'lvl-1',
+            title: 'Karta Niwelacji 1',
+            unit: 'mm',
+            reperElevM: 1.00,
+            reperRod: 500,
+            targetElevM: 0.00,
+            pointRod: 1535,
+            metaProject: appState.project?.name || 'Inwestycja budowlana',
+            metaElement: 'Płyta stropowa / Posadzka - Sekcja A',
+            metaInspector: 'Inżynier Budowy',
+            metaDate: new Date().toISOString().slice(0, 10),
+            blueprint: null,
+            points: []
+          }]
+        };
+      }
+      if (!appState.levelingBook.activeSessionId || !appState.levelingBook.sessions.find(s => s.id === appState.levelingBook.activeSessionId)) {
+        appState.levelingBook.activeSessionId = appState.levelingBook.sessions[0].id;
+      }
+    }
+
+    function getActiveLevelingSession() {
+      ensureLevelingState();
+      return appState.levelingBook.sessions.find(s => s.id === appState.levelingBook.activeSessionId) || appState.levelingBook.sessions[0];
+    }
+
+    function formatLevelingKota(meters) {
+      const val = Number(meters);
+      if (Math.abs(val) < 0.0005) return '▽ ±0.000 m';
+      const sign = val > 0 ? '+' : '';
+      return `▽ ${sign}${val.toFixed(3)} m`;
+    }
+
+    function calculateLevelingPoint(reperElevM, reperRod, targetElevM, pointRod, unit) {
+      const toMm = unit === 'mm' ? 1 : 10;
+      const fromMmToUnit = unit === 'mm' ? 1 : 0.1;
+
+      const reperElevMm = Math.round(reperElevM * 1000);
+      const targetElevMm = Math.round(targetElevM * 1000);
+      const reperRodMm = Math.round(reperRod * toMm);
+      const pointRodMm = Math.round(pointRod * toMm);
+
+      const hiMm = reperElevMm + reperRodMm;
+      const targetRodMm = hiMm - targetElevMm;
+      const targetRodInUnit = Number((targetRodMm * fromMmToUnit).toFixed(1));
+
+      const pointKotaMm = hiMm - pointRodMm;
+      const pointKotaMeters = pointKotaMm / 1000;
+
+      const diffMm = pointKotaMm - targetElevMm;
+      const diffInUnit = Number((diffMm * fromMmToUnit).toFixed(1));
+      const absDiffInUnit = Math.abs(diffInUnit);
+
+      let type = 'zero';
+      if (diffMm > 0) type = 'gorka';
+      if (diffMm < 0) type = 'dolek';
+
+      return {
+        hiMeters: hiMm / 1000,
+        hiFormatted: formatLevelingKota(hiMm / 1000),
+        targetRodInUnit,
+        pointKotaMeters,
+        kotaFormatted: formatLevelingKota(pointKotaMeters),
+        diffInUnit,
+        absDiffInUnit,
+        type
+      };
+    }
+
+    function initLevelingUI() {
+      const s = getActiveLevelingSession();
+      renderLevelingSessionsBar();
+
+      document.getElementById('lvl-reper-elev').value = Number(s.reperElevM).toFixed(2);
+      document.getElementById('lvl-reper-rod').value = s.reperRod;
+      document.getElementById('lvl-target-elev').value = Number(s.targetElevM ?? 0).toFixed(2);
+      document.getElementById('lvl-point-rod').value = s.pointRod;
+      document.getElementById('lvl-meta-project').value = s.metaProject || appState.project?.name || '';
+      document.getElementById('lvl-meta-element').value = s.metaElement || '';
+      document.getElementById('lvl-meta-inspector').value = s.metaInspector || '';
+      document.getElementById('lvl-meta-date').value = s.metaDate || new Date().toISOString().slice(0, 10);
+
+      syncLevelingUnitButtons(s.unit);
+
+      const defSvg = document.getElementById('lvl-default-svg');
+      const custImg = document.getElementById('lvl-custom-img');
+      if (s.blueprint) {
+        defSvg.classList.add('hidden');
+        custImg.src = s.blueprint;
+        custImg.classList.remove('hidden');
+      } else {
+        custImg.classList.add('hidden');
+        custImg.removeAttribute('src');
+        defSvg.classList.remove('hidden');
+      }
+
+      updateLevelingUI();
+      renderLevelingPoints();
+    }
+
+    function renderLevelingSessionsBar() {
+      ensureLevelingState();
+      const c = document.getElementById('lvl-sessions-chips');
+      if (!c) return;
+      c.innerHTML = '';
+      const act = getActiveLevelingSession();
+      appState.levelingBook.sessions.forEach(s => {
+        const isAct = s.id === act.id;
+        c.innerHTML += `
+          <div class="inline-flex items-center rounded-lg overflow-hidden border shrink-0 ${isAct ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-[#1b1b1b] border-[#333] text-gray-300'}">
+            <button onclick="switchLevelingSession('${s.id}')" class="px-2.5 py-1 text-[11px] font-bold hover:text-white max-w-[160px] truncate">${s.title}</button>
+            <button onclick="promptRenameLevelingSession('${s.id}')" class="px-1.5 py-1 hover:bg-black/30 text-[10px] border-l ${isAct ? 'border-cyan-400/40 text-cyan-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Zmień nazwę karty">✎</button>
+            <button onclick="deleteLevelingSession('${s.id}')" class="px-1.5 py-1 hover:bg-rose-700 text-[10px] border-l ${isAct ? 'border-cyan-400/40 text-cyan-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Usuń kartę">✕</button>
+          </div>`;
+      });
+    }
+
+    function switchLevelingSession(id) {
+      appState.levelingBook.activeSessionId = id;
+      persistData();
+      initLevelingUI();
+    }
+
+    function promptNewLevelingSession() {
+      ensureLevelingState();
+      const nextNum = appState.levelingBook.sessions.length + 1;
+      const title = prompt('Nazwa nowej karty pomiaru niwelacyjnego:', `Karta Niwelacji ${nextNum}`);
+      if (!title || !title.trim()) return;
+      const id = 'lvl-' + Date.now();
+      appState.levelingBook.sessions.push({
+        id,
+        title: title.trim(),
+        unit: 'mm',
+        reperElevM: 1.00,
+        reperRod: 500,
+        targetElevM: 0.00,
+        pointRod: 1500,
+        metaProject: appState.project?.name || 'Inwestycja budowlana',
+        metaElement: title.trim(),
+        metaInspector: 'Inżynier Budowy',
+        metaDate: new Date().toISOString().slice(0, 10),
+        blueprint: null,
+        points: []
+      });
+      appState.levelingBook.activeSessionId = id;
+      persistData();
+      initLevelingUI();
+    }
+
+    function promptRenameLevelingSession(id) {
+      const s = appState.levelingBook.sessions.find(x => x.id === id);
+      if (!s) return;
+      const n = prompt('Nowa nazwa karty niwelacyjnej:', s.title);
+      if (!n || !n.trim()) return;
+      s.title = n.trim();
+      persistData();
+      renderLevelingSessionsBar();
+    }
+
+    function deleteLevelingSession(id) {
+      ensureLevelingState();
+      const s = appState.levelingBook.sessions.find(x => x.id === id);
+      if (!s) return;
+      if (appState.levelingBook.sessions.length <= 1) {
+        if (confirm(`Czy wyczyścić wszystkie punkty i rzut z karty "${s.title}"?`)) {
+          s.blueprint = null;
+          s.points = [];
+          persistData();
+          initLevelingUI();
+        }
+        return;
+      }
+      if (confirm(`Usunąć kartę niwelacyjną "${s.title}"?`)) {
+        appState.levelingBook.sessions = appState.levelingBook.sessions.filter(x => x.id !== id);
+        appState.levelingBook.activeSessionId = appState.levelingBook.sessions[0].id;
+        persistData();
+        initLevelingUI();
+      }
+    }
+
+    function syncLevelingUnitButtons(unit) {
+      const btnMm = document.getElementById('lvl-btn-mm');
+      const btnCm = document.getElementById('lvl-btn-cm');
+      if (btnMm && btnCm) {
+        btnMm.className = `px-3 py-1 rounded-lg transition-colors ${unit === 'mm' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`;
+        btnCm.className = `px-3 py-1 rounded-lg transition-colors ${unit === 'cm' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`;
+      }
+      document.querySelectorAll('.lvl-unit-label').forEach(el => el.textContent = unit);
+    }
+
+    function setLevelingUnit(newUnit) {
+      const s = getActiveLevelingSession();
+      if (s.unit === newUnit) return;
+      const factor = newUnit === 'cm' ? 0.1 : 10;
+      const repRodEl = document.getElementById('lvl-reper-rod');
+      const ptRodEl = document.getElementById('lvl-point-rod');
+      repRodEl.value = Math.round((parseFloat(repRodEl.value) || 0) * factor);
+      ptRodEl.value = Math.round((parseFloat(ptRodEl.value) || 0) * factor);
+      s.unit = newUnit;
+      syncLevelingUnitButtons(newUnit);
+      updateLevelingUI();
+    }
+
+    function onLevelingBaseChange() {
+      updateLevelingUI();
+      recalculateSavedLevelingPoints();
+    }
+
+    function setLevelingReperElev(val) {
+      document.getElementById('lvl-reper-elev').value = val.toFixed(2);
+      onLevelingBaseChange();
+    }
+
+    function setLevelingTargetElev(val) {
+      document.getElementById('lvl-target-elev').value = val.toFixed(2);
+      onLevelingBaseChange();
+    }
+
+    function setLevelingTargetSameAsReper() {
+      const repVal = parseFloat(document.getElementById('lvl-reper-elev').value) || 0;
+      document.getElementById('lvl-target-elev').value = repVal.toFixed(2);
+      onLevelingBaseChange();
+    }
+
+    function adjustLevelingPointRod(delta) {
+      const el = document.getElementById('lvl-point-rod');
+      el.value = (parseFloat(el.value) || 0) + delta;
+      updateLevelingUI();
+    }
+
+    function updateLevelingUI() {
+      const s = getActiveLevelingSession();
+      s.reperElevM = parseFloat(document.getElementById('lvl-reper-elev')?.value) || 0;
+      s.reperRod = parseFloat(document.getElementById('lvl-reper-rod')?.value) || 0;
+      s.targetElevM = parseFloat(document.getElementById('lvl-target-elev')?.value) || 0;
+      s.pointRod = parseFloat(document.getElementById('lvl-point-rod')?.value) || 0;
+      s.metaProject = document.getElementById('lvl-meta-project')?.value || '';
+      s.metaElement = document.getElementById('lvl-meta-element')?.value || '';
+      s.metaInspector = document.getElementById('lvl-meta-inspector')?.value || '';
+      s.metaDate = document.getElementById('lvl-meta-date')?.value || '';
+
+      const res = calculateLevelingPoint(s.reperElevM, s.reperRod, s.targetElevM, s.pointRod, s.unit);
+
+      // Aktywne chipy
+      const cRep0 = document.getElementById('lvl-chip-rep0'), cRep1 = document.getElementById('lvl-chip-rep1');
+      if (cRep0 && cRep1) {
+        cRep0.className = `py-1.5 px-2 rounded-lg text-[11px] font-bold border ${s.reperElevM === 0 ? 'border-amber-500 bg-amber-500/20 text-amber-300' : 'border-[#333] bg-[#1a1a1a] text-gray-300'}`;
+        cRep1.className = `py-1.5 px-2 rounded-lg text-[11px] font-bold border ${s.reperElevM === 1 ? 'border-amber-500 bg-amber-500/20 text-amber-300' : 'border-[#333] bg-[#1a1a1a] text-gray-300'}`;
+      }
+      const cTarg0 = document.getElementById('lvl-chip-targ0'), cTargRep = document.getElementById('lvl-chip-targrep');
+      if (cTarg0 && cTargRep) {
+        cTarg0.className = `py-1.5 px-2 rounded-lg text-[11px] font-bold border ${s.targetElevM === 0 ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300' : 'border-[#333] bg-[#1a1a1a] text-gray-300'}`;
+        cTargRep.className = `py-1.5 px-2 rounded-lg text-[11px] font-bold border ${(s.targetElevM === s.reperElevM && s.targetElevM !== 0) ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300' : 'border-[#333] bg-[#1a1a1a] text-gray-300'}`;
+      }
+
+      const repSign = s.reperElevM > 0 ? '+' : '';
+      const targSign = s.targetElevM > 0 ? '+' : '';
+
+      const svgLbl = document.getElementById('lvl-svg-reper-label');
+      if (svgLbl) svgLbl.textContent = `◀ REPER (▽ ${repSign}${s.reperElevM.toFixed(2)} m)`;
+      document.getElementById('lvl-hi-display').textContent = res.hiFormatted;
+      document.getElementById('lvl-target-rod-display').textContent = `${res.targetRodInUnit} ${s.unit}`;
+      document.querySelectorAll('.lvl-target-rod-txt').forEach(el => el.textContent = `${res.targetRodInUnit} ${s.unit}`);
+
+      const chGorka = document.getElementById('lvl-cheat-gorka');
+      const chDolek = document.getElementById('lvl-cheat-dolek');
+      if (chGorka && chDolek) {
+        chGorka.className = `p-2 rounded-lg transition-all ${res.type === 'gorka' ? 'opacity-100 bg-orange-500/20 border border-orange-500' : 'opacity-40'}`;
+        chDolek.className = `p-2 rounded-lg transition-all ${res.type === 'dolek' ? 'opacity-100 bg-cyan-500/20 border border-cyan-500' : 'opacity-40'}`;
+      }
+
+      const diffBox = document.getElementById('lvl-diff-box');
+      const diffTitle = document.getElementById('lvl-diff-title');
+      const diffDesc = document.getElementById('lvl-diff-desc');
+      document.getElementById('lvl-diff-header').textContent = `Względem celu (▽ ${targSign}${s.targetElevM.toFixed(2)} m):`;
+
+      if (res.type === 'dolek') {
+        diffBox.className = 'p-3.5 rounded-xl border-2 border-cyan-500 bg-cyan-950/20 flex flex-col justify-center';
+        diffTitle.className = 'text-xl font-black text-cyan-400 my-1';
+        diffTitle.textContent = `⬇️ DOŁEK: -${res.absDiffInUnit} ${s.unit}`;
+        diffDesc.innerHTML = `Na łacie masz <b>${s.pointRod}</b> (czyli o <b>${res.absDiffInUnit} ${s.unit} WIĘCEJ</b> niż cel ${res.targetRodInUnit}) ➔ teren leży <b>${res.absDiffInUnit} ${s.unit} NIŻEJ</b>.`;
+      } else if (res.type === 'gorka') {
+        diffBox.className = 'p-3.5 rounded-xl border-2 border-orange-500 bg-orange-950/20 flex flex-col justify-center';
+        diffTitle.className = 'text-xl font-black text-orange-400 my-1';
+        diffTitle.textContent = `⬆️ GÓRKA: +${res.absDiffInUnit} ${s.unit}`;
+        diffDesc.innerHTML = `Na łacie masz <b>${s.pointRod}</b> (czyli o <b>${res.absDiffInUnit} ${s.unit} MNIEJ</b> niż cel ${res.targetRodInUnit}) ➔ teren leży <b>${res.absDiffInUnit} ${s.unit} WYŻEJ</b>.`;
+      } else {
+        diffBox.className = 'p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-950/20 flex flex-col justify-center';
+        diffTitle.className = 'text-xl font-black text-emerald-400 my-1';
+        diffTitle.textContent = `🎯 W PUNKT (0 ${s.unit})`;
+        diffDesc.innerHTML = `Odczyt na łacie (${s.pointRod}) trafia idealnie w poziom docelowy ▽ ${targSign}${s.targetElevM.toFixed(2)} m.`;
+      }
+
+      document.getElementById('lvl-kota-display').textContent = res.kotaFormatted;
+      const pointRodMeters = (s.pointRod * (s.unit === 'mm' ? 0.001 : 0.01)).toFixed(3);
+      document.getElementById('lvl-kota-formula').textContent = `Oś niwelatora (${res.hiMeters >= 0 ? '+' : ''}${res.hiMeters.toFixed(3)}m) - łata (${pointRodMeters}m)`;
+
+      persistData();
+    }
+
+    function recalculateSavedLevelingPoints() {
+      const s = getActiveLevelingSession();
+      s.points.forEach(pt => {
+        const calc = calculateLevelingPoint(s.reperElevM, s.reperRod, s.targetElevM, pt.reading, pt.unit);
+        pt.diff = calc.diffInUnit;
+        pt.absDiff = calc.absDiffInUnit;
+        pt.kotaFormatted = calc.kotaFormatted;
+        pt.pointKotaMeters = calc.pointKotaMeters;
+        pt.type = calc.type;
+      });
+      renderLevelingPoints();
+      persistData();
+    }
+
+    async function handleLevelingPlanUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const s = getActiveLevelingSession();
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        s.blueprint = await renderPdfToDataUrl(file);
+      } else {
+        s.blueprint = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+      }
+      e.target.value = '';
+      persistData();
+      initLevelingUI();
+    }
+
+    function resetLevelingPlanToDefault() {
+      const s = getActiveLevelingSession();
+      s.blueprint = null;
+      persistData();
+      initLevelingUI();
+    }
+
+    function onLevelingStageClick(e) {
+      if (e.target.closest('.lvl-pin-el')) return;
+      const stage = document.getElementById('lvl-plan-stage');
+      const rect = stage.getBoundingClientRect();
+      lvlPendingCoords = {
+        x: ((e.clientX - rect.left) / rect.width) * 100,
+        y: ((e.clientY - rect.top) / rect.height) * 100
+      };
+      const s = getActiveLevelingSession();
+      document.getElementById('lvl-modal-title').textContent = `NOWY PUNKT P${s.points.length + 1}`;
+      document.getElementById('lvl-modal-rod').value = document.getElementById('lvl-point-rod').value;
+      document.getElementById('lvl-modal-note').value = '';
+      updateLevelingModalPreview();
+
+      const modal = document.getElementById('modal-leveling-point');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => {
+        const inp = document.getElementById('lvl-modal-rod');
+        inp.focus();
+        inp.select();
+      }, 60);
+    }
+
+    function updateLevelingModalPreview() {
+      const s = getActiveLevelingSession();
+      const val = parseFloat(document.getElementById('lvl-modal-rod').value) || 0;
+      const calc = calculateLevelingPoint(s.reperElevM, s.reperRod, s.targetElevM, val, s.unit);
+
+      document.getElementById('lvl-modal-kota-badge').textContent = calc.kotaFormatted;
+      const diffEl = document.getElementById('lvl-modal-diff-preview');
+      if (calc.type === 'dolek') {
+        diffEl.className = 'text-center font-extrabold text-xs py-1.5 px-2 rounded-lg bg-cyan-950/40 border border-cyan-500/50 text-cyan-300';
+        diffEl.textContent = `⬇️ DOŁEK: -${calc.absDiffInUnit} ${s.unit} (${calc.kotaFormatted})`;
+      } else if (calc.type === 'gorka') {
+        diffEl.className = 'text-center font-extrabold text-xs py-1.5 px-2 rounded-lg bg-orange-950/40 border border-orange-500/50 text-orange-300';
+        diffEl.textContent = `⬆️ GÓRKA: +${calc.absDiffInUnit} ${s.unit} (${calc.kotaFormatted})`;
+      } else {
+        diffEl.className = 'text-center font-extrabold text-xs py-1.5 px-2 rounded-lg bg-emerald-950/40 border border-emerald-500/50 text-emerald-300';
+        diffEl.textContent = `🎯 W PUNKT: 0 ${s.unit} (${calc.kotaFormatted})`;
+      }
+    }
+
+    function closeLevelingModal() {
+      const modal = document.getElementById('modal-leveling-point');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      lvlPendingCoords = null;
+    }
+
+    function confirmLevelingPoint() {
+      if (!lvlPendingCoords) return;
+      const s = getActiveLevelingSession();
+      const readingVal = parseFloat(document.getElementById('lvl-modal-rod').value) || 0;
+      document.getElementById('lvl-point-rod').value = readingVal;
+      updateLevelingUI();
+
+      const calc = calculateLevelingPoint(s.reperElevM, s.reperRod, s.targetElevM, readingVal, s.unit);
+      s.points.push({
+        id: `P${s.points.length + 1}`,
+        x: lvlPendingCoords.x,
+        y: lvlPendingCoords.y,
+        reading: readingVal,
+        unit: s.unit,
+        diff: calc.diffInUnit,
+        absDiff: calc.absDiffInUnit,
+        kotaFormatted: calc.kotaFormatted,
+        pointKotaMeters: calc.pointKotaMeters,
+        type: calc.type,
+        note: document.getElementById('lvl-modal-note').value.trim()
+      });
+
+      closeLevelingModal();
+      renderLevelingPoints();
+      persistData();
+    }
+
+    function removeLevelingPoint(index) {
+      const s = getActiveLevelingSession();
+      s.points.splice(index, 1);
+      s.points.forEach((p, i) => p.id = `P${i + 1}`);
+      renderLevelingPoints();
+      persistData();
+    }
+
+    function clearAllLevelingPoints() {
+      const s = getActiveLevelingSession();
+      if (!s.points.length) return;
+      if (!confirm('Wyczyścić wszystkie zapisane punkty niwelacyjne z tej karty?')) return;
+      s.points = [];
+      renderLevelingPoints();
+      persistData();
+    }
+
+    function renderLevelingPoints() {
+      const s = getActiveLevelingSession();
+      const pinsContainer = document.getElementById('lvl-pins-container');
+      const listContainer = document.getElementById('lvl-points-list');
+      const counterEl = document.getElementById('lvl-points-counter');
+      if (!pinsContainer || !listContainer) return;
+
+      if (counterEl) counterEl.textContent = `${s.points.length} pkt`;
+      pinsContainer.innerHTML = '';
+      listContainer.innerHTML = '';
+
+      const hexColors = { gorka: '#f97316', dolek: '#06b6d4', zero: '#22c55e' };
+
+      s.points.forEach((pt, idx) => {
+        const col = hexColors[pt.type] || '#22c55e';
+        const sign = pt.diff > 0 ? '+' : '';
+        const shortType = pt.type === 'gorka' ? 'GÓRKA' : pt.type === 'dolek' ? 'DOŁEK' : 'OK';
+
+        const pin = document.createElement('div');
+        pin.className = 'lvl-pin-el absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 cursor-pointer group';
+        pin.style.left = `${pt.x}%`;
+        pin.style.top = `${pt.y}%`;
+        pin.title = 'Kliknij, aby usunąć ten punkt';
+        pin.onclick = (ev) => {
+          ev.stopPropagation();
+          if (confirm(`Usunąć punkt ${pt.id}?`)) removeLevelingPoint(idx);
+        };
+
+        pin.innerHTML = `
+          <div class="w-6 h-6 rounded-full font-black text-[11px] text-black flex items-center justify-center shadow-md ring-2 ring-black group-hover:scale-110 transition-transform" style="background:${col}">${pt.id}</div>
+          <div class="mt-0.5 bg-[#070a12]/95 border border-[#334155] px-1.5 py-0.5 rounded text-[10px] font-extrabold whitespace-nowrap leading-tight text-center shadow" style="color:${col}">
+            ${shortType}: ${sign}${pt.diff} ${pt.unit} <span class="text-purple-200 font-bold">(${pt.kotaFormatted})</span>
+          </div>
+        `;
+        pinsContainer.appendChild(pin);
+
+        const statusTxt = pt.type === 'gorka'
+          ? `⬆️ GÓRKA +${pt.absDiff} ${pt.unit}`
+          : pt.type === 'dolek'
+          ? `⬇️ DOŁEK -${pt.absDiff} ${pt.unit}`
+          : `🎯 W PUNKT (0 ${pt.unit})`;
+
+        const row = document.createElement('div');
+        row.className = 'bg-[#0d0d0d] border border-[#222] rounded-xl px-3 py-2.5 flex items-center justify-between gap-3 text-xs';
+        row.style.borderLeft = `4px solid ${col}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <span class="font-black text-white text-sm shrink-0">${pt.id}</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-gray-200">Łata: <b>${pt.reading} ${pt.unit}</b> <span class="font-extrabold ml-2" style="color:${col}">${statusTxt}</span></div>
+              <input type="text" value="${(pt.note || '').replace(/"/g, '&quot;')}" onchange="updateLevelingPointNote(${idx}, this.value)" placeholder="Dodaj opis lokalizacji..." class="bg-transparent text-[11px] text-gray-400 border-b border-transparent focus:border-[#444] outline-none w-full mt-0.5">
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="bg-purple-950/40 border border-purple-700/50 text-purple-200 px-2 py-1 rounded-md font-mono font-bold text-[11px]">${pt.kotaFormatted}</span>
+            <button onclick="removeLevelingPoint(${idx})" class="text-gray-500 hover:text-rose-400 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+        `;
+        listContainer.appendChild(row);
+      });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateLevelingPointNote(idx, val) {
+      const s = getActiveLevelingSession();
+      if (s.points[idx]) {
+        s.points[idx].note = val.trim();
+        persistData();
+      }
+    }
+
+    // Generowanie obrazu rzutu z punktami na Canvasie do raportu A4 (identycznie jak w Księdze Obmiarów)
+    async function generateLevelingPlanSnapshot(s) {
+      const cv = document.createElement('canvas');
+      const ctx = cv.getContext('2d');
+
+      if (s.blueprint) {
+        const img = new Image();
+        img.src = s.blueprint;
+        await new Promise(r => { img.onload = r; img.onerror = r; });
+        cv.width = img.width || 1200;
+        cv.height = img.height || 750;
+        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      } else {
+        cv.width = 1200;
+        cv.height = 720;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 2;
+        for (let x = 0; x <= 1200; x += 150) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 720); ctx.stroke(); }
+        for (let y = 0; y <= 720; y += 120) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1200, y); ctx.stroke(); }
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(90, 70, 1020, 580);
+
+        const repSign = s.reperElevM > 0 ? '+' : '';
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath(); ctx.arc(90, 70, 14, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 22px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`◀ REPER (▽ ${repSign}${Number(s.reperElevM).toFixed(2)} m)`, 115, 70);
+      }
+
+      const hexColors = { gorka: '#ea580c', dolek: '#0284c7', zero: '#16a34a' };
+      const r = Math.max(cv.width * 0.015, 18);
+
+      s.points.forEach(pt => {
+        const px = (pt.x / 100) * cv.width;
+        const py = (pt.y / 100) * cv.height;
+        const col = hexColors[pt.type] || '#16a34a';
+        const sign = pt.diff > 0 ? '+' : '';
+        const shortType = pt.type === 'gorka' ? 'GÓRKA' : pt.type === 'dolek' ? 'DOŁEK' : 'OK';
+        const labelTxt = `${shortType}: ${sign}${pt.diff}${pt.unit} (${pt.kotaFormatted})`;
+
+        // Kółko punktu P1, P2...
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = Math.max(2, r * 0.14);
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.round(r * 0.85)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pt.id, px, py);
+
+        // Etykieta pod punktem
+        const fontSize = Math.round(r * 0.72);
+        ctx.font = `bold ${fontSize}px Arial`;
+        const textWidth = ctx.measureText(labelTxt).width;
+        const boxW = textWidth + 16;
+        const boxH = fontSize + 12;
+        const boxX = px - boxW / 2;
+        const boxY = py + r + 4;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        ctx.fillStyle = '#000000';
+        ctx.fillText(labelTxt, px, boxY + boxH / 2);
+      });
+
+      return cv.toDataURL('image/jpeg', 0.88);
+    }
+
+    async function openLevelingPrintPreview() {
+      updateLevelingUI();
+      const s = getActiveLevelingSession();
+      switchView('leveling-print');
+      const c = document.getElementById('leveling-print-container');
+      c.innerHTML = '<div class="text-white text-center py-6 text-xs">Generowanie Karty Pomiaru Niwelacyjnego A4...</div>';
+
+      const resBase = calculateLevelingPoint(s.reperElevM, s.reperRod, s.targetElevM, s.pointRod, s.unit);
+      const repSign = s.reperElevM > 0 ? '+' : '';
+      const targSign = s.targetElevM > 0 ? '+' : '';
+      const snapUrl = await generateLevelingPlanSnapshot(s);
+
+      const rowsHtml = s.points.length === 0
+        ? `<tr><td colspan="6" class="border border-black p-2 text-center text-gray-500">Brak naniesionych punktów pomiarowych na rzucie.</td></tr>`
+        : s.points.map(pt => {
+            const sign = pt.diff > 0 ? '+' : '';
+            const interp = pt.type === 'gorka'
+              ? `GÓRKA (+${pt.absDiff} ${pt.unit} za wysoko)`
+              : pt.type === 'dolek'
+              ? `DOŁEK (-${pt.absDiff} ${pt.unit} za nisko)`
+              : `W POZIOMIE (0 ${pt.unit})`;
+            return `
+              <tr>
+                <td class="border border-black p-1.5 text-center font-bold">${pt.id}</td>
+                <td class="border border-black p-1.5 text-left">${pt.note || 'Punkt kontrolny na rzucie'}</td>
+                <td class="border border-black p-1.5 text-center">${pt.reading} ${pt.unit}</td>
+                <td class="border border-black p-1.5 text-center font-bold">${sign}${pt.diff} ${pt.unit}</td>
+                <td class="border border-black p-1.5 text-center font-bold">${pt.kotaFormatted}</td>
+                <td class="border border-black p-1.5 text-center">${interp}</td>
+              </tr>
+            `;
+          }).join('');
+
+      c.innerHTML = `
+        <div class="a4-page">
+          <div class="flex justify-between items-start mb-3 pb-2 border-b-2 border-black text-black">
+            <div>
+              <div class="text-[14pt] font-black uppercase">Karta Pomiaru Niwelacyjnego</div>
+              <div class="text-[10.5pt] font-bold text-cyan-800">${s.metaElement || s.title}</div>
+            </div>
+            <div class="text-right text-[9pt]">
+              <b>${s.metaProject || appState.project.name}</b><br>
+              Wykonał: ${s.metaInspector || '—'} | Data: ${s.metaDate || '—'}
+            </div>
+          </div>
+
+          <table class="w-full border-collapse text-[8.5pt] text-black border border-black mb-3">
+            <tr class="bg-gray-100">
+              <td class="border border-black p-1.5"><b>Reper bazowy:</b> ▽ ${repSign}${Number(s.reperElevM).toFixed(2)} m</td>
+              <td class="border border-black p-1.5"><b>Łata na reperze:</b> ${s.reperRod} ${s.unit}</td>
+              <td class="border border-black p-1.5"><b>Oś niwelatora (H_i):</b> ${resBase.hiFormatted}</td>
+              <td class="border border-black p-1.5"><b>Poziom docelowy:</b> ▽ ${targSign}${Number(s.targetElevM).toFixed(2)} m (Cel: <b>${resBase.targetRodInUnit} ${s.unit}</b>)</td>
+            </tr>
+          </table>
+
+          <div class="text-[9.5pt] font-bold mb-1 text-black uppercase">1. Szkic sytuacyjny / Rzut z naniesionymi punktami i rzędnymi (▽):</div>
+          <div class="border border-black w-full h-[105mm] flex items-center justify-center overflow-hidden mb-3 bg-white">
+            <img src="${snapUrl}" class="max-w-full max-h-full object-contain" />
+          </div>
+
+          <div class="text-[9.5pt] font-bold mb-1 text-black uppercase">2. Zestawienie wyników pomiarów wysokościowych:</div>
+          <table class="w-full border-collapse text-[8.5pt] text-black border border-black mb-4">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="border border-black p-1.5 w-12 text-center">Pkt</th>
+                <th class="border border-black p-1.5 text-left">Lokalizacja / Opis miejsca</th>
+                <th class="border border-black p-1.5 text-center w-24">Odczyt z łaty</th>
+                <th class="border border-black p-1.5 text-center w-28">Odchyłka od celu<br><span class="text-[7.5pt] font-normal">(▽ ${targSign}${Number(s.targetElevM).toFixed(2)} m)</span></th>
+                <th class="border border-black p-1.5 text-center w-28">Rzeczywista kota<br><span class="text-[7.5pt] font-normal">(Rzędna ▽)</span></th>
+                <th class="border border-black p-1.5 text-center w-36">Interpretacja / Ocena</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div class="mt-auto pt-3 border-t border-black grid grid-cols-2 gap-12 text-[8.5pt] text-black">
+            <div>Sporządził (Inżynier / Inspektor): .............................................</div>
+            <div class="text-right">Odebrał (Kierownik Budowy / Robót): .............................................</div>
+          </div>
+        </div>
       `;
     }
 
