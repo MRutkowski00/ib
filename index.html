@@ -237,7 +237,12 @@
       </div>
     </div>
 
-    <div id="view-plan" class="view-panel w-full h-full relative hidden">
+   <div id="view-plan" class="view-panel w-full h-full relative hidden">
+      <div id="norm-target-banner" class="hidden absolute top-3 left-1/2 -translate-x-1/2 z-40 bg-purple-950/95 border-2 border-purple-500 text-white px-4 py-2 rounded-xl shadow-2xl items-center gap-3 text-xs max-w-[90%]">
+        <span class="font-bold text-purple-200">🎯 Kliknij miejsce na rzucie, aby postawić pinezkę:</span>
+        <span id="norm-target-text" class="font-extrabold text-white truncate max-w-xs"></span>
+        <button onclick="cancelPendingNormDefect()" class="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shrink-0">Anuluj</button>
+      </div>
       <div class="absolute top-2 left-2 z-20 flex gap-2">
         <button onclick="clearCurrentFloorPins()" class="bg-[#111]/90 backdrop-blur border border-[#333] text-rose-400 text-[10px] px-2.5 py-1.5 rounded-lg shadow-lg hidden md:flex items-center gap-1">
           <i data-lucide="trash-2" class="w-3 h-3"></i> Wyczyść pinezki piętra
@@ -773,34 +778,46 @@
     </div>
   </div>
 
- <div id="modal-rohe-pin" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+<div id="modal-rohe-pin" class="modal-backdrop fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
     <div class="bg-[#141414] border border-[#2b2b2b] rounded-2xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
       <div class="px-4 py-3 border-b border-[#242424] flex justify-between items-center">
         <h3 class="text-xs font-bold text-white flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-rose-500"></i> Punkt usterki na rzucie protokołu</h3>
         <button onclick="closeRohePinModal()" class="text-gray-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
       <div class="p-4 space-y-3 text-xs">
-        <div class="flex gap-4 border-b border-[#222] pb-2.5">
-          <label class="flex items-center gap-1.5 cursor-pointer text-gray-200 font-semibold">
-            <input type="radio" name="r-mode" id="rohe-mode-existing" checked onchange="toggleRoheDefectMode()" class="accent-rose-600"> Wybierz z listy wad (grupuj)
+        <div class="grid grid-cols-3 gap-1.5 bg-[#0e0e0e] p-1 rounded-xl border border-[#262626] text-[11px]">
+          <label class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer text-gray-200 font-bold has-[:checked]:bg-rose-600 has-[:checked]:text-white transition-colors text-center">
+            <input type="radio" name="r-mode" id="rohe-mode-existing" checked onchange="toggleRoheDefectMode()" class="hidden"> Z utworzonych
           </label>
-          <label class="flex items-center gap-1.5 cursor-pointer text-gray-200 font-semibold">
-            <input type="radio" name="r-mode" id="rohe-mode-new" onchange="toggleRoheDefectMode()" class="accent-rose-600"> Dodaj nową wadę
+          <label class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer text-gray-200 font-bold has-[:checked]:bg-rose-600 has-[:checked]:text-white transition-colors text-center">
+            <input type="radio" name="r-mode" id="rohe-mode-new" onchange="toggleRoheDefectMode()" class="hidden"> Własna nowa
+          </label>
+          <label class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer text-gray-200 font-bold has-[:checked]:bg-purple-600 has-[:checked]:text-white transition-colors text-center">
+            <input type="radio" name="r-mode" id="rohe-mode-norm" onchange="toggleRoheDefectMode()" class="hidden"> Z bazy Norm
           </label>
         </div>
 
-        <div id="rohe-field-existing">
-          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Przypisz numer istniejącej wady:</label>
-          <select id="modal-rohe-pin-select-defect" class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-rose-500"></select>
+        <!-- 1. Wybór z już zrobionych (w tym raporcie lub z Rzutu & Usterek) -->
+        <div id="rohe-field-existing" class="space-y-2">
+          <label class="block text-gray-400 text-[10px] font-bold uppercase">Wybierz usterkę (z protokołu lub z Rzutu & Usterek):</label>
+          <select id="modal-rohe-pin-select-defect" onchange="onRoheExistingSelectChange(this)" class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-rose-500"></select>
         </div>
 
-        <div id="rohe-field-new" class="hidden">
-          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Nazwa nowej wady (utworzy kolejny nr w treści raportu):</label>
+        <!-- 2. Stworzenie własnej nowej usterki -->
+        <div id="rohe-field-new" class="hidden space-y-1">
+          <label class="block text-gray-400 text-[10px] font-bold uppercase">Wpisz własną treść wady (utworzy kolejny nr w raporcie):</label>
           <input type="text" id="modal-rohe-pin-new-text" placeholder="np. Skrzydło do regulacji" class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-rose-500">
         </div>
 
+        <!-- 3. Wybór usterki opisanej w Normach -->
+        <div id="rohe-field-norm" class="hidden space-y-2">
+          <label class="block text-purple-300 text-[10px] font-bold uppercase">Wybierz punkt kontrolny / wytyczną z Norm ITB:</label>
+          <select id="modal-rohe-pin-select-norm" onchange="onRoheNormSelectChange(this)" class="w-full bg-[#1c1c1c] border border-purple-700/60 rounded-xl px-3 py-2 text-white outline-none focus:border-purple-500"></select>
+          <input type="text" id="modal-rohe-pin-norm-custom" placeholder="Tekst wady z normy (możesz doprecyzować)..." class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-purple-500">
+        </div>
+
         <div>
-          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Podpis załącznika zdjęciowego (opcjonalnie):</label>
+          <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Podpis załącznika zdjęciowego / lokalizacja (opcjonalnie):</label>
           <input type="text" id="modal-rohe-pin-loc" placeholder="np. Listwa do wymiany okno O3L w osiach 8 – 9 B" class="w-full bg-[#1c1c1c] border border-[#333] rounded-xl px-3 py-2 text-white outline-none focus:border-rose-500">
         </div>
 
@@ -1205,10 +1222,34 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
     window.addEventListener('popstate', handleAppBackPopState);
     function handleAppBackPopState(e) {
       const modals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
-      if(modals.length > 0) { modals.forEach(m => m.classList.add('hidden')); return; }
-      if(navStack.length > 1) { navStack.pop(); switchViewCore(navStack[navStack.length-1], false); } else { switchViewCore('dashboard', false); }
+      if (modals.length > 0) {
+        modals.forEach(m => { m.classList.add('hidden'); m.classList.remove('flex'); });
+        return;
+      }
+      if (navStack.length > 1) {
+        navStack.pop();
+        switchViewCore(navStack[navStack.length - 1], false);
+      } else {
+        navStack = ['dashboard'];
+        switchViewCore('dashboard', false);
+      }
     }
-    function handleAppBack() { history.back(); }
+
+    function handleAppBack() {
+      const modals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+      if (modals.length > 0) {
+        modals.forEach(m => { m.classList.add('hidden'); m.classList.remove('flex'); });
+        return;
+      }
+      if (navStack.length > 1) {
+        navStack.pop();
+        const target = navStack[navStack.length - 1] || 'dashboard';
+        switchViewCore(target, false);
+      } else {
+        navStack = ['dashboard'];
+        switchViewCore('dashboard', false);
+      }
+    }
     
     function switchView(view) {
       document.getElementById('project-menu-dropdown').classList.add('hidden');
@@ -1236,11 +1277,16 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
     }
 
-    function toggleElement(id) { document.getElementById(id)?.classList.toggle('hidden'); }
-    async function persistData() { await saveToDB(appState); updateDashboardCounts(); }
-    function promptRenameProject() {
-      const name = prompt('Nazwa projektu:', appState.project.name);
-      if(name){ appState.project.name = name; document.getElementById('rohe-meta-project').value = name; persistData(); }
+ function toggleElement(id) { 
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        if (el.classList.contains('modal-backdrop')) el.classList.add('flex');
+      } else {
+        el.classList.add('hidden');
+        if (el.classList.contains('modal-backdrop')) el.classList.remove('flex');
+      }
     }
 
     // SILNIK ZOOM (Wspólny)
@@ -1539,9 +1585,17 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
     }
     function clearCurrentFloorPins() { if(confirm('Usunąć wszystkie pinezki?')){ getCurrentFloor().pins=[]; persistData(); renderPins(); updateDashboardCounts();} }
 
+let pendingNormDefectText = null;
+
+    function cancelPendingNormDefect() {
+      pendingNormDefectText = null;
+      const banner = document.getElementById('norm-target-banner');
+      if (banner) { banner.classList.add('hidden'); banner.classList.remove('flex'); }
+    }
+
     function openPinModal(id=null, coords=null) {
       selectedPinId = id; tempPinPhoto = null;
-      document.getElementById('modal-pin-photo-input').value=''; // Reset input
+      document.getElementById('modal-pin-photo-input').value='';
       const b=document.getElementById('modal-pin-badge'), d=document.getElementById('modal-pin-desc'), l=document.getElementById('modal-pin-loc'), img=document.getElementById('modal-photo-preview-img'), box=document.getElementById('modal-photo-preview-box');
       if(id) {
         const p = getCurrentFloor().pins.find(x=>x.id===id);
@@ -1550,11 +1604,16 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
         document.getElementById('modal-pin-btn-delete').classList.remove('hidden');
       } else {
         let max=0; appState.buildings.forEach(b=>b.floors.forEach(f=>f.pins.forEach(x=>{if(x.num>max)max=x.num;})));
-        b.innerText=max+1; d.value=''; l.value=''; box.classList.add('hidden'); img.src='';
-        window._tmpPin = {x:coords.x, y:coords.y, num:max+1}; document.getElementById('modal-pin-btn-delete').classList.add('hidden');
+        b.innerText=max+1;
+        d.value = pendingNormDefectText ? pendingNormDefectText : '';
+        l.value=''; box.classList.add('hidden'); img.src='';
+        window._tmpPin = {x:coords.x, y:coords.y, num:max+1};
+        document.getElementById('modal-pin-btn-delete').classList.add('hidden');
+        if (pendingNormDefectText) cancelPendingNormDefect();
       }
       document.getElementById('modal-pin').classList.remove('hidden'); document.getElementById('modal-pin').classList.add('flex');
     }
+    
     function closePinModal() { document.getElementById('modal-pin').classList.add('hidden'); document.getElementById('modal-pin').classList.remove('flex'); }
     function handlePinPhotoUpload(e) {
       const file = e.target.files[0]; if(!file) return;
@@ -1912,6 +1971,32 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }
     }
 
+   function getAllNormItemsForRohe() {
+      const list = [];
+      (appState.customNormCategories || []).forEach(cat => {
+        (cat.checklist || []).forEach(item => {
+          const txt = typeof item === 'string' ? item : item.text;
+          if (txt) list.push({ label: `[${cat.short}] ${txt}`, text: `Niezgodność (${cat.short}): ${txt}` });
+        });
+        (cat.guidelines || []).forEach(g => {
+          if (g) list.push({ label: `[${cat.short} - Wytyczna] ${g}`, text: `Niezgodność z wytyczną (${cat.short}): ${g}` });
+        });
+      });
+      return list;
+    }
+
+    function getAllWorkingPinsForRohe() {
+      const list = [];
+      (appState.buildings || []).forEach(b => {
+        (b.floors || []).forEach(f => {
+          (f.pins || []).forEach(p => {
+            if (p.desc) list.push({ ...p, bName: b.name, fName: f.name });
+          });
+        });
+      });
+      return list;
+    }
+
     function openRohePinModal(x, y) {
       ensureRoheState();
       document.getElementById('modal-rohe-photo-input').value = '';
@@ -1921,20 +2006,84 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       document.getElementById('modal-rohe-pin-loc').value = '';
       window._tmpRPin = { x, y };
 
+      // 1. Zbudowanie listy "Z już utworzonych" (Wady z bieżącego protokołu + Usterki z Rzutu & Usterek)
       const sel = document.getElementById('modal-rohe-pin-select-defect');
       sel.innerHTML = '';
-      if (!appState.roheReport.defectTypes.length) {
+      const reportDefects = appState.roheReport.defectTypes || [];
+      const workingPins = getAllWorkingPinsForRohe();
+
+      if (reportDefects.length > 0) {
+        const og1 = document.createElement('optgroup');
+        og1.label = 'Wady w tym protokole (grupuj po numerze)';
+        reportDefects.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = `rep:${d.num}`;
+          opt.textContent = `${d.num}. ${d.text}`;
+          og1.appendChild(opt);
+        });
+        sel.appendChild(og1);
+      }
+
+      if (workingPins.length > 0) {
+        const og2 = document.createElement('optgroup');
+        og2.label = 'Usterki z modułu Rzut & Usterki Robocze';
+        workingPins.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = `work:${p.id}`;
+          opt.textContent = `#${p.num} ${p.desc} (${p.bName} - ${p.fName})`;
+          og2.appendChild(opt);
+        });
+        sel.appendChild(og2);
+      }
+
+      // 2. Zbudowanie listy "Z bazy Norm ITB"
+      const normSel = document.getElementById('modal-rohe-pin-select-norm');
+      const normCustom = document.getElementById('modal-rohe-pin-norm-custom');
+      normSel.innerHTML = '';
+      const normItems = getAllNormItemsForRohe();
+      if (normItems.length === 0) {
+        normSel.innerHTML = `<option value="">Brak punktów w bazie Norm ITB</option>`;
+        normCustom.value = '';
+      } else {
+        normItems.forEach((n, idx) => {
+          const opt = document.createElement('option');
+          opt.value = n.text;
+          opt.textContent = n.label;
+          normSel.appendChild(opt);
+          if (idx === 0) normCustom.value = n.text;
+        });
+      }
+
+      if (reportDefects.length === 0 && workingPins.length === 0) {
         document.getElementById('rohe-mode-new').checked = true;
-        toggleRoheDefectMode();
       } else {
         document.getElementById('rohe-mode-existing').checked = true;
-        appState.roheReport.defectTypes.forEach(d => {
-          sel.innerHTML += `<option value="${d.num}">${d.num}. ${d.text}</option>`;
-        });
-        toggleRoheDefectMode();
+        onRoheExistingSelectChange(sel);
       }
+      toggleRoheDefectMode();
+
       document.getElementById('modal-rohe-pin').classList.remove('hidden');
       document.getElementById('modal-rohe-pin').classList.add('flex');
+    }
+
+    function onRoheExistingSelectChange(sel) {
+      const val = sel.value || '';
+      if (val.startsWith('work:')) {
+        const pinId = val.slice(5);
+        const found = getAllWorkingPinsForRohe().find(p => p.id === pinId);
+        if (found) {
+          if (found.loc) document.getElementById('modal-rohe-pin-loc').value = found.loc;
+          if (found.photo) {
+            tempRohePhoto = found.photo;
+            document.getElementById('modal-rohe-photo-preview-box').classList.remove('hidden');
+            document.getElementById('modal-rohe-photo-preview-img').src = tempRohePhoto;
+          }
+        }
+      }
+    }
+
+    function onRoheNormSelectChange(sel) {
+      document.getElementById('modal-rohe-pin-norm-custom').value = sel.value || '';
     }
 
     function closeRohePinModal() {
@@ -1943,9 +2092,12 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
     }
 
     function toggleRoheDefectMode() {
+      const isExisting = document.getElementById('rohe-mode-existing').checked;
       const isNew = document.getElementById('rohe-mode-new').checked;
-      document.getElementById('rohe-field-existing')?.classList.toggle('hidden', isNew);
+      const isNorm = document.getElementById('rohe-mode-norm')?.checked;
+      document.getElementById('rohe-field-existing')?.classList.toggle('hidden', !isExisting);
       document.getElementById('rohe-field-new')?.classList.toggle('hidden', !isNew);
+      document.getElementById('rohe-field-norm')?.classList.toggle('hidden', !isNorm);
     }
 
     function handleRohePinPhotoUpload(e) {
@@ -1969,19 +2121,44 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       r.readAsDataURL(file);
     }
 
+    function getOrCreateRoheDefectByText(txt) {
+      const clean = (txt || 'Wada').trim();
+      const existing = appState.roheReport.defectTypes.find(d => d.text.toLowerCase() === clean.toLowerCase());
+      if (existing) return { num: existing.num, text: existing.text };
+      const num = appState.roheReport.defectTypes.length + 1;
+      appState.roheReport.defectTypes.push({ id: 'dt-' + Date.now(), num, text: clean });
+      renderRoheDefects();
+      return { num, text: clean };
+    }
+
     function saveRohePinFromModal() {
       ensureRoheState();
       const isNew = document.getElementById('rohe-mode-new').checked;
+      const isNorm = document.getElementById('rohe-mode-norm')?.checked;
       let num, txt;
-      if (isNew || appState.roheReport.defectTypes.length === 0) {
-        txt = document.getElementById('modal-rohe-pin-new-text').value.trim() || 'Wada';
-        num = appState.roheReport.defectTypes.length + 1;
-        appState.roheReport.defectTypes.push({ id: 'dt-' + Date.now(), num, text: txt });
-        renderRoheDefects();
+
+      if (isNew) {
+        const res = getOrCreateRoheDefectByText(document.getElementById('modal-rohe-pin-new-text').value);
+        num = res.num; txt = res.text;
+      } else if (isNorm) {
+        const normTxt = document.getElementById('modal-rohe-pin-norm-custom').value || document.getElementById('modal-rohe-pin-select-norm').value;
+        const res = getOrCreateRoheDefectByText(normTxt);
+        num = res.num; txt = res.text;
       } else {
-        num = parseInt(document.getElementById('modal-rohe-pin-select-defect').value);
-        const found = appState.roheReport.defectTypes.find(d => d.num === num);
-        txt = found ? found.text : 'Wada';
+        const selVal = document.getElementById('modal-rohe-pin-select-defect').value || '';
+        if (selVal.startsWith('rep:')) {
+          num = parseInt(selVal.slice(4));
+          const found = appState.roheReport.defectTypes.find(d => d.num === num);
+          txt = found ? found.text : 'Wada';
+        } else if (selVal.startsWith('work:')) {
+          const pinId = selVal.slice(5);
+          const wPin = getAllWorkingPinsForRohe().find(p => p.id === pinId);
+          const res = getOrCreateRoheDefectByText(wPin ? wPin.desc : 'Wada');
+          num = res.num; txt = res.text;
+        } else {
+          const res = getOrCreateRoheDefectByText(document.getElementById('modal-rohe-pin-new-text').value);
+          num = res.num; txt = res.text;
+        }
       }
 
       const activeSheet = getActiveRoheSheet();
@@ -2010,8 +2187,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       ensureRoheState();
       const txt = prompt('Podaj opis nowej pozycji w wykazie wad:');
       if (!txt || !txt.trim()) return;
-      const num = appState.roheReport.defectTypes.length + 1;
-      appState.roheReport.defectTypes.push({ id: 'dt-' + Date.now(), num, text: txt.trim() });
+      getOrCreateRoheDefectByText(txt.trim());
       persistData();
       renderRoheDefects();
       renderRoheReportPages();
@@ -2429,19 +2605,44 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }); if(window.lucide) lucide.createIcons();
     }
 
-   /* KALENDARZ - NOWA LOGIKA INŻYNIERSKA */
+/* KALENDARZ - NOWA LOGIKA INŻYNIERSKA Z AKTUALNĄ DATĄ */
     let currentCalDate = new Date();
     let activeCalFilter = 'all';
 
+    function getLocalTodayStr() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    function jumpToTodayCalendar() {
+      currentCalDate = new Date();
+      const todayStr = getLocalTodayStr();
+      renderCalendarList(todayStr);
+    }
+
     function renderCalendarGrid() {
       const c = document.getElementById('calendar-widget'); if(!c) return;
+      const now = new Date();
+      const todayStr = getLocalTodayStr();
+      const todayFormatted = now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
       const year = currentCalDate.getFullYear(), month = currentCalDate.getMonth();
       const firstDay = new Date(year, month, 1).getDay() || 7;
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
       const monthNames = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
       
-      let html = `<div class="flex justify-between items-center mb-4">
+      let html = `
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-[#222] text-xs">
+        <div class="flex items-center gap-2 text-gray-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Dzisiaj: <b class="text-white capitalize">${todayFormatted}</b></span>
+        </div>
+        <button onclick="jumpToTodayCalendar()" class="bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors">
+          Przejdź do dziś
+        </button>
+      </div>
+      <div class="flex justify-between items-center mb-4">
           <button onclick="changeCalMonth(-1)" class="p-2 bg-[#222] rounded-xl text-gray-400 hover:text-white transition-colors"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
           <span class="font-black text-white text-base tracking-wide uppercase">${monthNames[month]} ${year}</span>
           <button onclick="changeCalMonth(1)" class="p-2 bg-[#222] rounded-xl text-gray-400 hover:text-white transition-colors"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
@@ -2456,14 +2657,17 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
           const dayEvents = appState.calendarSchedule.filter(s => s.date === dateStr);
           const hasEvent = dayEvents.length > 0;
           const isSelected = activeCalFilter === dateStr;
+          const isToday = dateStr === todayStr;
           
           let bgClass = 'bg-[#1a1a1a] text-gray-400 hover:bg-[#252525] border border-transparent';
-          if(isSelected) bgClass = 'bg-amber-600 text-white font-black shadow-lg shadow-amber-600/30 border-amber-500 scale-105 z-10';
+          if(isSelected) bgClass = 'bg-amber-600 text-white font-black shadow-lg shadow-amber-600/30 border-amber-400 scale-105 z-10';
+          else if(isToday) bgClass = 'bg-emerald-950/60 text-emerald-300 font-black border-2 border-emerald-400 shadow-md';
           else if(hasEvent) bgClass = 'bg-amber-950/40 text-amber-400 border border-amber-800/50 hover:bg-amber-900/50';
           
           html += `<button onclick="renderCalendarList('${isSelected ? 'all' : dateStr}')" class="py-2.5 rounded-xl transition-all flex flex-col items-center justify-center relative ${bgClass}">
              <span>${d}</span>
-             ${hasEvent && !isSelected ? `<span class="w-1.5 h-1.5 bg-amber-400 rounded-full absolute bottom-1 shadow-sm"></span>` : ''}
+             ${isToday ? `<span class="text-[8px] font-black uppercase tracking-tighter ${isSelected ? 'text-white' : 'text-emerald-400'} leading-none mt-0.5">DZIŚ</span>` : ''}
+             ${hasEvent && !isSelected && !isToday ? `<span class="w-1.5 h-1.5 bg-amber-400 rounded-full absolute bottom-1 shadow-sm"></span>` : ''}
           </button>`;
       }
       html += `</div>`; c.innerHTML = html;
@@ -2748,9 +2952,13 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }; r.readAsText(file); e.target.value='';
     }
     
-    function createDefectFromNorm(text) {
+   function createDefectFromNorm(text) {
+      pendingNormDefectText = `Niezgodność: ${text}`;
       switchView('plan');
-      setTimeout(() => { openPinModal(null, { x: 50, y: 50 }); document.getElementById('modal-pin-desc').value = `Niezgodność: ${text}`; }, 300);
+      const banner = document.getElementById('norm-target-banner');
+      const txtEl = document.getElementById('norm-target-text');
+      if (txtEl) txtEl.textContent = pendingNormDefectText;
+      if (banner) { banner.classList.remove('hidden'); banner.classList.add('flex'); }
     }
     function filterNorms(val) { renderNorms(); }
 
