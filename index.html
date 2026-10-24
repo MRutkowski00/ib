@@ -743,7 +743,7 @@
       </div>
     </div>
 
-    <!-- MODUŁ: EWIDENCJA CZASU PRACY LUDZI I SPRZĘTU -->
+<!-- MODUŁ: EWIDENCJA CZASU PRACY LUDZI I SPRZĘTU -->
     <div id="view-timesheet" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#0c0c0c]">
       <div class="max-w-6xl mx-auto space-y-4">
 
@@ -753,61 +753,72 @@
             <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
               <i data-lucide="clock" class="w-5 h-5 text-indigo-400"></i> Ewidencja Pracy Ludzi i Sprzętu
             </h2>
-            <p class="text-[11px] text-gray-400">Kliknij w dowolną kratkę dnia (1–31), aby ustawić godziny na zegarze, nadgodziny lub urlop/postój.</p>
+            <p class="text-[11px] text-gray-400">Twórz zestawienia wielomiesięczne (np. dla brygad lub maszyn). Kliknij w kratkę dnia (1–31), aby wpisać godziny.</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <div class="flex bg-[#171717] p-1 rounded-xl border border-[#2a2a2a] text-xs font-bold">
-              <button id="ts-mode-workers" onclick="setTimesheetMode('workers')" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-colors flex items-center gap-1">👷 Pracownicy</button>
-              <button id="ts-mode-equipment" onclick="setTimesheetMode('equipment')" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1">🚜 Sprzęt</button>
+              <button type="button" id="ts-mode-workers" onclick="setTimesheetMode('workers')" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-colors flex items-center gap-1">👷 Pracownicy</button>
+              <button type="button" id="ts-mode-equipment" onclick="setTimesheetMode('equipment')" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1">🚜 Sprzęt</button>
             </div>
-            <button onclick="openTimesheetPrintPreview()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg">
-              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Generuj Kartę A4 (PDF)
+            <button type="button" onclick="openTimesheetPrintPreview()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Drukuj Kartę A4 (PDF)
             </button>
           </div>
         </div>
 
-        <!-- Pasek wyboru zestawienia (Karty miesięczne) -->
+        <!-- Pasek wyboru zestawienia (np. Dekarze, Cieśle, Koparki) -->
         <div class="bg-[#141414] border border-[#262626] rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
             <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0 mr-1"><i data-lucide="folder-kanban" class="inline w-3.5 h-3.5 text-indigo-400"></i> Zestawienia:</span>
             <div id="ts-sessions-chips" class="flex items-center gap-1.5 shrink-0"></div>
-            <button onclick="promptNewTimesheetSession()" class="bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] text-gray-200 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1 shrink-0">
-              <i data-lucide="plus" class="w-3 h-3 text-indigo-400"></i> Nowe zestawienie
-            </button>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button onclick="promptAddTimesheetEntity()" id="ts-btn-add-entity" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 shadow">
-              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Dodaj osobę / sprzęt
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onclick="createNewTimesheetSession('workers')" class="bg-[#1e1e1e] hover:bg-indigo-950/60 border border-indigo-500/40 text-indigo-300 text-[11px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+              + Nowe (👷 Ludzie)
+            </button>
+            <button type="button" onclick="createNewTimesheetSession('equipment')" class="bg-[#1e1e1e] hover:bg-amber-950/60 border border-amber-500/40 text-amber-300 text-[11px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+              + Nowe (🚜 Sprzęt)
+            </button>
+            <button type="button" onclick="promptAddTimesheetEntity()" id="ts-btn-add-entity" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 shadow">
+              + Dodaj pracownika
             </button>
           </div>
         </div>
 
-        <!-- Metryka zestawienia (Miesiąc, Rok, Komórka organizacyjna / Budowa) -->
-        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-          <div class="md:col-span-2">
-            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nazwa komórki organizacyjnej / Budowa:</label>
-            <input type="text" id="ts-meta-org" oninput="updateTimesheetMeta()" placeholder="np. Budowa VISLA Wilanów - Brygada 1" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+        <!-- Pasek miesięcy wewnątrz aktywnego zestawienia (Wielomiesięczność w 1 sheecie) -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-3 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#222] pb-2">
+            <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0 mr-1"><i data-lucide="calendar" class="inline w-3.5 h-3.5 text-emerald-400"></i> Miesiące w tym zestawieniu:</span>
+              <div id="ts-months-chips" class="flex items-center gap-1.5 shrink-0"></div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <select id="ts-add-month-select" class="bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-[11px] text-white outline-none">
+                <option value="1">01 - Styczeń</option><option value="2">02 - Luty</option><option value="3">03 - Marzec</option>
+                <option value="4">04 - Kwiecień</option><option value="5">05 - Maj</option><option value="6">06 - Czerwiec</option>
+                <option value="7">07 - Lipiec</option><option value="8">08 - Sierpień</option><option value="9">09 - Wrzesień</option>
+                <option value="10">10 - Październik</option><option value="11">11 - Listopad</option><option value="12">12 - Grudzień</option>
+              </select>
+              <input type="number" id="ts-add-year-input" value="2026" class="w-16 bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-[11px] text-white text-center outline-none">
+              <button type="button" onclick="addOrSwitchTimesheetMonthFromPicker()" class="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 text-[11px] font-bold px-2.5 py-1 rounded-lg transition-colors">
+                Otwórz / Dodaj miesiąc
+              </button>
+            </div>
           </div>
-          <div>
-            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Miesiąc (m-c):</label>
-            <select id="ts-meta-month" onchange="updateTimesheetMeta()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
-              <option value="1">01 - Styczeń</option><option value="2">02 - Luty</option><option value="3">03 - Marzec</option>
-              <option value="4">04 - Kwiecień</option><option value="5">05 - Maj</option><option value="6">06 - Czerwiec</option>
-              <option value="7">07 - Lipiec</option><option value="8">08 - Sierpień</option><option value="9">09 - Wrzesień</option>
-              <option value="10">10 - Październik</option><option value="11">11 - Listopad</option><option value="12">12 - Grudzień</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Rok:</label>
-            <input type="number" id="ts-meta-year" oninput="updateTimesheetMeta()" value="2026" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Norma dzienna (h):</label>
-            <input type="number" id="ts-meta-norm" oninput="updateTimesheetMeta()" value="8" step="0.5" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div class="sm:col-span-2">
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nazwa komórki organizacyjnej / Budowa / Firma:</label>
+              <input type="text" id="ts-meta-org" oninput="updateTimesheetMeta()" placeholder="np. Budowa VISLA Wilanów - Brygada Dekarzy" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Norma dobowa (h):</label>
+              <input type="number" id="ts-meta-norm" oninput="updateTimesheetMeta()" value="8" step="0.5" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+            </div>
           </div>
         </div>
 
-        <!-- Karty podsumowania (Szybki bilans godzin i dni na górze) -->
+        <!-- Karty podsumowania (Miesiąc + Suma wszystkich miesięcy zestawienia) -->
         <div id="ts-summary-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
 
         <!-- Główna interaktywna tabela miesięczna (Dni 1..31 + Podsumowanie dolne) -->
@@ -823,16 +834,20 @@
       <div class="max-w-[920px] mx-auto space-y-4">
         <div class="no-print bg-[#131313] border border-[#282828] rounded-xl p-3 flex flex-wrap justify-between items-center gap-2 shadow-xl">
           <div>
-            <h3 class="text-sm font-bold text-white"><i data-lucide="clock" class="inline w-3.5 h-3.5 text-indigo-400 mr-1"></i> Karta Ewidencji Czasu Pracy (Wydruk A4)</h3>
-            <p class="text-[10px] text-gray-400">Układ tabelaryczny 1–31 z rozliczeniem godzin i nieobecności</p>
+            <h3 class="text-sm font-bold text-white"><i data-lucide="printer" class="inline w-3.5 h-3.5 text-white mr-1"></i> Karta Ewidencji Czasu Pracy (Wydruk A4 - Czarno-Biały)</h3>
+            <p class="text-[10px] text-gray-400">Czysty wydruk inżynierski bez kolorowych teł</p>
           </div>
-          <div class="flex items-center gap-2">
-            <select id="ts-print-cell-format" onchange="renderTimesheetPrintPages()" class="bg-[#1e1e1e] border border-[#333] text-gray-200 text-xs rounded-lg px-2.5 py-1.5 outline-none">
-              <option value="hours">Widok w kratkach: Suma godzin (np. 8)</option>
-              <option value="range">Widok w kratkach: Przedział + suma (np. 7-15 / 8h)</option>
+          <div class="flex items-center gap-2 flex-wrap">
+            <select id="ts-print-scope" onchange="renderTimesheetPrintPages()" class="bg-[#1e1e1e] border border-[#333] text-gray-200 text-xs rounded-lg px-2.5 py-1.5 outline-none">
+              <option value="current">Drukuj: Tylko aktywny miesiąc</option>
+              <option value="all">Drukuj: Wszystkie miesiące z tego zestawienia</option>
             </select>
-            <button onclick="switchView('timesheet')" class="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
-            <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Drukuj / PDF</button>
+            <select id="ts-print-cell-format" onchange="renderTimesheetPrintPages()" class="bg-[#1e1e1e] border border-[#333] text-gray-200 text-xs rounded-lg px-2.5 py-1.5 outline-none">
+              <option value="hours">W kratkach: Suma godzin (np. 8)</option>
+              <option value="range">W kratkach: Przedział + suma (np. 7-15 / 8h)</option>
+            </select>
+            <button type="button" onclick="switchView('timesheet')" class="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
+            <button type="button" onclick="window.print()" class="bg-white hover:bg-gray-200 text-black text-xs font-bold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Drukuj / PDF</button>
           </div>
         </div>
         <div id="timesheet-print-container" class="space-y-4"></div>
@@ -1278,7 +1293,7 @@
     </div>
   </div>
 
-  <!-- MODAL: EDYCJA DNIA PRACY Z INTERAKTYWNYM ZEGARKIEM -->
+ <!-- MODAL: EDYCJA DNIA PRACY Z INTERAKTYWNYM ZEGARKIEM -->
   <div id="modal-timesheet-entry" class="modal-backdrop fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden items-center justify-center p-2 sm:p-4">
     <div class="bg-[#141414] border-2 border-indigo-500/80 rounded-2xl w-full max-w-lg max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="px-4 py-3 border-b border-[#242424] flex justify-between items-center shrink-0 bg-[#101010]">
@@ -1286,7 +1301,7 @@
           <span id="ts-modal-title" class="text-xs font-black text-white uppercase tracking-wider block">WPIS CZASU PRACY</span>
           <span id="ts-modal-subtitle" class="text-[11px] text-indigo-300 font-semibold"></span>
         </div>
-        <button onclick="closeTimesheetModal()" class="text-gray-400 hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <button type="button" onclick="closeTimesheetModal()" class="text-gray-400 hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
 
       <div class="p-4 overflow-y-auto space-y-3.5 text-xs flex-1">
@@ -1297,28 +1312,27 @@
             <input type="date" id="ts-modal-date" onchange="onTsModalDateChange()" class="w-full bg-[#181818] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
           </div>
           <div>
-            <label class="text-[10px] text-gray-400 font-bold uppercase block mb-1">Szybkie powielenie na zakres dni:</label>
+            <label class="text-[10px] text-gray-400 font-bold uppercase block mb-1">Wpisz na zakres dni tego miesiąca:</label>
             <div class="flex items-center gap-1.5">
               <span class="text-gray-400 text-[11px]">Od:</span>
               <input type="number" id="ts-modal-day-from" min="1" max="31" class="w-14 bg-[#181818] border border-[#333] rounded-lg px-2 py-1.5 text-white text-center font-bold">
               <span class="text-gray-400 text-[11px]">Do:</span>
               <input type="number" id="ts-modal-day-to" min="1" max="31" class="w-14 bg-[#181818] border border-[#333] rounded-lg px-2 py-1.5 text-white text-center font-bold">
-              <label class="flex items-center gap-1 text-[10px] text-gray-300 ml-1 cursor-pointer" title="Pomijaj soboty i niedziele przy powielaniu">
+              <label class="flex items-center gap-1 text-[10px] text-gray-300 ml-1 cursor-pointer">
                 <input type="checkbox" id="ts-modal-skip-weekends" checked class="accent-indigo-500"> Bez sob/nd
               </label>
             </div>
           </div>
         </div>
 
-        <!-- Przełącznik: Praca (Godziny) vs Urlop / Nieobecność / Postój -->
+        <!-- Przełącznik: Praca (Godziny) vs Urlop / Nieobecność / Przestój -->
         <div class="grid grid-cols-2 gap-1.5 bg-[#0e0e0e] p-1 rounded-xl border border-[#262626]">
           <button type="button" id="ts-tab-work" onclick="setTsEntryType('work')" class="py-2 rounded-lg font-extrabold text-xs bg-indigo-600 text-white transition-colors">⏱️ Praca (Godziny)</button>
-          <button type="button" id="ts-tab-absence" onclick="setTsEntryType('absence')" class="py-2 rounded-lg font-extrabold text-xs text-gray-400 hover:text-white transition-colors">🏖️ Urlop / Nieobecność</button>
+          <button type="button" id="ts-tab-absence" onclick="setTsEntryType('absence')" class="py-2 rounded-lg font-extrabold text-xs text-gray-400 hover:text-white transition-colors">🏖️ Urlop / Przestój</button>
         </div>
 
         <!-- PANEL 1: PRACA + INTERAKTYWNY ZEGAREK -->
         <div id="ts-panel-work" class="space-y-3">
-          <!-- Przyciski godzin Od - Do oraz Przerwa -->
           <div class="grid grid-cols-3 gap-2">
             <div onclick="openInteractiveClock('start')" id="ts-box-start" class="bg-[#181818] border-2 border-indigo-500 rounded-xl p-2 text-center cursor-pointer transition-all">
               <span class="text-[10px] text-gray-400 font-bold uppercase block">Rozpoczęcie (Od)</span>
@@ -1334,7 +1348,7 @@
             </div>
           </div>
 
-          <!-- INTERAKTYWNA TARCZA ZEGARA (JAK W TELEFONIE) -->
+          <!-- INTERAKTYWNA TARCZA ZEGARA -->
           <div class="bg-[#0b0b0b] border border-[#262626] rounded-2xl p-3 flex flex-col items-center space-y-2">
             <div class="w-full flex items-center justify-between text-[11px] px-1">
               <span id="ts-clock-target-label" class="font-bold text-indigo-400 uppercase">Wybierz na tarczy: Rozpoczęcie (Od)</span>
@@ -1344,11 +1358,10 @@
               </div>
             </div>
 
-            <div id="ts-clock-dial" class="relative w-52 h-52 rounded-full bg-[#141414] border-2 border-[#2e2e2e] shadow-inner select-none">
+            <div id="ts-clock-dial" class="relative w-48 h-48 rounded-full bg-[#141414] border-2 border-[#2e2e2e] shadow-inner select-none">
               <svg id="ts-clock-svg" viewBox="0 0 200 200" class="w-full h-full"></svg>
             </div>
 
-            <!-- Szybkie szablony zmianowe -->
             <div class="w-full pt-1">
               <div class="text-[10px] text-gray-500 font-bold uppercase mb-1 text-center">Szybkie szablony zmian:</div>
               <div class="flex flex-wrap justify-center gap-1.5">
@@ -1361,80 +1374,63 @@
             </div>
           </div>
 
-          <!-- Automatyczne rozbicie godzin (w pełni edytowalne) -->
+          <!-- Automatyczne rozbicie godzin (zależne od trybu Ludzie / Sprzęt) -->
           <div class="bg-[#101010] border border-[#262626] rounded-xl p-3 space-y-2">
             <div class="flex justify-between items-center border-b border-[#222] pb-1.5">
-              <span class="text-[10px] font-bold text-gray-400 uppercase">Rozliczenie godzin dnia (możesz edytować):</span>
+              <span class="text-[10px] font-bold text-gray-400 uppercase">Rozliczenie godzin dnia (możesz też zmienić ręcznie):</span>
               <span id="ts-modal-total-badge" class="text-sm font-black text-emerald-400 font-mono">Razem: 8.0 h</span>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
               <div>
-                <label class="text-gray-400 text-[10px] block">Podstawowe (norma):</label>
-                <input type="number" id="ts-h-base" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-white font-bold">
+                <label id="ts-lbl-base" class="text-gray-400 text-[10px] block">Podstawowe (norma):</label>
+                <input type="number" id="ts-h-base" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-white font-bold">
               </div>
               <div>
-                <label class="text-amber-400 text-[10px] block">Nadliczbowe 50%:</label>
-                <input type="number" id="ts-h-ot50" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-amber-300 font-bold">
+                <label id="ts-lbl-ot50" class="text-amber-400 text-[10px] block">Nadliczbowe 50%:</label>
+                <input type="number" id="ts-h-ot50" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-amber-300 font-bold">
               </div>
               <div>
-                <label class="text-rose-400 text-[10px] block">Nadliczbowe 100%:</label>
-                <input type="number" id="ts-h-ot100" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-rose-300 font-bold">
+                <label id="ts-lbl-ot100" class="text-rose-400 text-[10px] block">Nadliczbowe 100%:</label>
+                <input type="number" id="ts-h-ot100" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-rose-300 font-bold">
               </div>
               <div>
                 <label class="text-purple-300 text-[10px] block">🌙 W porze nocnej:</label>
-                <input type="number" id="ts-h-night" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-purple-300 font-bold">
+                <input type="number" id="ts-h-night" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-purple-300 font-bold">
               </div>
               <div>
                 <label class="text-red-300 text-[10px] block">Niedziele i święta:</label>
-                <input type="number" id="ts-h-sun" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-red-300 font-bold">
+                <input type="number" id="ts-h-sun" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-red-300 font-bold">
               </div>
               <div>
                 <label class="text-cyan-300 text-[10px] block">Dni dodatk. wolne:</label>
-                <input type="number" id="ts-h-free" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-cyan-300 font-bold">
+                <input type="number" id="ts-h-free" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-cyan-300 font-bold">
               </div>
               <div>
-                <label class="text-gray-400 text-[10px] block">W porze dyżuru:</label>
-                <input type="number" id="ts-h-duty" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
+                <label id="ts-lbl-duty" class="text-gray-400 text-[10px] block">W porze dyżuru:</label>
+                <input type="number" id="ts-h-duty" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
               </div>
               <div>
-                <label class="text-gray-400 text-[10px] block">Młodocianego:</label>
-                <input type="number" id="ts-h-juv" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
+                <label id="ts-lbl-juv" class="text-gray-400 text-[10px] block">Młodocianego:</label>
+                <input type="number" id="ts-h-juv" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
               </div>
               <div>
                 <label class="text-gray-400 text-[10px] block">Inne godziny:</label>
-                <input type="number" id="ts-h-other" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
+                <input type="number" id="ts-h-other" step="0.5" min="0" oninput="updateTsTotalBadge()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
               </div>
             </div>
           </div>
         </div>
 
-        <!-- PANEL 2: URLOP / NIEOBECNOŚĆ / POSTÓJ SPRZĘTU -->
+        <!-- PANEL 2: URLOP / NIEOBECNOŚĆ / PRZESTÓJ SPRZĘTU -->
         <div id="ts-panel-absence" class="hidden space-y-3">
           <div class="bg-[#101010] border border-[#262626] rounded-xl p-3 space-y-2.5">
-            <label class="block text-gray-300 font-bold text-xs">Wybierz powód nieobecności / status dnia (zgodnie z kartą):</label>
-            <select id="ts-absence-code" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl px-3 py-2.5 text-white font-semibold outline-none focus:border-indigo-500">
-              <optgroup label="Urlopy">
-                <option value="UW">UW – Urlop wypoczynkowy</option>
-                <option value="UM">UM – Urlop macierzyński</option>
-                <option value="UWy">UWy – Urlop wychowawczy</option>
-                <option value="UB">UB – Urlop bezpłatny</option>
-                <option value="UO">UO – Urlop okolicznościowy</option>
-              </optgroup>
-              <optgroup label="Pozostałe nieobecności / przestoje">
-                <option value="CH">L4 / CH – Choroba pracownika (Zwolnienie lekarskie)</option>
-                <option value="DEL">DEL – Delegacja</option>
-                <option value="OP">OP – Opieka nad dzieckiem lub członkiem rodziny</option>
-                <option value="U">U – Nieobecność usprawiedliwiona (do odpracowania / niepłatna)</option>
-                <option value="NZ">NZ – Niepłatne zwolnienie od pracy</option>
-                <option value="NN">NN – Inne sprawy nieusprawiedliwione</option>
-                <option value="IN">IN – Inne (lub Postój / Awaria sprzętu)</option>
-              </optgroup>
-            </select>
+            <label id="ts-absence-label" class="block text-gray-300 font-bold text-xs">Wybierz powód nieobecności / przestoju:</label>
+            <select id="ts-absence-code" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl px-3 py-2.5 text-white font-semibold outline-none focus:border-indigo-500"></select>
           </div>
         </div>
 
         <div>
-          <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Notatka do dnia / Podpis w kolumnie kierownika (opcjonalnie):</label>
+          <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Notatka do dnia / Podpis kierownika (opcjonalnie):</label>
           <input type="text" id="ts-modal-note" placeholder="np. Betonowanie stropu / Praca na sekcji B" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl px-3 py-1.5 text-white outline-none focus:border-indigo-500">
         </div>
       </div>
@@ -1570,6 +1566,12 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
         el.classList.add('hidden');
         if (el.classList.contains('modal-backdrop')) el.classList.remove('flex');
       }
+    }
+
+    async function persistData() { await saveToDB(appState); updateDashboardCounts(); }
+    function promptRenameProject() {
+      const name = prompt('Nazwa projektu:', appState.project.name);
+      if(name){ appState.project.name = name; const el = document.getElementById('rohe-meta-project'); if(el) el.value = name; persistData(); }
     }
 
     // SILNIK ZOOM (Wspólny)
@@ -4512,10 +4514,13 @@ let pendingNormDefectText = null;
       `;
     }
 
-    // ================= MODUŁ: EWIDENCJA CZASU PRACY LUDZI I SPRZĘTU =================
+   // ================= MODUŁ: EWIDENCJA CZASU PRACY LUDZI I SPRZĘTU =================
     let tsModalCtx = { entityId: null, day: 1, entryType: 'work', clockTarget: 'start', clockStep: 'hour' };
 
-    const TS_WORK_ROWS = [
+    const TS_MONTH_NAMES = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+
+    // Wiersze godzin dla Pracowników
+    const TS_WORK_ROWS_WORKERS = [
       { key: 'base', label: 'podstawowego wg normy dziennej' },
       { key: 'ot50', label: 'z dopłatą 50%', group: 'w godzinach nadliczbowych' },
       { key: 'ot100', label: 'z dopłatą 100%', group: 'w godzinach nadliczbowych' },
@@ -4527,14 +4532,28 @@ let pendingNormDefectText = null;
       { key: 'other', label: 'inne' }
     ];
 
-    const TS_ABSENCE_ROWS = [
+    // Wiersze godzin dla Sprzętu
+    const TS_WORK_ROWS_EQUIPMENT = [
+      { key: 'base', label: 'pracy podstawowej (w normie dobowej)' },
+      { key: 'ot50', label: 'pracy wydłużonej (ponad normę dobową)', group: 'w godzinach nadliczbowych' },
+      { key: 'ot100', label: 'pracy w godzinach specjalnych / interwencyjnych', group: 'w godzinach nadliczbowych' },
+      { key: 'sun', label: 'pracy w niedziele i święta' },
+      { key: 'free', label: 'pracy w soboty / dni dodatkowo wolne' },
+      { key: 'night', label: 'pracy w porze nocnej (22:00–06:00)' },
+      { key: 'duty', label: 'dyżuru sprzętowego / gotowości na budowie' },
+      { key: 'juv', label: 'przejazdów technologicznych / mobilizacji' },
+      { key: 'other', label: 'inne godziny pracy sprzętu' }
+    ];
+
+    // Wiersze nieobecności dla Pracowników
+    const TS_ABSENCE_ROWS_WORKERS = [
       { code: 'UW', label: 'wypoczynkowego', group: 'urlopu' },
       { code: 'UM', label: 'macierzyńskiego', group: 'urlopu' },
       { code: 'UWy', label: 'wychowawczego', group: 'urlopu' },
       { code: 'UB', label: 'bezpłatnego', group: 'urlopu' },
       { code: 'UO', label: 'okolicznościowego', group: 'urlopu' },
       { code: 'NZ', label: 'niepłatnego zwolnienia od pracy' },
-      { code: 'CH', label: 'choroby pracownika' },
+      { code: 'CH', label: 'choroby pracownika (L4)' },
       { code: 'OP', label: 'opieki nad dzieckiem lub innym członkiem rodziny' },
       { code: 'U', label: 'usprawiedliwionych (do odpracowania lub niepłatnej)' },
       { code: 'NN', label: 'innych spraw nieusprawiedliwionych' },
@@ -4542,43 +4561,83 @@ let pendingNormDefectText = null;
       { code: 'IN', label: 'inne' }
     ];
 
+    // Wiersze przestojów dla Sprzętu
+    const TS_ABSENCE_ROWS_EQUIPMENT = [
+      { code: 'PS', label: 'przestoju technologicznego (brak frontu robót)' },
+      { code: 'AW', label: 'awarii sprzętu / naprawy bieżącej' },
+      { code: 'SR', label: 'serwisu okresowego / przeglądu konserwatorskiego UDT' },
+      { code: 'PG', label: 'warunków atmosferycznych (wiatr / mróz / opady)' },
+      { code: 'TR', label: 'transportu / przebazowania maszyny' },
+      { code: 'IN', label: 'innych przyczyn przestoju sprzętu' }
+    ];
+
+    function makeYmKey(year, month) {
+      return `${year}-${String(month).padStart(2, '0')}`;
+    }
+
     function ensureTimesheetState() {
       const now = new Date();
+      const defaultYm = makeYmKey(now.getFullYear(), now.getMonth() + 1);
+
       if (!appState.timesheetBook || !Array.isArray(appState.timesheetBook.sessions) || appState.timesheetBook.sessions.length === 0) {
         appState.timesheetBook = {
           activeSessionId: 'ts-1',
           sessions: [
             {
               id: 'ts-1',
-              title: 'Pracownicy - Bieżący miesiąc',
+              title: 'Brygada Ogólnobudowlana',
               mode: 'workers',
               orgName: appState.project?.name || 'Budowa - Zespół Wykonawczy',
               month: now.getMonth() + 1,
               year: now.getFullYear(),
+              monthsList: [defaultYm],
               dailyNorm: 8,
-              dayNotes: {},
+              dayNotesByMonth: {},
               entities: [
-                { id: 'e-1', name: 'Jan Kowalski', days: {} },
-                { id: 'e-2', name: 'Adam Nowak', days: {} }
+                { id: 'e-1', name: 'Jan Kowalski', recordsByMonth: {} },
+                { id: 'e-2', name: 'Adam Nowak', recordsByMonth: {} }
               ]
             },
             {
               id: 'ts-2',
-              title: 'Sprzęt Budowlany - Bieżący miesiąc',
+              title: 'Ciężki Sprzęt Budowlany',
               mode: 'equipment',
               orgName: appState.project?.name || 'Budowa - Park Maszynowy',
               month: now.getMonth() + 1,
               year: now.getFullYear(),
+              monthsList: [defaultYm],
               dailyNorm: 8,
-              dayNotes: {},
+              dayNotesByMonth: {},
               entities: [
-                { id: 'eq-1', name: 'Koparka JCB 3CX', days: {} },
-                { id: 'eq-2', name: 'Żuraw wieżowy', days: {} }
+                { id: 'eq-1', name: 'Koparka JCB 3CX', recordsByMonth: {} },
+                { id: 'eq-2', name: 'Żuraw wieżowy', recordsByMonth: {} }
               ]
             }
           ]
         };
       }
+
+      // Migracja starszych sesji do struktury wielomiesięcznej
+      appState.timesheetBook.sessions.forEach(s => {
+        if (!s.month) s.month = now.getMonth() + 1;
+        if (!s.year) s.year = now.getFullYear();
+        const curYm = makeYmKey(s.year, s.month);
+        if (!Array.isArray(s.monthsList) || s.monthsList.length === 0) s.monthsList = [curYm];
+        if (!s.monthsList.includes(curYm)) s.monthsList.push(curYm);
+        if (!s.dayNotesByMonth) s.dayNotesByMonth = {};
+        if (s.dayNotes && Object.keys(s.dayNotes).length > 0 && !s.dayNotesByMonth[curYm]) {
+          s.dayNotesByMonth[curYm] = { ...s.dayNotes };
+          delete s.dayNotes;
+        }
+        (s.entities || []).forEach(ent => {
+          if (!ent.recordsByMonth) ent.recordsByMonth = {};
+          if (ent.days && Object.keys(ent.days).length > 0 && !ent.recordsByMonth[curYm]) {
+            ent.recordsByMonth[curYm] = { ...ent.days };
+            delete ent.days;
+          }
+        });
+      });
+
       if (!appState.timesheetBook.activeSessionId || !appState.timesheetBook.sessions.find(s => s.id === appState.timesheetBook.activeSessionId)) {
         appState.timesheetBook.activeSessionId = appState.timesheetBook.sessions[0].id;
       }
@@ -4589,26 +4648,39 @@ let pendingNormDefectText = null;
       return appState.timesheetBook.sessions.find(s => s.id === appState.timesheetBook.activeSessionId) || appState.timesheetBook.sessions[0];
     }
 
+    function getEntityMonthDays(ent, ymKey) {
+      if (!ent.recordsByMonth) ent.recordsByMonth = {};
+      if (!ent.recordsByMonth[ymKey]) ent.recordsByMonth[ymKey] = {};
+      return ent.recordsByMonth[ymKey];
+    }
+
+    function getSessionMonthNotes(s, ymKey) {
+      if (!s.dayNotesByMonth) s.dayNotesByMonth = {};
+      if (!s.dayNotesByMonth[ymKey]) s.dayNotesByMonth[ymKey] = {};
+      return s.dayNotesByMonth[ymKey];
+    }
+
     function initTimesheetUI() {
       const s = getActiveTimesheetSession();
       renderTimesheetSessionsBar();
+      renderTimesheetMonthsBar();
 
       document.getElementById('ts-meta-org').value = s.orgName || '';
-      document.getElementById('ts-meta-month').value = s.month || (new Date().getMonth() + 1);
-      document.getElementById('ts-meta-year').value = s.year || new Date().getFullYear();
       document.getElementById('ts-meta-norm').value = s.dailyNorm ?? 8;
+      document.getElementById('ts-add-month-select').value = s.month;
+      document.getElementById('ts-add-year-input').value = s.year;
 
       const btnW = document.getElementById('ts-mode-workers');
       const btnE = document.getElementById('ts-mode-equipment');
       const addBtn = document.getElementById('ts-btn-add-entity');
       if (s.mode === 'equipment') {
-        btnE.className = 'px-3 py-1.5 rounded-lg bg-amber-600 text-white transition-colors flex items-center gap-1';
+        btnE.className = 'px-3 py-1.5 rounded-lg bg-amber-600 text-white transition-colors flex items-center gap-1 shadow';
         btnW.className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1';
-        if (addBtn) addBtn.innerHTML = `<i data-lucide="truck" class="w-3.5 h-3.5"></i> + Dodaj sprzęt / maszynę`;
+        if (addBtn) addBtn.innerHTML = `+ Dodaj maszynę / sprzęt`;
       } else {
-        btnW.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-colors flex items-center gap-1';
+        btnW.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-colors flex items-center gap-1 shadow';
         btnE.className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1';
-        if (addBtn) addBtn.innerHTML = `<i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Dodaj pracownika`;
+        if (addBtn) addBtn.innerHTML = `+ Dodaj pracownika`;
       }
 
       renderTimesheetSummaryCards();
@@ -4626,12 +4698,9 @@ let pendingNormDefectText = null;
     function updateTimesheetMeta() {
       const s = getActiveTimesheetSession();
       s.orgName = document.getElementById('ts-meta-org').value;
-      s.month = parseInt(document.getElementById('ts-meta-month').value) || 1;
-      s.year = parseInt(document.getElementById('ts-meta-year').value) || 2026;
       s.dailyNorm = parseFloat(document.getElementById('ts-meta-norm').value) || 8;
       persistData();
       renderTimesheetSummaryCards();
-      renderTimesheetInteractiveGrid();
     }
 
     function renderTimesheetSessionsBar() {
@@ -4643,13 +4712,76 @@ let pendingNormDefectText = null;
       appState.timesheetBook.sessions.forEach(s => {
         const isAct = s.id === act.id;
         const icon = s.mode === 'equipment' ? '🚜' : '👷';
+        const activeCls = s.mode === 'equipment' ? 'bg-amber-600 border-amber-500 text-white' : 'bg-indigo-600 border-indigo-500 text-white';
         c.innerHTML += `
-          <div class="inline-flex items-center rounded-lg overflow-hidden border shrink-0 ${isAct ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-[#1b1b1b] border-[#333] text-gray-300'}">
-            <button onclick="switchTimesheetSession('${s.id}')" class="px-2.5 py-1 text-[11px] font-bold hover:text-white max-w-[190px] truncate">${icon} ${s.title}</button>
-            <button onclick="promptRenameTimesheetSession('${s.id}')" class="px-1.5 py-1 hover:bg-black/30 text-[10px] border-l ${isAct ? 'border-indigo-400/40 text-indigo-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Zmień nazwę">✎</button>
-            <button onclick="deleteTimesheetSession('${s.id}')" class="px-1.5 py-1 hover:bg-rose-700 text-[10px] border-l ${isAct ? 'border-indigo-400/40 text-indigo-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Usuń zestawienie">✕</button>
+          <div class="inline-flex items-center rounded-lg overflow-hidden border shrink-0 ${isAct ? activeCls : 'bg-[#1b1b1b] border-[#333] text-gray-300'}">
+            <button type="button" onclick="switchTimesheetSession('${s.id}')" class="px-2.5 py-1 text-[11px] font-bold hover:text-white max-w-[190px] truncate">${icon} ${s.title}</button>
+            <button type="button" onclick="promptRenameTimesheetSession('${s.id}')" class="px-1.5 py-1 hover:bg-black/30 text-[10px] border-l border-white/20 hover:text-white" title="Zmień nazwę zestawienia">✎</button>
+            <button type="button" onclick="deleteTimesheetSession('${s.id}')" class="px-1.5 py-1 hover:bg-rose-700 text-[10px] border-l border-white/20 hover:text-white" title="Usuń zestawienie">✕</button>
           </div>`;
       });
+    }
+
+    function renderTimesheetMonthsBar() {
+      const s = getActiveTimesheetSession();
+      const c = document.getElementById('ts-months-chips');
+      if (!c) return;
+      c.innerHTML = '';
+      const activeYm = makeYmKey(s.year, s.month);
+      s.monthsList.sort();
+
+      s.monthsList.forEach(ym => {
+        const [yStr, mStr] = ym.split('-');
+        const mNum = parseInt(mStr, 10);
+        const yNum = parseInt(yStr, 10);
+        const isAct = ym === activeYm;
+
+        // Obliczenie sumy godzin w danym miesiącu
+        let mHours = 0;
+        (s.entities || []).forEach(ent => {
+          const st = computeEntityStatsForMonth(s, ent, ym);
+          mHours += st.totalHours;
+        });
+
+        c.innerHTML += `
+          <div class="inline-flex items-center rounded-lg overflow-hidden border shrink-0 ${isAct ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-[#1b1b1b] border-[#333] text-gray-300'}">
+            <button type="button" onclick="switchTimesheetMonth(${yNum}, ${mNum})" class="px-2.5 py-1 text-[11px] font-bold hover:text-white">
+              ${TS_MONTH_NAMES[mNum - 1]} ${yNum} <span class="opacity-80 font-mono text-[10px]">(${mHours.toFixed(1).replace('.0','')}h)</span>
+            </button>
+            ${s.monthsList.length > 1 ? `<button type="button" onclick="removeTimesheetMonth('${ym}')" class="px-1.5 py-1 hover:bg-rose-700 text-[10px] border-l border-white/20" title="Usuń ten miesiąc z zestawienia">✕</button>` : ''}
+          </div>
+        `;
+      });
+    }
+
+    function switchTimesheetMonth(year, month) {
+      const s = getActiveTimesheetSession();
+      s.year = parseInt(year, 10);
+      s.month = parseInt(month, 10);
+      const ym = makeYmKey(s.year, s.month);
+      if (!s.monthsList.includes(ym)) s.monthsList.push(ym);
+      persistData();
+      initTimesheetUI();
+    }
+
+    function addOrSwitchTimesheetMonthFromPicker() {
+      const m = parseInt(document.getElementById('ts-add-month-select').value, 10) || 1;
+      const y = parseInt(document.getElementById('ts-add-year-input').value, 10) || 2026;
+      switchTimesheetMonth(y, m);
+    }
+
+    function removeTimesheetMonth(ymKey) {
+      const s = getActiveTimesheetSession();
+      if (s.monthsList.length <= 1) return;
+      if (!confirm(`Usunąć miesiąc ${ymKey} wraz z jego godzinami z tego zestawienia?`)) return;
+      s.monthsList = s.monthsList.filter(x => x !== ymKey);
+      if (s.dayNotesByMonth) delete s.dayNotesByMonth[ymKey];
+      (s.entities || []).forEach(ent => { if (ent.recordsByMonth) delete ent.recordsByMonth[ymKey]; });
+      const [firstY, firstM] = s.monthsList[0].split('-').map(Number);
+      s.year = firstY;
+      s.month = firstM;
+      persistData();
+      initTimesheetUI();
     }
 
     function switchTimesheetSession(id) {
@@ -4658,14 +4790,13 @@ let pendingNormDefectText = null;
       initTimesheetUI();
     }
 
-    function promptNewTimesheetSession() {
+    function createNewTimesheetSession(mode) {
       ensureTimesheetState();
-      const isEq = confirm('Kliknij OK, aby utworzyć kartę dla PRACOWNIKÓW (Ludzi),\nlub Anuluj, aby utworzyć kartę dla SPRZĘTU BUDOWLANEGO.');
-      const mode = isEq ? 'workers' : 'equipment';
-      const defaultName = mode === 'workers' ? 'Brygada Robocza - Nowa Karta' : 'Sprzęt Budowlany - Nowa Karta';
-      const title = prompt('Podaj nazwę nowego zestawienia czasu pracy:', defaultName);
+      const defaultName = mode === 'equipment' ? 'Koparki i Sprzęt - Budowa' : 'Dekarze - Brygada 1';
+      const title = prompt(mode === 'equipment' ? 'Podaj nazwę nowego zestawienia SPRZĘTU:' : 'Podaj nazwę nowego zestawienia PRACOWNIKÓW:', defaultName);
       if (!title || !title.trim()) return;
       const now = new Date();
+      const ym = makeYmKey(now.getFullYear(), now.getMonth() + 1);
       const id = 'ts-' + Date.now();
       appState.timesheetBook.sessions.push({
         id,
@@ -4674,10 +4805,11 @@ let pendingNormDefectText = null;
         orgName: appState.project?.name || 'Budowa',
         month: now.getMonth() + 1,
         year: now.getFullYear(),
+        monthsList: [ym],
         dailyNorm: 8,
-        dayNotes: {},
+        dayNotesByMonth: {},
         entities: [
-          { id: 'ent-' + Date.now(), name: mode === 'workers' ? 'Pracownik 1' : 'Koparka 1', days: {} }
+          { id: 'ent-' + Date.now(), name: mode === 'equipment' ? 'Koparka 1' : 'Pracownik 1', recordsByMonth: {} }
         ]
       });
       appState.timesheetBook.activeSessionId = id;
@@ -4701,8 +4833,8 @@ let pendingNormDefectText = null;
       if (!s) return;
       if (appState.timesheetBook.sessions.length <= 1) {
         if (confirm(`Wyczyścić wszystkie wpisy w zestawieniu "${s.title}"?`)) {
-          s.entities.forEach(e => e.days = {});
-          s.dayNotes = {};
+          s.entities.forEach(e => e.recordsByMonth = {});
+          s.dayNotesByMonth = {};
           persistData();
           initTimesheetUI();
         }
@@ -4721,9 +4853,20 @@ let pendingNormDefectText = null;
       const label = s.mode === 'equipment' ? 'Podaj nazwę sprzętu / maszyny (np. Koparka CAT 320):' : 'Podaj imię i nazwisko pracownika:';
       const name = prompt(label);
       if (!name || !name.trim()) return;
-      s.entities.push({ id: 'ent-' + Date.now(), name: name.trim(), days: {} });
+      s.entities.push({ id: 'ent-' + Date.now(), name: name.trim(), recordsByMonth: {} });
       persistData();
       initTimesheetUI();
+    }
+
+    function updateTimesheetEntityNameInline(entId, newVal) {
+      const s = getActiveTimesheetSession();
+      const ent = s.entities.find(e => e.id === entId);
+      if (!ent) return;
+      const clean = (newVal || '').trim();
+      if (clean) {
+        ent.name = clean;
+        persistData();
+      }
     }
 
     function promptRenameTimesheetEntity(entId) {
@@ -4747,15 +4890,16 @@ let pendingNormDefectText = null;
       initTimesheetUI();
     }
 
-    // Obliczanie statystyk dla pojedynczego pracownika lub sprzętu w miesiącu
-    function computeEntityStats(s, ent) {
+    function computeEntityStatsForMonth(s, ent, ymKey) {
       const workSums = { base: 0, ot50: 0, ot100: 0, sun: 0, free: 0, night: 0, duty: 0, juv: 0, other: 0 };
-      const absSums = { UW: 0, UM: 0, UWy: 0, UB: 0, UO: 0, NZ: 0, CH: 0, OP: 0, U: 0, NN: 0, DEL: 0, IN: 0 };
+      const absSums = { UW: 0, UM: 0, UWy: 0, UB: 0, UO: 0, NZ: 0, CH: 0, OP: 0, U: 0, NN: 0, DEL: 0, IN: 0, PS: 0, AW: 0, SR: 0, PG: 0, TR: 0 };
       let totalHours = 0;
       let workedDays = 0;
 
+      const daysObj = (ent.recordsByMonth && ent.recordsByMonth[ymKey]) ? ent.recordsByMonth[ymKey] : {};
+
       for (let d = 1; d <= 31; d++) {
-        const rec = ent.days ? ent.days[d] : null;
+        const rec = daysObj[d];
         if (!rec) continue;
         if (rec.type === 'work') {
           const th = Number(rec.total) || 0;
@@ -4767,45 +4911,64 @@ let pendingNormDefectText = null;
             workSums[k] += Number(rec[k]) || 0;
           });
         } else if (rec.type === 'absence' && rec.code) {
-          if (absSums[rec.code] !== undefined) absSums[rec.code] += 1;
+          if (absSums[rec.code] === undefined) absSums[rec.code] = 0;
+          absSums[rec.code] += 1;
         }
       }
 
       return { workSums, absSums, totalHours, workedDays };
     }
 
+    function computeEntityTotalMultiMonth(s, ent) {
+      let totalH = 0, totalD = 0;
+      (s.monthsList || []).forEach(ym => {
+        const st = computeEntityStatsForMonth(s, ent, ym);
+        totalH += st.totalHours;
+        totalD += st.workedDays;
+      });
+      return { totalH, totalD };
+    }
+
     function renderTimesheetSummaryCards() {
       const s = getActiveTimesheetSession();
       const c = document.getElementById('ts-summary-cards');
       if (!c) return;
+      const curYm = makeYmKey(s.year, s.month);
 
-      let allHours = 0, allDays = 0, allOt = 0, allNight = 0, allAbs = 0;
+      let monthHours = 0, monthDays = 0, monthOt = 0, monthNight = 0;
+      let multiHours = 0, multiDays = 0;
+
       s.entities.forEach(ent => {
-        const st = computeEntityStats(s, ent);
-        allHours += st.totalHours;
-        allDays += st.workedDays;
-        allOt += (st.workSums.ot50 + st.workSums.ot100);
-        allNight += st.workSums.night;
-        Object.values(st.absSums).forEach(v => allAbs += v);
+        const st = computeEntityStatsForMonth(s, ent, curYm);
+        monthHours += st.totalHours;
+        monthDays += st.workedDays;
+        monthOt += (st.workSums.ot50 + st.workSums.ot100);
+        monthNight += st.workSums.night;
+
+        const multi = computeEntityTotalMultiMonth(s, ent);
+        multiHours += multi.totalH;
+        multiDays += multi.totalD;
       });
 
       const isEq = s.mode === 'equipment';
+      const mLabel = `${TS_MONTH_NAMES[s.month - 1]} ${s.year}`;
+
       c.innerHTML = `
         <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
-          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Suma maszynogodzin (m-g)' : 'Suma przepracowanych godzin'}</div>
-          <div class="text-xl font-black text-indigo-400 font-mono mt-0.5">${allHours.toFixed(1).replace('.0','')} h</div>
+          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Maszynogodziny' : 'Godziny'} (${mLabel})</div>
+          <div class="text-xl font-black text-indigo-400 font-mono mt-0.5">${monthHours.toFixed(1).replace('.0','')} h</div>
         </div>
         <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
-          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Przepracowane maszynodni' : 'Przepracowane osobodni'}</div>
-          <div class="text-xl font-black text-emerald-400 font-mono mt-0.5">${allDays} dni</div>
+          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Maszynodni pracy' : 'Osobodni pracy'} (${mLabel})</div>
+          <div class="text-xl font-black text-emerald-400 font-mono mt-0.5">${monthDays} dni</div>
         </div>
         <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
-          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Praca ponadnormatywna / Nocna' : 'Nadgodziny (50%+100%) / Nocne'}</div>
-          <div class="text-xl font-black text-amber-400 font-mono mt-0.5">${allOt.toFixed(1).replace('.0','')} h <span class="text-xs text-purple-300">(🌙 ${allNight.toFixed(1).replace('.0','')}h)</span></div>
+          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Ponad normę / Nocne' : 'Nadgodziny / Nocne'} (${mLabel})</div>
+          <div class="text-xl font-black text-amber-400 font-mono mt-0.5">${monthOt.toFixed(1).replace('.0','')} h <span class="text-xs text-purple-300">(🌙 ${monthNight.toFixed(1).replace('.0','')}h)</span></div>
         </div>
-        <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
-          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Dni przestoju / serwisu' : 'Dni urlopów i nieobecności'}</div>
-          <div class="text-xl font-black text-rose-400 font-mono mt-0.5">${allAbs} dni</div>
+        <div class="bg-[#141414] border border-emerald-800/50 rounded-xl p-3">
+          <div class="text-[10px] text-emerald-400 uppercase font-bold">Łącznie w zestawieniu (${s.monthsList.length} mies.)</div>
+          <div class="text-xl font-black text-white font-mono mt-0.5">${multiHours.toFixed(1).replace('.0','')} h <span class="text-xs text-emerald-400">(${multiDays} dni)</span></div>
         </div>
       `;
     }
@@ -4819,27 +4982,38 @@ let pendingNormDefectText = null;
       const c = document.getElementById('ts-grid-container');
       if (!c) return;
 
+      const curYm = makeYmKey(s.year, s.month);
       const maxDaysInMonth = getDaysInSelectedMonth(s.year, s.month);
       const entities = s.entities || [];
       const statsMap = {};
-      entities.forEach(e => { statsMap[e.id] = computeEntityStats(s, e); });
+      const multiMap = {};
+      entities.forEach(e => {
+        statsMap[e.id] = computeEntityStatsForMonth(s, e, curYm);
+        multiMap[e.id] = computeEntityTotalMultiMonth(s, e);
+      });
 
+      const notesObj = getSessionMonthNotes(s, curYm);
       const dayNamesShort = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So'];
+      const isEq = s.mode === 'equipment';
+      const workRows = isEq ? TS_WORK_ROWS_EQUIPMENT : TS_WORK_ROWS_WORKERS;
+      const absRows = isEq ? TS_ABSENCE_ROWS_EQUIPMENT : TS_ABSENCE_ROWS_WORKERS;
 
       let html = `
         <table class="w-full border-collapse text-[11px] select-none">
           <thead>
             <tr class="bg-[#1b1b1b] text-gray-200">
-              <th class="border border-[#333] p-2 w-16 text-center font-black">Dzień<br><span class="text-[9px] text-gray-400">${String(s.month).padStart(2,'0')}.${s.year}</span></th>
-              <th class="border border-[#333] p-2 w-36 text-left font-bold text-gray-400">Uwagi / Podpis kierownika</th>
+              <th class="border border-[#333] p-2 w-16 text-center font-black">Dzień<br><span class="text-[10px] text-emerald-400">${String(s.month).padStart(2,'0')}.${s.year}</span></th>
+              <th class="border border-[#333] p-2 w-36 text-left font-bold text-gray-400">${isEq ? 'Uwagi / Operator / Budowa' : 'Uwagi / Podpis kierownika'}</th>
               ${entities.map((e, idx) => `
-                <th class="border border-[#333] p-2 min-w-[110px] text-center bg-[#181818]">
-                  <div class="text-[9px] text-indigo-400 font-black">Kolumna ${idx + 1}</div>
-                  <div class="font-bold text-white truncate max-w-[120px] mx-auto" title="${e.name}">${e.name}</div>
-                  <div class="flex justify-center gap-1.5 mt-1">
-                    <button onclick="promptRenameTimesheetEntity('${e.id}')" class="text-[10px] text-gray-400 hover:text-white px-1 bg-[#252525] rounded">✎</button>
-                    <button onclick="deleteTimesheetEntity('${e.id}')" class="text-[10px] text-gray-400 hover:text-rose-400 px-1 bg-[#252525] rounded">✕</button>
+                <th ondblclick="promptRenameTimesheetEntity('${e.id}')" class="border border-[#333] p-1.5 min-w-[125px] text-center bg-[#181818]">
+                  <div class="flex items-center justify-between px-1 mb-1">
+                    <span class="text-[9px] ${isEq ? 'text-amber-400' : 'text-indigo-400'} font-black">${isEq ? 'Maszyna' : 'Kolumna'} ${idx + 1}</span>
+                    <div class="flex gap-1">
+                      <button type="button" onclick="promptRenameTimesheetEntity('${e.id}')" class="text-[10px] text-gray-400 hover:text-white px-1 bg-[#252525] rounded" title="Zmień nazwę">✎</button>
+                      <button type="button" onclick="deleteTimesheetEntity('${e.id}')" class="text-[10px] text-gray-400 hover:text-rose-400 px-1 bg-[#252525] rounded" title="Usuń kolumnę">✕</button>
+                    </div>
                   </div>
+                  <input type="text" value="${(e.name || '').replace(/"/g, '&quot;')}" onchange="updateTimesheetEntityNameInline('${e.id}', this.value)" title="Kliknij, aby wpisać lub zmienić nazwę" class="w-full bg-[#111] border border-[#2e2e2e] focus:border-indigo-500 rounded px-1.5 py-1 text-center font-bold text-white text-[11px] outline-none" />
                 </th>
               `).join('')}
             </tr>
@@ -4855,7 +5029,7 @@ let pendingNormDefectText = null;
         const isSat = dow === 6;
         const rowBg = !isValidDay ? 'bg-[#090909] opacity-35' : (isSun ? 'bg-rose-950/20' : (isSat ? 'bg-amber-950/15' : 'bg-[#111]'));
         const dayBadgeCol = isSun ? 'text-rose-400 font-black' : (isSat ? 'text-amber-300 font-bold' : 'text-gray-300 font-bold');
-        const noteVal = (s.dayNotes && s.dayNotes[d]) ? s.dayNotes[d].replace(/"/g, '&quot;') : '';
+        const noteVal = notesObj[d] ? notesObj[d].replace(/"/g, '&quot;') : '';
 
         html += `
           <tr class="${rowBg} hover:bg-[#1a1a1a] transition-colors">
@@ -4868,17 +5042,18 @@ let pendingNormDefectText = null;
             </td>
             ${entities.map(e => {
               if (!isValidDay) return `<td class="border border-[#222] bg-[#080808]"></td>`;
-              const rec = e.days ? e.days[d] : null;
+              const daysObj = getEntityMonthDays(e, curYm);
+              const rec = daysObj[d];
               let cellContent = `<span class="text-gray-600 text-[10px]">+ wpisz</span>`;
               let cellStyle = '';
               if (rec) {
                 if (rec.type === 'work') {
                   const tot = Number(rec.total) || 0;
                   const ot = (Number(rec.ot50) || 0) + (Number(rec.ot100) || 0);
-                  cellStyle = 'bg-indigo-950/30';
+                  cellStyle = isEq ? 'bg-amber-950/25' : 'bg-indigo-950/30';
                   cellContent = `
                     <div class="font-black text-white text-xs">${tot} h</div>
-                    <div class="text-[9px] text-indigo-300">${rec.start || ''}–${rec.end || ''}${ot > 0 ? ` <b class="text-amber-400">(+${ot})</b>` : ''}${rec.night > 0 ? ` <b class="text-purple-300">🌙${rec.night}</b>` : ''}</div>
+                    <div class="text-[9px] text-gray-300">${rec.start || ''}–${rec.end || ''}${ot > 0 ? ` <b class="text-amber-400">(+${ot})</b>` : ''}${rec.night > 0 ? ` <b class="text-purple-300">🌙${rec.night}</b>` : ''}</div>
                   `;
                 } else if (rec.type === 'absence') {
                   cellStyle = 'bg-rose-950/30';
@@ -4891,22 +5066,29 @@ let pendingNormDefectText = null;
         `;
       }
 
-      // Wiersz sumy dni pracy i godzin całkowitych
+      // Wiersz sumy wybranego miesiąca + suma wielomiesięczna
       html += `
         <tr class="bg-[#1c1c1c] font-black text-white border-t-2 border-indigo-500">
-          <td colspan="2" class="border border-[#333] p-2 text-right text-indigo-300 uppercase text-[10px]">SUMA GODZIN (I DNI PRACY):</td>
+          <td colspan="2" class="border border-[#333] p-2 text-right text-indigo-300 uppercase text-[10px]">RAZEM W MIESIĄCU (${String(s.month).padStart(2,'0')}.${s.year}):</td>
           ${entities.map(e => {
             const st = statsMap[e.id];
             return `<td class="border border-[#333] p-2 text-center"><span class="text-indigo-400 text-xs">${st.totalHours.toFixed(1).replace('.0','')} h</span> <span class="text-[10px] text-emerald-400 block">(${st.workedDays} dni)</span></td>`;
           }).join('')}
         </tr>
+        <tr class="bg-[#15221b] font-black text-white">
+          <td colspan="2" class="border border-[#333] p-2 text-right text-emerald-300 uppercase text-[10px]">SUMA Z CAŁEGO ZESTAWIENIA (${s.monthsList.length} mies.):</td>
+          ${entities.map(e => {
+            const mSt = multiMap[e.id];
+            return `<td class="border border-[#333] p-2 text-center"><span class="text-emerald-300 text-xs">${mSt.totalH.toFixed(1).replace('.0','')} h</span> <span class="text-[10px] text-gray-300 block">(${mSt.totalD} dni łącznie)</span></td>`;
+          }).join('')}
+        </tr>
       `;
 
-      // Sekcja 1 podsumowania: Faktyczna liczba godzin czasu pracy
+      // Sekcja 1 podsumowania
       html += `
-        <tr class="bg-[#181818]"><td colspan="${2 + entities.length}" class="border border-[#333] px-2 py-1 text-[10px] font-black text-indigo-400 uppercase tracking-wider">Faktyczna liczba godzin czasu pracy (podsumowanie miesięczne)</td></tr>
+        <tr class="bg-[#181818]"><td colspan="${2 + entities.length}" class="border border-[#333] px-2 py-1 text-[10px] font-black text-indigo-400 uppercase tracking-wider">${isEq ? 'Faktyczna liczba maszynogodzin pracy sprzętu' : 'Faktyczna liczba godzin czasu pracy'} (${TS_MONTH_NAMES[s.month - 1]} ${s.year})</td></tr>
       `;
-      TS_WORK_ROWS.forEach(r => {
+      workRows.forEach(r => {
         const fullLbl = r.group ? `${r.group}: ${r.label}` : r.label;
         html += `
           <tr class="bg-[#121212]">
@@ -4919,11 +5101,11 @@ let pendingNormDefectText = null;
         `;
       });
 
-      // Sekcja 2 podsumowania: Liczba dni nieobecności
+      // Sekcja 2 podsumowania
       html += `
-        <tr class="bg-[#181818]"><td colspan="${2 + entities.length}" class="border border-[#333] px-2 py-1 text-[10px] font-black text-rose-400 uppercase tracking-wider">Liczba dni nieobecności w pracy z powodu:</td></tr>
+        <tr class="bg-[#181818]"><td colspan="${2 + entities.length}" class="border border-[#333] px-2 py-1 text-[10px] font-black text-rose-400 uppercase tracking-wider">${isEq ? 'Liczba dni przestoju / niedostępności sprzętu z powodu:' : 'Liczba dni nieobecności w pracy z powodu:'}</td></tr>
       `;
-      TS_ABSENCE_ROWS.forEach(r => {
+      absRows.forEach(r => {
         const fullLbl = r.group ? `urlopu ${r.label}` : r.label;
         html += `
           <tr class="bg-[#121212]">
@@ -4942,12 +5124,53 @@ let pendingNormDefectText = null;
 
     function updateTimesheetDayNote(day, val) {
       const s = getActiveTimesheetSession();
-      if (!s.dayNotes) s.dayNotes = {};
-      s.dayNotes[day] = val.trim();
+      const curYm = makeYmKey(s.year, s.month);
+      const notesObj = getSessionMonthNotes(s, curYm);
+      notesObj[day] = val.trim();
       persistData();
     }
 
     // ================= MODAL DNIA I INTERAKTYWNY ZEGAREK 24H =================
+    function populateAbsenceOptionsForMode(mode) {
+      const sel = document.getElementById('ts-absence-code');
+      const tabBtn = document.getElementById('ts-tab-absence');
+      if (!sel) return;
+      if (mode === 'equipment') {
+        if (tabBtn) tabBtn.innerHTML = '🔧 Przestój / Awaria / Serwis';
+        sel.innerHTML = TS_ABSENCE_ROWS_EQUIPMENT.map(r => `<option value="${r.code}">${r.code} – ${r.label}</option>`).join('');
+        document.getElementById('ts-lbl-base').textContent = 'Praca podstawowa:';
+        document.getElementById('ts-lbl-ot50').textContent = 'Praca wydłużona (nadgodz.):';
+        document.getElementById('ts-lbl-ot100').textContent = 'Praca specjalna / interw.:';
+        document.getElementById('ts-lbl-duty').textContent = 'Dyżur / gotowość:';
+        document.getElementById('ts-lbl-juv').textContent = 'Przejazdy / mobilizacja:';
+      } else {
+        if (tabBtn) tabBtn.innerHTML = '🏖️ Urlop / Nieobecność';
+        sel.innerHTML = `
+          <optgroup label="Urlopy">
+            <option value="UW">UW – Urlop wypoczynkowy</option>
+            <option value="UM">UM – Urlop macierzyński</option>
+            <option value="UWy">UWy – Urlop wychowawczy</option>
+            <option value="UB">UB – Urlop bezpłatny</option>
+            <option value="UO">UO – Urlop okolicznościowy</option>
+          </optgroup>
+          <optgroup label="Pozostałe nieobecności">
+            <option value="CH">CH – Choroba pracownika (L4)</option>
+            <option value="DEL">DEL – Delegacja</option>
+            <option value="OP">OP – Opieka nad dzieckiem / członkiem rodziny</option>
+            <option value="U">U – Usprawiedliwiona (do odpracowania / niepłatna)</option>
+            <option value="NZ">NZ – Niepłatne zwolnienie od pracy</option>
+            <option value="NN">NN – Inne sprawy nieusprawiedliwione</option>
+            <option value="IN">IN – Inne</option>
+          </optgroup>
+        `;
+        document.getElementById('ts-lbl-base').textContent = 'Podstawowe (norma):';
+        document.getElementById('ts-lbl-ot50').textContent = 'Nadliczbowe 50%:';
+        document.getElementById('ts-lbl-ot100').textContent = 'Nadliczbowe 100%:';
+        document.getElementById('ts-lbl-duty').textContent = 'W porze dyżuru:';
+        document.getElementById('ts-lbl-juv').textContent = 'Młodocianego:';
+      }
+    }
+
     function openTimesheetDayModal(entityId, day) {
       const s = getActiveTimesheetSession();
       const ent = s.entities.find(e => e.id === entityId);
@@ -4958,18 +5181,25 @@ let pendingNormDefectText = null;
       tsModalCtx.clockTarget = 'start';
       tsModalCtx.clockStep = 'hour';
 
+      populateAbsenceOptionsForMode(s.mode);
+
+      const curYm = makeYmKey(s.year, s.month);
       const dateStr = `${s.year}-${String(s.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       document.getElementById('ts-modal-date').value = dateStr;
       document.getElementById('ts-modal-day-from').value = day;
       document.getElementById('ts-modal-day-to').value = day;
       document.getElementById('ts-modal-title').textContent = `${ent.name} — Dzień ${day}.${String(s.month).padStart(2, '0')}.${s.year}`;
-      document.getElementById('ts-modal-subtitle').textContent = s.mode === 'equipment' ? '🚜 Tryb rozliczania pracy sprzętu' : '👷 Tryb rozliczania czasu pracy pracownika';
-      document.getElementById('ts-modal-note').value = (s.dayNotes && s.dayNotes[day]) ? s.dayNotes[day] : '';
+      document.getElementById('ts-modal-subtitle').textContent = s.mode === 'equipment' ? '🚜 Rozliczenie czasu pracy sprzętu' : '👷 Rozliczenie czasu pracy pracownika';
 
-      const existing = ent.days ? ent.days[day] : null;
+      const notesObj = getSessionMonthNotes(s, curYm);
+      document.getElementById('ts-modal-note').value = notesObj[day] || '';
+
+      const daysObj = getEntityMonthDays(ent, curYm);
+      const existing = daysObj[day];
+
       if (existing && existing.type === 'absence') {
         setTsEntryType('absence');
-        document.getElementById('ts-absence-code').value = existing.code || 'UW';
+        document.getElementById('ts-absence-code').value = existing.code || (s.mode === 'equipment' ? 'PS' : 'UW');
       } else {
         setTsEntryType('work');
         document.getElementById('ts-input-start').value = (existing && existing.start) ? existing.start : '07:00';
@@ -5009,7 +5239,17 @@ let pendingNormDefectText = null;
       const val = document.getElementById('ts-modal-date').value;
       if (!val) return;
       const parts = val.split('-');
+      const pickedY = parseInt(parts[0], 10);
+      const pickedM = parseInt(parts[1], 10);
       const pickedDay = parseInt(parts[2], 10);
+
+      const s = getActiveTimesheetSession();
+      if (pickedY && pickedM && (pickedY !== s.year || pickedM !== s.month)) {
+        s.year = pickedY;
+        s.month = pickedM;
+        const ym = makeYmKey(s.year, s.month);
+        if (!s.monthsList.includes(ym)) s.monthsList.push(ym);
+      }
       if (pickedDay >= 1 && pickedDay <= 31) {
         tsModalCtx.day = pickedDay;
         document.getElementById('ts-modal-day-from').value = pickedDay;
@@ -5080,7 +5320,6 @@ let pendingNormDefectText = null;
       let out = `<circle cx="100" cy="100" r="4" fill="#6366f1"/>`;
 
       if (tsModalCtx.clockStep === 'hour') {
-        // Zewnętrzny pierścień (1..12) oraz wewnętrzny pierścień (13..23, 00)
         for (let i = 1; i <= 12; i++) {
           const angle = (i * 30 - 90) * (Math.PI / 180);
           const ox = 100 + 76 * Math.cos(angle);
@@ -5111,7 +5350,6 @@ let pendingNormDefectText = null;
           `;
         }
       } else {
-        // Tarcza minut (co 5 minut: 00, 05, 10 ... 55)
         for (let m = 0; m < 60; m += 5) {
           const angle = (m * 6 - 90) * (Math.PI / 180);
           const mx = 100 + 74 * Math.cos(angle);
@@ -5153,14 +5391,9 @@ let pendingNormDefectText = null;
     }
 
     function computeNightOverlapHours(startMin, endMin) {
-      // Pora nocna: 22:00 (1320) – 06:00 (360 dnia następnego, czyli 1800)
       let eMin = endMin <= startMin ? endMin + 1440 : endMin;
       let nightMin = 0;
-      const windows = [
-        [0, 360],
-        [1320, 1800],
-        [2760, 3240]
-      ];
+      const windows = [[0, 360], [1320, 1800], [2760, 3240]];
       windows.forEach(([wStart, wEnd]) => {
         const s = Math.max(startMin, wStart);
         const e = Math.min(eMin, wEnd);
@@ -5179,24 +5412,21 @@ let pendingNormDefectText = null;
       const [eh, em] = endStr.split(':').map(Number);
       const startMin = sh * 60 + sm;
       let endMin = eh * 60 + em;
-      if (endMin <= startMin) endMin += 1440; // Przejście przez północ
+      if (endMin <= startMin) endMin += 1440;
 
       const netMin = Math.max(0, (endMin - startMin) - breakMin);
       const totalH = Math.round((netMin / 60) * 2) / 2;
 
       const dateObj = new Date(s.year, s.month - 1, tsModalCtx.day);
-      const dow = dateObj.getDay(); // 0 = Niedziela, 6 = Sobota
+      const dow = dateObj.getDay();
       const norm = Number(s.dailyNorm) || 8;
-
       const nightH = computeNightOverlapHours(startMin, eh * 60 + em);
 
       let baseH = 0, ot50 = 0, ot100 = 0, sunH = 0, freeH = 0;
       if (dow === 0) {
-        // Niedziela
         sunH = totalH;
         ot100 = totalH;
       } else if (dow === 6) {
-        // Sobota (dzień dodatkowo wolny)
         freeH = totalH;
         ot50 = totalH;
       } else {
@@ -5221,8 +5451,10 @@ let pendingNormDefectText = null;
       const base = parseFloat(document.getElementById('ts-h-base').value) || 0;
       const ot50 = parseFloat(document.getElementById('ts-h-ot50').value) || 0;
       const ot100 = parseFloat(document.getElementById('ts-h-ot100').value) || 0;
+      const duty = parseFloat(document.getElementById('ts-h-duty').value) || 0;
+      const juv = parseFloat(document.getElementById('ts-h-juv').value) || 0;
       const other = parseFloat(document.getElementById('ts-h-other').value) || 0;
-      const total = base + ot50 + ot100 + other;
+      const total = base + ot50 + ot100 + duty + juv + other;
       document.getElementById('ts-modal-total-badge').textContent = `Razem: ${total.toFixed(1).replace('.0','')} h`;
     }
 
@@ -5230,7 +5462,11 @@ let pendingNormDefectText = null;
       const s = getActiveTimesheetSession();
       const ent = s.entities.find(e => e.id === tsModalCtx.entityId);
       if (!ent) return;
-      if (!ent.days) ent.days = {};
+
+      const curYm = makeYmKey(s.year, s.month);
+      if (!s.monthsList.includes(curYm)) s.monthsList.push(curYm);
+      const daysObj = getEntityMonthDays(ent, curYm);
+      const notesObj = getSessionMonthNotes(s, curYm);
 
       const dFrom = Math.max(1, Math.min(31, parseInt(document.getElementById('ts-modal-day-from').value, 10) || tsModalCtx.day));
       const dTo = Math.max(dFrom, Math.min(31, parseInt(document.getElementById('ts-modal-day-to').value, 10) || dFrom));
@@ -5244,9 +5480,9 @@ let pendingNormDefectText = null;
         }
 
         if (tsModalCtx.entryType === 'absence') {
-          ent.days[d] = {
+          daysObj[d] = {
             type: 'absence',
-            code: document.getElementById('ts-absence-code').value || 'UW'
+            code: document.getElementById('ts-absence-code').value || (s.mode === 'equipment' ? 'PS' : 'UW')
           };
         } else {
           const base = parseFloat(document.getElementById('ts-h-base').value) || 0;
@@ -5258,9 +5494,9 @@ let pendingNormDefectText = null;
           const duty = parseFloat(document.getElementById('ts-h-duty').value) || 0;
           const juv = parseFloat(document.getElementById('ts-h-juv').value) || 0;
           const other = parseFloat(document.getElementById('ts-h-other').value) || 0;
-          const total = base + ot50 + ot100 + other;
+          const total = base + ot50 + ot100 + duty + juv + other;
 
-          ent.days[d] = {
+          daysObj[d] = {
             type: 'work',
             start: document.getElementById('ts-input-start').value,
             end: document.getElementById('ts-input-end').value,
@@ -5269,31 +5505,28 @@ let pendingNormDefectText = null;
           };
         }
 
-        if (noteTxt) {
-          if (!s.dayNotes) s.dayNotes = {};
-          s.dayNotes[d] = noteTxt;
-        }
+        if (noteTxt) notesObj[d] = noteTxt;
       }
 
       closeTimesheetModal();
       persistData();
-      renderTimesheetSummaryCards();
-      renderTimesheetInteractiveGrid();
+      initTimesheetUI();
     }
 
     function clearTsDayEntry() {
       const s = getActiveTimesheetSession();
       const ent = s.entities.find(e => e.id === tsModalCtx.entityId);
-      if (ent && ent.days) {
-        delete ent.days[tsModalCtx.day];
+      const curYm = makeYmKey(s.year, s.month);
+      if (ent) {
+        const daysObj = getEntityMonthDays(ent, curYm);
+        delete daysObj[tsModalCtx.day];
       }
       closeTimesheetModal();
       persistData();
-      renderTimesheetSummaryCards();
-      renderTimesheetInteractiveGrid();
+      initTimesheetUI();
     }
 
-    // ================= GENERATOR KARTY A4 (1:1 ZE WZOREM, BEZ PRODUCT PLACEMENTU) =================
+    // ================= CZARNO-BIAŁY GENERATOR KARTY A4 (BEZ KOLORÓW) =================
     function openTimesheetPrintPreview() {
       switchView('timesheet-print');
       renderTimesheetPrintPages();
@@ -5305,190 +5538,153 @@ let pendingNormDefectText = null;
       if (!c) return;
 
       const cellFormat = document.getElementById('ts-print-cell-format')?.value || 'hours';
+      const printScope = document.getElementById('ts-print-scope')?.value || 'current';
+      const monthsToPrint = printScope === 'all' ? [...s.monthsList].sort() : [makeYmKey(s.year, s.month)];
+
       const entities = s.entities || [];
       const chunks = [];
       for (let i = 0; i < Math.max(1, entities.length); i += 10) {
         chunks.push(entities.slice(i, i + 10));
       }
 
+      const isEq = s.mode === 'equipment';
+      const workRows = isEq ? TS_WORK_ROWS_EQUIPMENT : TS_WORK_ROWS_WORKERS;
+      const absRows = isEq ? TS_ABSENCE_ROWS_EQUIPMENT : TS_ABSENCE_ROWS_WORKERS;
+
       let html = '';
+      let globalPageIdx = 1;
 
-      chunks.forEach((group, pageIdx) => {
-        // Dopełnienie do 10 kolumn (1, 2, 3, 4, 5, 6, 7, 8, 9, 0) jak w klasycznym formularzu
-        const slots = [...group];
-        while (slots.length < 10) slots.push(null);
+      monthsToPrint.forEach(ymKey => {
+        const [yStr, mStr] = ymKey.split('-');
+        const pYear = parseInt(yStr, 10);
+        const pMonth = parseInt(mStr, 10);
+        const notesObj = getSessionMonthNotes(s, ymKey);
 
-        const statsArr = slots.map(ent => ent ? computeEntityStats(s, ent) : null);
+        chunks.forEach((group) => {
+          const slots = [...group];
+          while (slots.length < 10) slots.push(null);
 
-        html += `
-          <div class="a4-page" style="padding: 8mm 10mm !important;">
-            <table class="w-full border-collapse border-2 border-[#1e293b] text-[#0f172a]" style="font-size: 6.8pt; line-height: 1.08; table-layout: fixed;">
-              <colgroup>
-                <col style="width: 7mm;">
-                <col style="width: 28mm;">
-                <col style="width: 8mm;">
-                ${slots.map(() => `<col style="width: 14.7mm;">`).join('')}
-              </colgroup>
-              <tbody>
-                <!-- GÓRNY NAGŁÓWEK: STRONA / ROK / M-C / KOLUMNY 1..0 -->
-                <tr style="height: 7mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1.5 py-0.5 align-top font-bold text-[7pt]">
-                    strona <span class="font-black ml-2">${pageIdx + 1}</span>
-                  </td>
-                  <td class="border border-[#1e293b] text-center align-middle font-bold text-[6.5pt]">
-                    <div>rok</div>
-                    <div class="font-black text-[7.5pt]">${s.year}</div>
-                  </td>
-                  ${slots.map((ent, idx) => `
-                    <td rowspan="2" class="border border-[#1e293b] p-0.5 align-bottom text-center relative" style="height: 24mm;">
-                      <div class="flex flex-col justify-between h-full">
-                        <div class="font-bold text-[6.8pt] leading-tight break-words px-0.5 pt-1 text-[#0f172a]">${ent ? ent.name : ''}</div>
-                        <div class="border-t border-[#94a3b8] pt-0.5 font-black text-[7.5pt] bg-[#f1f5f9]">${idx === 9 ? '0' : (idx + 1)}</div>
+          const statsArr = slots.map(ent => ent ? computeEntityStatsForMonth(s, ent, ymKey) : null);
+
+          html += `
+            <div class="a4-page bg-white text-black" style="padding: 8mm 10mm !important;">
+              <div class="flex justify-between items-end border-b-2 border-black pb-1.5 mb-2 text-black">
+                <div>
+                  <div class="text-[11pt] font-black uppercase">${isEq ? 'KARTA PRACY SPRZĘTU BUDOWLANEGO' : 'KARTA EWIDENCJI CZASU PRACY / LISTA OBECNOŚCI'}</div>
+                  <div class="text-[8.5pt] font-bold">${s.title} — ${TS_MONTH_NAMES[pMonth - 1]} ${pYear}</div>
+                </div>
+                <div class="text-right text-[8pt]">
+                  <div><b>${s.orgName || appState.project.name}</b></div>
+                  <div>Strona ${globalPageIdx++}</div>
+                </div>
+              </div>
+
+              <table class="w-full border-collapse border-2 border-black text-black bg-white" style="font-size: 6.6pt; line-height: 1.06; table-layout: fixed;">
+                <colgroup>
+                  <col style="width: 7mm;">
+                  <col style="width: 28mm;">
+                  <col style="width: 8mm;">
+                  ${slots.map(() => `<col style="width: 14.7mm;">`).join('')}
+                </colgroup>
+                <tbody>
+                  <tr style="height: 6.5mm;">
+                    <td colspan="2" class="border border-black px-1.5 py-0.5 align-middle font-bold text-[6.8pt]">
+                      ${isEq ? 'Ewidencja maszyn' : 'Lista obecności'}
+                    </td>
+                    <td class="border border-black text-center align-middle font-bold text-[6.5pt]">
+                      <div>rok</div>
+                      <div class="font-black text-[7.5pt]">${pYear}</div>
+                    </td>
+                    ${slots.map((ent, idx) => `
+                      <td rowspan="2" class="border border-black p-0.5 align-bottom text-center" style="height: 21mm;">
+                        <div class="flex flex-col justify-between h-full">
+                          <div class="font-bold text-[6.6pt] leading-tight break-words px-0.5 pt-1 text-black">${ent ? ent.name : ''}</div>
+                          <div class="border-t border-black pt-0.5 font-black text-[7.2pt] text-black">${idx === 9 ? '0' : (idx + 1)}</div>
+                        </div>
+                      </td>
+                    `).join('')}
+                  </tr>
+                  <tr style="height: 14.5mm;">
+                    <td rowspan="32" class="border border-black p-0 align-middle text-center bg-white">
+                      <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[7.2pt] tracking-wide py-2 text-black">
+                        Nazwa komórki organizacyjnej: <span class="font-black">${s.orgName || ''}</span>
                       </div>
                     </td>
-                  `).join('')}
-                </tr>
-                <tr style="height: 17mm;">
-                  <td rowspan="32" class="border border-[#1e293b] p-0 align-middle text-center bg-[#f8fafc] relative">
-                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[7.5pt] tracking-wide py-2">
-                      Nazwa komórki organizacyjnej: <span class="font-black text-[#0f172a]">${s.orgName || ''}</span>
-                    </div>
-                  </td>
-                  <td class="border border-[#1e293b] p-1 text-center align-middle font-bold text-[6.8pt] leading-tight">
-                    podpis<br>kierownika<br>komórki<br>organizac.
-                  </td>
-                  <td class="border border-[#1e293b] text-center align-bottom pb-1 font-bold text-[6.8pt]">
-                    <div>m-c</div>
-                    <div class="font-black text-[8pt]">${String(s.month).padStart(2, '0')}</div>
-                  </td>
-                </tr>
+                    <td class="border border-black p-1 text-center align-middle font-bold text-[6.5pt] leading-tight">
+                      ${isEq ? 'uwagi /<br>potwierdzenie<br>operatora' : 'podpis<br>kierownika<br>komórki<br>organizac.'}
+                    </td>
+                    <td class="border border-black text-center align-bottom pb-1 font-bold text-[6.5pt]">
+                      <div>m-c</div>
+                      <div class="font-black text-[8pt]">${String(pMonth).padStart(2, '0')}</div>
+                    </td>
+                  </tr>
 
-                <!-- WIERSZE DNI 1..31 -->
-                ${Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
-                  const note = (s.dayNotes && s.dayNotes[d]) ? s.dayNotes[d] : '';
-                  return `
+                  <!-- WIERSZE DNI 1..31 -->
+                  ${Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
+                    const note = notesObj[d] || '';
+                    return `
+                      <tr style="height: 3.9mm;">
+                        <td class="border border-black px-1 text-[6pt] truncate">${note}</td>
+                        <td class="border border-black text-center font-bold text-[6.6pt]">${d}</td>
+                        ${slots.map(ent => {
+                          const daysObj = ent ? getEntityMonthDays(ent, ymKey) : null;
+                          if (!daysObj || !daysObj[d]) return `<td class="border border-black"></td>`;
+                          const rec = daysObj[d];
+                          if (rec.type === 'absence') {
+                            return `<td class="border border-black text-center font-bold text-[6.4pt]">${rec.code}</td>`;
+                          }
+                          const tot = Number(rec.total) || 0;
+                          if (cellFormat === 'range' && rec.start && rec.end) {
+                            return `<td class="border border-black text-center text-[5.6pt] leading-none">${rec.start}-${rec.end}<br><b>${tot}h</b></td>`;
+                          }
+                          return `<td class="border border-black text-center font-bold text-[6.8pt]">${tot > 0 ? tot : ''}</td>`;
+                        }).join('')}
+                      </tr>
+                    `;
+                  }).join('')}
+
+                  <!-- SEKCJA DOLNA 1: GODZINY PRACY -->
+                  ${workRows.map((r, rIdx) => `
                     <tr style="height: 4.1mm;">
-                      <td class="border border-[#1e293b] px-1 text-[6.2pt] truncate">${note}</td>
-                      <td class="border border-[#1e293b] text-center font-bold bg-[#e2e8f0] text-[6.8pt]">${d}</td>
-                      ${slots.map(ent => {
-                        if (!ent || !ent.days || !ent.days[d]) return `<td class="border border-[#1e293b]"></td>`;
-                        const rec = ent.days[d];
-                        if (rec.type === 'absence') {
-                          return `<td class="border border-[#1e293b] text-center font-bold text-[6.5pt]">${rec.code}</td>`;
-                        }
-                        const tot = Number(rec.total) || 0;
-                        if (cellFormat === 'range' && rec.start && rec.end) {
-                          return `<td class="border border-[#1e293b] text-center text-[5.8pt] leading-none">${rec.start}-${rec.end}<br><b>${tot}h</b></td>`;
-                        }
-                        return `<td class="border border-[#1e293b] text-center font-bold text-[7pt]">${tot > 0 ? tot : ''}</td>`;
-                      }).join('')}
+                      ${rIdx === 0 ? `
+                        <td rowspan="${workRows.length + 1}" class="border border-black bg-white text-black text-center align-middle p-0">
+                          <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[6pt] tracking-tight">
+                            ${isEq ? 'Faktyczny czas pracy sprzętu' : 'Faktyczna liczba godzin czasu pracy'}
+                          </div>
+                        </td>
+                      ` : ''}
+                      <td colspan="2" class="border border-black px-1 text-[6pt] leading-none">${r.group ? `${r.group}: ${r.label}` : r.label}</td>
+                      ${statsArr.map(st => `<td class="border border-black text-center font-bold">${st && st.workSums[r.key] > 0 ? st.workSums[r.key] : ''}</td>`).join('')}
                     </tr>
-                  `;
-                }).join('')}
+                  `).join('')}
 
-                <!-- SEKCJA DOLNA 1: FAKTYCZNA LICZBA GODZIN CZASU PRACY -->
-                <tr style="height: 4.3mm;">
-                  <td rowspan="9" class="border border-[#1e293b] bg-[#1e293b] text-white text-center align-middle p-0">
-                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[6.2pt] tracking-tight">
-                      Faktyczna liczba godzin czasu pracy
-                    </div>
-                  </td>
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">podstawowego wg normy dziennej</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.base > 0 ? st.workSums.base : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w godz. nadliczbowych: z dopłatą 50%</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.ot50 > 0 ? st.workSums.ot50 : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w godz. nadliczbowych: z dopłatą 100%</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.ot100 > 0 ? st.workSums.ot100 : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w niedziele i święta</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.sun > 0 ? st.workSums.sun : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w dni dodatkowo wolne od pracy</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.free > 0 ? st.workSums.free : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w porze nocnej</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.night > 0 ? st.workSums.night : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w porze dyżuru</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.duty > 0 ? st.workSums.duty : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.8mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[5.5pt] leading-none">młodocianego przy pracach wzbronionych (dozwolonych w przygotowaniu zawodowym)</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.juv > 0 ? st.workSums.juv : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt] font-bold flex-row justify-between">
-                    <span>inne ${s.mode === 'equipment' ? '(Suma godz. / dni sprzętu)' : '(Razem godz. / dni)'}</span>
-                  </td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-black bg-[#f8fafc] text-[6.4pt]">${st && st.totalHours > 0 ? `${st.totalHours}h (${st.workedDays}d)` : ''}</td>`).join('')}
-                </tr>
+                  <!-- Wiersz sumaryczny godzin i dni -->
+                  <tr style="height: 4.4mm;">
+                    <td colspan="2" class="border border-black px-1 text-[6.2pt] font-black uppercase">
+                      ${isEq ? 'RAZEM MASZYNOGODZIN (DNI PRACY)' : 'RAZEM GODZIN (DNI PRACY)'}
+                    </td>
+                    ${statsArr.map(st => `<td class="border border-black text-center font-black text-[6.3pt]">${st && st.totalHours > 0 ? `${st.totalHours}h (${st.workedDays}d)` : ''}</td>`).join('')}
+                  </tr>
 
-                <!-- SEKCJA DOLNA 2: LICZBA DNI NIEOBECNOŚCI W PRACY Z POWODU -->
-                <tr style="height: 4.3mm;">
-                  <td rowspan="12" class="border border-[#1e293b] bg-[#1e293b] text-white text-center align-middle p-0">
-                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[6.2pt] tracking-tight">
-                      Liczba dni nieobecności w pracy z powodu:
-                    </div>
-                  </td>
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: wypoczynkowego</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UW > 0 ? st.absSums.UW : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: macierzyńskiego</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UM > 0 ? st.absSums.UM : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: wychowawczego</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UWy > 0 ? st.absSums.UWy : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: bezpłatnego</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UB > 0 ? st.absSums.UB : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: okolicznościowego</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UO > 0 ? st.absSums.UO : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">niepłatnego zwolnienia od pracy</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.NZ > 0 ? st.absSums.NZ : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">choroby pracownika</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.CH > 0 ? st.absSums.CH : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">opieki nad dzieckiem lub innym członkiem rodziny</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.OP > 0 ? st.absSums.OP : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[5.8pt]">usprawiedliwionych (do odpracowania lub niepłatnej)</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.U > 0 ? st.absSums.U : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">innych spraw nieusprawiedliwionych</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.NN > 0 ? st.absSums.NN : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">delegacji</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.DEL > 0 ? st.absSums.DEL : ''}</td>`).join('')}
-                </tr>
-                <tr style="height: 4.3mm;">
-                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">inne</td>
-                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.IN > 0 ? st.absSums.IN : ''}</td>`).join('')}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        `;
+                  <!-- SEKCJA DOLNA 2: NIEOBECNOŚCI / PRZESTOJE -->
+                  ${absRows.map((r, rIdx) => `
+                    <tr style="height: 4.1mm;">
+                      ${rIdx === 0 ? `
+                        <td rowspan="${absRows.length}" class="border border-black bg-white text-black text-center align-middle p-0">
+                          <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[6pt] tracking-tight">
+                            ${isEq ? 'Dni przestoju sprzętu' : 'Liczba dni nieobecności w pracy'}
+                          </div>
+                        </td>
+                      ` : ''}
+                      <td colspan="2" class="border border-black px-1 text-[6pt] leading-none">${r.group ? `urlopu: ${r.label}` : r.label} (${r.code})</td>
+                      ${statsArr.map(st => `<td class="border border-black text-center font-bold">${st && st.absSums[r.code] > 0 ? st.absSums[r.code] : ''}</td>`).join('')}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        });
       });
 
       c.innerHTML = html;
@@ -5529,13 +5725,6 @@ async function createNewEmptyProject() {
   window.location.reload();
 }
     
-    function toggleElement(id) { 
-      const el = document.getElementById(id);
-      if(el) {
-        el.classList.toggle('hidden'); 
-        if(el.classList.contains('flex')){ el.classList.remove('hidden'); }
-      }
-    }
   </script>
 </body>
 </html>
