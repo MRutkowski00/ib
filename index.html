@@ -85,8 +85,8 @@
       .no-print, header, nav, #structure-subbar, #floating-tools-container, .modal-backdrop { display: none !important; }
       .view-panel { display: none !important; }
       .view-panel:not(.hidden) { display: block !important; position: static !important; overflow: visible !important; height: auto !important; padding: 0 !important; margin: 0 !important; }
-     #rohe-report-container, #quick-report-container, #takeoff-print-container, #leveling-print-container { display: block !important; margin: 0 !important; padding: 0 !important; }
-      #rohe-report-container > *, #quick-report-container > *, #takeoff-print-container > *, #leveling-print-container > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+    #rohe-report-container, #quick-report-container, #takeoff-print-container, #leveling-print-container, #timesheet-print-container { display: block !important; margin: 0 !important; padding: 0 !important; }
+      #rohe-report-container > *, #quick-report-container > *, #takeoff-print-container > *, #leveling-print-container > *, #timesheet-print-container > * { margin-top: 0 !important; margin-bottom: 0 !important; }
       .a4-page { 
         width: 210mm !important; height: 296mm !important; max-height: 296mm !important;
         margin: 0 auto !important; padding: 10mm 15mm !important; 
@@ -126,7 +126,8 @@
       <button onclick="switchView('calendar')" id="nav-btn-calendar" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Kalendarz</button>
       <button onclick="switchView('norms')" id="nav-btn-norms" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Normy</button>
       <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Protokół odbiorowy/jakościowy</button>
-      <button onclick="switchView('leveling')" id="nav-btn-leveling" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Niwelacja</button>
+     <button onclick="switchView('leveling')" id="nav-btn-leveling" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Niwelacja</button>
+      <button onclick="switchView('timesheet')" id="nav-btn-timesheet" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Czas Pracy & Sprzęt</button>
     </nav>
     
     <!-- Zarządzanie projektem -->
@@ -192,6 +193,14 @@
               <p class="text-[11px] text-gray-400 mt-1">Zamówienia materiałów, telefony i sprawy pilne.</p>
             </div>
             <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Aktywne:</span><span class="font-bold text-emerald-400" id="dash-count-todos">0</span></div>
+          </div>
+          <div onclick="switchView('timesheet')" class="bg-[#141414] border border-[#262626] hover:border-indigo-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+            <div>
+              <div class="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="clock" class="w-5 h-5"></i></div>
+              <h3 class="font-bold text-white text-sm sm:text-base">Czas Pracy Ludzi & Sprzętu</h3>
+              <p class="text-[11px] text-gray-400 mt-1">Zegar zmianowy, nadgodziny, urlopy, maszynodni i karta A4.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Zestawienia:</span><span class="font-bold text-indigo-400" id="dash-count-timesheet">0</span></div>
           </div>
           <div onclick="switchView('calendar')" class="bg-[#141414] border border-[#262626] hover:border-amber-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
             <div>
@@ -733,6 +742,102 @@
         <div id="leveling-print-container" class="space-y-4"></div>
       </div>
     </div>
+
+    <!-- MODUŁ: EWIDENCJA CZASU PRACY LUDZI I SPRZĘTU -->
+    <div id="view-timesheet" class="view-panel w-full h-full hidden overflow-y-auto p-3 sm:p-6 pb-28 bg-[#0c0c0c]">
+      <div class="max-w-6xl mx-auto space-y-4">
+
+        <!-- Pasek górny modułu -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
+          <div>
+            <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+              <i data-lucide="clock" class="w-5 h-5 text-indigo-400"></i> Ewidencja Pracy Ludzi i Sprzętu
+            </h2>
+            <p class="text-[11px] text-gray-400">Kliknij w dowolną kratkę dnia (1–31), aby ustawić godziny na zegarze, nadgodziny lub urlop/postój.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex bg-[#171717] p-1 rounded-xl border border-[#2a2a2a] text-xs font-bold">
+              <button id="ts-mode-workers" onclick="setTimesheetMode('workers')" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-colors flex items-center gap-1">👷 Pracownicy</button>
+              <button id="ts-mode-equipment" onclick="setTimesheetMode('equipment')" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1">🚜 Sprzęt</button>
+            </div>
+            <button onclick="openTimesheetPrintPreview()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Generuj Kartę A4 (PDF)
+            </button>
+          </div>
+        </div>
+
+        <!-- Pasek wyboru zestawienia (Karty miesięczne) -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-3 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+            <span class="text-[10px] font-bold text-gray-400 uppercase shrink-0 mr-1"><i data-lucide="folder-kanban" class="inline w-3.5 h-3.5 text-indigo-400"></i> Zestawienia:</span>
+            <div id="ts-sessions-chips" class="flex items-center gap-1.5 shrink-0"></div>
+            <button onclick="promptNewTimesheetSession()" class="bg-[#1e1e1e] hover:bg-[#2a2a2a] border border-[#333] text-gray-200 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1 shrink-0">
+              <i data-lucide="plus" class="w-3 h-3 text-indigo-400"></i> Nowe zestawienie
+            </button>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="promptAddTimesheetEntity()" id="ts-btn-add-entity" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 shadow">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Dodaj osobę / sprzęt
+            </button>
+          </div>
+        </div>
+
+        <!-- Metryka zestawienia (Miesiąc, Rok, Komórka organizacyjna / Budowa) -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-4 shadow-lg grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+          <div class="md:col-span-2">
+            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Nazwa komórki organizacyjnej / Budowa:</label>
+            <input type="text" id="ts-meta-org" oninput="updateTimesheetMeta()" placeholder="np. Budowa VISLA Wilanów - Brygada 1" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Miesiąc (m-c):</label>
+            <select id="ts-meta-month" onchange="updateTimesheetMeta()" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+              <option value="1">01 - Styczeń</option><option value="2">02 - Luty</option><option value="3">03 - Marzec</option>
+              <option value="4">04 - Kwiecień</option><option value="5">05 - Maj</option><option value="6">06 - Czerwiec</option>
+              <option value="7">07 - Lipiec</option><option value="8">08 - Sierpień</option><option value="9">09 - Wrzesień</option>
+              <option value="10">10 - Październik</option><option value="11">11 - Listopad</option><option value="12">12 - Grudzień</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Rok:</label>
+            <input type="number" id="ts-meta-year" oninput="updateTimesheetMeta()" value="2026" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Norma dzienna (h):</label>
+            <input type="number" id="ts-meta-norm" oninput="updateTimesheetMeta()" value="8" step="0.5" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <!-- Karty podsumowania (Szybki bilans godzin i dni na górze) -->
+        <div id="ts-summary-cards" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+
+        <!-- Główna interaktywna tabela miesięczna (Dni 1..31 + Podsumowanie dolne) -->
+        <div class="bg-[#141414] border border-[#262626] rounded-2xl p-3 shadow-xl overflow-x-auto">
+          <div id="ts-grid-container" class="min-w-[780px]"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- WIDOK WYDRUKU A4: LISTA OBECNOŚCI / KARTA PRACY -->
+    <div id="view-timesheet-print" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-6 pb-28 bg-[#070707] print-panel">
+      <div class="max-w-[920px] mx-auto space-y-4">
+        <div class="no-print bg-[#131313] border border-[#282828] rounded-xl p-3 flex flex-wrap justify-between items-center gap-2 shadow-xl">
+          <div>
+            <h3 class="text-sm font-bold text-white"><i data-lucide="clock" class="inline w-3.5 h-3.5 text-indigo-400 mr-1"></i> Karta Ewidencji Czasu Pracy (Wydruk A4)</h3>
+            <p class="text-[10px] text-gray-400">Układ tabelaryczny 1–31 z rozliczeniem godzin i nieobecności</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="ts-print-cell-format" onchange="renderTimesheetPrintPages()" class="bg-[#1e1e1e] border border-[#333] text-gray-200 text-xs rounded-lg px-2.5 py-1.5 outline-none">
+              <option value="hours">Widok w kratkach: Suma godzin (np. 8)</option>
+              <option value="range">Widok w kratkach: Przedział + suma (np. 7-15 / 8h)</option>
+            </select>
+            <button onclick="switchView('timesheet')" class="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
+            <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Drukuj / PDF</button>
+          </div>
+        </div>
+        <div id="timesheet-print-container" class="space-y-4"></div>
+      </div>
+    </div>
     
   </main>
 
@@ -752,6 +857,10 @@
       <button onclick="switchView('leveling'); toggleQuickToolsMenu();" class="flex items-center gap-2.5 bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] px-3 py-2 rounded-xl shadow-lg">
         <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i></div>
         <div class="text-left text-gray-200"><div class="text-[11px] font-bold">Niwelacja & Koty</div></div>
+      </button>
+      <button onclick="switchView('timesheet'); toggleQuickToolsMenu();" class="flex items-center gap-2.5 bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] px-3 py-2 rounded-xl shadow-lg">
+        <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center"><i data-lucide="clock" class="w-3.5 h-3.5"></i></div>
+        <div class="text-left text-gray-200"><div class="text-[11px] font-bold">Czas Pracy & Sprzęt</div></div>
       </button>
     </div>
   </div>
@@ -1169,6 +1278,179 @@
     </div>
   </div>
 
+  <!-- MODAL: EDYCJA DNIA PRACY Z INTERAKTYWNYM ZEGARKIEM -->
+  <div id="modal-timesheet-entry" class="modal-backdrop fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden items-center justify-center p-2 sm:p-4">
+    <div class="bg-[#141414] border-2 border-indigo-500/80 rounded-2xl w-full max-w-lg max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-[#242424] flex justify-between items-center shrink-0 bg-[#101010]">
+        <div>
+          <span id="ts-modal-title" class="text-xs font-black text-white uppercase tracking-wider block">WPIS CZASU PRACY</span>
+          <span id="ts-modal-subtitle" class="text-[11px] text-indigo-300 font-semibold"></span>
+        </div>
+        <button onclick="closeTimesheetModal()" class="text-gray-400 hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-3.5 text-xs flex-1">
+        <!-- Wybór daty / zakresu dni -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-[#0e0e0e] border border-[#242424] p-2.5 rounded-xl">
+          <div>
+            <label class="text-[10px] text-gray-400 font-bold uppercase block mb-1">Data z kalendarza:</label>
+            <input type="date" id="ts-modal-date" onchange="onTsModalDateChange()" class="w-full bg-[#181818] border border-[#333] rounded-lg px-2.5 py-1.5 text-white outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="text-[10px] text-gray-400 font-bold uppercase block mb-1">Szybkie powielenie na zakres dni:</label>
+            <div class="flex items-center gap-1.5">
+              <span class="text-gray-400 text-[11px]">Od:</span>
+              <input type="number" id="ts-modal-day-from" min="1" max="31" class="w-14 bg-[#181818] border border-[#333] rounded-lg px-2 py-1.5 text-white text-center font-bold">
+              <span class="text-gray-400 text-[11px]">Do:</span>
+              <input type="number" id="ts-modal-day-to" min="1" max="31" class="w-14 bg-[#181818] border border-[#333] rounded-lg px-2 py-1.5 text-white text-center font-bold">
+              <label class="flex items-center gap-1 text-[10px] text-gray-300 ml-1 cursor-pointer" title="Pomijaj soboty i niedziele przy powielaniu">
+                <input type="checkbox" id="ts-modal-skip-weekends" checked class="accent-indigo-500"> Bez sob/nd
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Przełącznik: Praca (Godziny) vs Urlop / Nieobecność / Postój -->
+        <div class="grid grid-cols-2 gap-1.5 bg-[#0e0e0e] p-1 rounded-xl border border-[#262626]">
+          <button type="button" id="ts-tab-work" onclick="setTsEntryType('work')" class="py-2 rounded-lg font-extrabold text-xs bg-indigo-600 text-white transition-colors">⏱️ Praca (Godziny)</button>
+          <button type="button" id="ts-tab-absence" onclick="setTsEntryType('absence')" class="py-2 rounded-lg font-extrabold text-xs text-gray-400 hover:text-white transition-colors">🏖️ Urlop / Nieobecność</button>
+        </div>
+
+        <!-- PANEL 1: PRACA + INTERAKTYWNY ZEGAREK -->
+        <div id="ts-panel-work" class="space-y-3">
+          <!-- Przyciski godzin Od - Do oraz Przerwa -->
+          <div class="grid grid-cols-3 gap-2">
+            <div onclick="openInteractiveClock('start')" id="ts-box-start" class="bg-[#181818] border-2 border-indigo-500 rounded-xl p-2 text-center cursor-pointer transition-all">
+              <span class="text-[10px] text-gray-400 font-bold uppercase block">Rozpoczęcie (Od)</span>
+              <input type="time" id="ts-input-start" value="07:00" oninput="recalcTsModalHours()" onclick="event.stopPropagation()" class="bg-transparent text-white font-black text-lg text-center w-full outline-none cursor-pointer">
+            </div>
+            <div onclick="openInteractiveClock('end')" id="ts-box-end" class="bg-[#181818] border-2 border-[#333] hover:border-indigo-400 rounded-xl p-2 text-center cursor-pointer transition-all">
+              <span class="text-[10px] text-gray-400 font-bold uppercase block">Zakończenie (Do)</span>
+              <input type="time" id="ts-input-end" value="15:00" oninput="recalcTsModalHours()" onclick="event.stopPropagation()" class="bg-transparent text-white font-black text-lg text-center w-full outline-none cursor-pointer">
+            </div>
+            <div class="bg-[#181818] border border-[#333] rounded-xl p-2 text-center">
+              <span class="text-[10px] text-gray-400 font-bold uppercase block">Przerwa (min)</span>
+              <input type="number" id="ts-input-break" value="0" step="15" min="0" oninput="recalcTsModalHours()" class="bg-transparent text-amber-300 font-black text-lg text-center w-full outline-none">
+            </div>
+          </div>
+
+          <!-- INTERAKTYWNA TARCZA ZEGARA (JAK W TELEFONIE) -->
+          <div class="bg-[#0b0b0b] border border-[#262626] rounded-2xl p-3 flex flex-col items-center space-y-2">
+            <div class="w-full flex items-center justify-between text-[11px] px-1">
+              <span id="ts-clock-target-label" class="font-bold text-indigo-400 uppercase">Wybierz na tarczy: Rozpoczęcie (Od)</span>
+              <div class="flex gap-1">
+                <button type="button" id="ts-clock-step-h" onclick="setClockStep('hour')" class="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[10px]">Godzina</button>
+                <button type="button" id="ts-clock-step-m" onclick="setClockStep('minute')" class="px-2 py-0.5 rounded bg-[#222] text-gray-400 font-bold text-[10px]">Minuty</button>
+              </div>
+            </div>
+
+            <div id="ts-clock-dial" class="relative w-52 h-52 rounded-full bg-[#141414] border-2 border-[#2e2e2e] shadow-inner select-none">
+              <svg id="ts-clock-svg" viewBox="0 0 200 200" class="w-full h-full"></svg>
+            </div>
+
+            <!-- Szybkie szablony zmianowe -->
+            <div class="w-full pt-1">
+              <div class="text-[10px] text-gray-500 font-bold uppercase mb-1 text-center">Szybkie szablony zmian:</div>
+              <div class="flex flex-wrap justify-center gap-1.5">
+                <button type="button" onclick="applyTsPreset('07:00','15:00')" class="px-2.5 py-1 rounded-lg bg-[#1c1c1c] hover:bg-[#282828] border border-[#333] text-gray-200 font-bold text-[11px]">7:00–15:00 (8h)</button>
+                <button type="button" onclick="applyTsPreset('06:00','14:00')" class="px-2.5 py-1 rounded-lg bg-[#1c1c1c] hover:bg-[#282828] border border-[#333] text-gray-200 font-bold text-[11px]">6:00–14:00 (8h)</button>
+                <button type="button" onclick="applyTsPreset('07:00','17:00')" class="px-2.5 py-1 rounded-lg bg-[#1c1c1c] hover:bg-[#282828] border border-[#333] text-amber-300 font-bold text-[11px]">7:00–17:00 (10h)</button>
+                <button type="button" onclick="applyTsPreset('07:00','19:00')" class="px-2.5 py-1 rounded-lg bg-[#1c1c1c] hover:bg-[#282828] border border-[#333] text-amber-400 font-bold text-[11px]">7:00–19:00 (12h)</button>
+                <button type="button" onclick="applyTsPreset('22:00','06:00')" class="px-2.5 py-1 rounded-lg bg-purple-950/50 hover:bg-purple-900/60 border border-purple-700/50 text-purple-200 font-bold text-[11px]">🌙 Noc 22:00–6:00</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Automatyczne rozbicie godzin (w pełni edytowalne) -->
+          <div class="bg-[#101010] border border-[#262626] rounded-xl p-3 space-y-2">
+            <div class="flex justify-between items-center border-b border-[#222] pb-1.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase">Rozliczenie godzin dnia (możesz edytować):</span>
+              <span id="ts-modal-total-badge" class="text-sm font-black text-emerald-400 font-mono">Razem: 8.0 h</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
+              <div>
+                <label class="text-gray-400 text-[10px] block">Podstawowe (norma):</label>
+                <input type="number" id="ts-h-base" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-white font-bold">
+              </div>
+              <div>
+                <label class="text-amber-400 text-[10px] block">Nadliczbowe 50%:</label>
+                <input type="number" id="ts-h-ot50" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-amber-300 font-bold">
+              </div>
+              <div>
+                <label class="text-rose-400 text-[10px] block">Nadliczbowe 100%:</label>
+                <input type="number" id="ts-h-ot100" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-rose-300 font-bold">
+              </div>
+              <div>
+                <label class="text-purple-300 text-[10px] block">🌙 W porze nocnej:</label>
+                <input type="number" id="ts-h-night" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-purple-300 font-bold">
+              </div>
+              <div>
+                <label class="text-red-300 text-[10px] block">Niedziele i święta:</label>
+                <input type="number" id="ts-h-sun" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-red-300 font-bold">
+              </div>
+              <div>
+                <label class="text-cyan-300 text-[10px] block">Dni dodatk. wolne:</label>
+                <input type="number" id="ts-h-free" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-cyan-300 font-bold">
+              </div>
+              <div>
+                <label class="text-gray-400 text-[10px] block">W porze dyżuru:</label>
+                <input type="number" id="ts-h-duty" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
+              </div>
+              <div>
+                <label class="text-gray-400 text-[10px] block">Młodocianego:</label>
+                <input type="number" id="ts-h-juv" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
+              </div>
+              <div>
+                <label class="text-gray-400 text-[10px] block">Inne godziny:</label>
+                <input type="number" id="ts-h-other" step="0.5" min="0" class="w-full bg-[#1b1b1b] border border-[#333] rounded-lg px-2 py-1 text-gray-200">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL 2: URLOP / NIEOBECNOŚĆ / POSTÓJ SPRZĘTU -->
+        <div id="ts-panel-absence" class="hidden space-y-3">
+          <div class="bg-[#101010] border border-[#262626] rounded-xl p-3 space-y-2.5">
+            <label class="block text-gray-300 font-bold text-xs">Wybierz powód nieobecności / status dnia (zgodnie z kartą):</label>
+            <select id="ts-absence-code" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl px-3 py-2.5 text-white font-semibold outline-none focus:border-indigo-500">
+              <optgroup label="Urlopy">
+                <option value="UW">UW – Urlop wypoczynkowy</option>
+                <option value="UM">UM – Urlop macierzyński</option>
+                <option value="UWy">UWy – Urlop wychowawczy</option>
+                <option value="UB">UB – Urlop bezpłatny</option>
+                <option value="UO">UO – Urlop okolicznościowy</option>
+              </optgroup>
+              <optgroup label="Pozostałe nieobecności / przestoje">
+                <option value="CH">L4 / CH – Choroba pracownika (Zwolnienie lekarskie)</option>
+                <option value="DEL">DEL – Delegacja</option>
+                <option value="OP">OP – Opieka nad dzieckiem lub członkiem rodziny</option>
+                <option value="U">U – Nieobecność usprawiedliwiona (do odpracowania / niepłatna)</option>
+                <option value="NZ">NZ – Niepłatne zwolnienie od pracy</option>
+                <option value="NN">NN – Inne sprawy nieusprawiedliwione</option>
+                <option value="IN">IN – Inne (lub Postój / Awaria sprzętu)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-gray-400 text-[10px] font-bold uppercase block mb-1">Notatka do dnia / Podpis w kolumnie kierownika (opcjonalnie):</label>
+          <input type="text" id="ts-modal-note" placeholder="np. Betonowanie stropu / Praca na sekcji B" class="w-full bg-[#1b1b1b] border border-[#333] rounded-xl px-3 py-1.5 text-white outline-none focus:border-indigo-500">
+        </div>
+      </div>
+
+      <div class="px-4 py-3 border-t border-[#242424] bg-[#111] flex justify-between items-center shrink-0">
+        <button type="button" onclick="clearTsDayEntry()" class="text-rose-400 hover:text-rose-300 text-xs font-bold flex items-center gap-1">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Wyczyść dzień
+        </button>
+        <div class="flex gap-2">
+          <button type="button" onclick="closeTimesheetModal()" class="px-3.5 py-1.5 rounded-xl border border-[#333] text-gray-300 text-xs font-semibold">Anuluj</button>
+          <button type="button" onclick="saveTsDayEntry()" class="px-5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg">✅ Zapisz</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
   // Wektorowe Logo ROHE
     const ROHE_LOGO_SVG = `
@@ -1273,6 +1555,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       if(structBar) { if(view === 'plan') structBar.classList.remove('hidden'); else structBar.classList.add('hidden'); }
       if(view === 'report-rohe') { initRoheModuleUI(); renderRoheReportPages(); }
       if(view === 'leveling') { initLevelingUI(); }
+      if(view === 'timesheet') { initTimesheetUI(); }
       if(view === 'plan' && planImg.naturalWidth>0) fitBlueprintToView();
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
     }
@@ -1351,6 +1634,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
      initRoheModuleUI();
       initRoheModuleUI();
       ensureLevelingState();
+      ensureTimesheetState();
       
       setupBlueprintClick(); setupRoheBlueprintClick(); setupTkInteraction();
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
@@ -1367,6 +1651,10 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }
       const lvlEl = document.getElementById('dash-count-leveling');
       if (lvlEl) lvlEl.innerText = lvlPts;
+      const tsEl = document.getElementById('dash-count-timesheet');
+      if (tsEl && appState.timesheetBook && Array.isArray(appState.timesheetBook.sessions)) {
+        tsEl.innerText = appState.timesheetBook.sessions.length + ' kart';
+      }
       const act = getCurrentBuilding();
       document.getElementById('header-active-info').innerText = `Pro: ${appState.project.name} (${act?act.name:''})`;
     }
@@ -4224,6 +4512,988 @@ let pendingNormDefectText = null;
       `;
     }
 
+    // ================= MODUŁ: EWIDENCJA CZASU PRACY LUDZI I SPRZĘTU =================
+    let tsModalCtx = { entityId: null, day: 1, entryType: 'work', clockTarget: 'start', clockStep: 'hour' };
+
+    const TS_WORK_ROWS = [
+      { key: 'base', label: 'podstawowego wg normy dziennej' },
+      { key: 'ot50', label: 'z dopłatą 50%', group: 'w godzinach nadliczbowych' },
+      { key: 'ot100', label: 'z dopłatą 100%', group: 'w godzinach nadliczbowych' },
+      { key: 'sun', label: 'w niedziele i święta' },
+      { key: 'free', label: 'w dni dodatkowo wolne od pracy' },
+      { key: 'night', label: 'w porze nocnej' },
+      { key: 'duty', label: 'w porze dyżuru' },
+      { key: 'juv', label: 'młodocianego przy pracach wzbronionych (dozwolonych w przygotowaniu zawodowym)' },
+      { key: 'other', label: 'inne' }
+    ];
+
+    const TS_ABSENCE_ROWS = [
+      { code: 'UW', label: 'wypoczynkowego', group: 'urlopu' },
+      { code: 'UM', label: 'macierzyńskiego', group: 'urlopu' },
+      { code: 'UWy', label: 'wychowawczego', group: 'urlopu' },
+      { code: 'UB', label: 'bezpłatnego', group: 'urlopu' },
+      { code: 'UO', label: 'okolicznościowego', group: 'urlopu' },
+      { code: 'NZ', label: 'niepłatnego zwolnienia od pracy' },
+      { code: 'CH', label: 'choroby pracownika' },
+      { code: 'OP', label: 'opieki nad dzieckiem lub innym członkiem rodziny' },
+      { code: 'U', label: 'usprawiedliwionych (do odpracowania lub niepłatnej)' },
+      { code: 'NN', label: 'innych spraw nieusprawiedliwionych' },
+      { code: 'DEL', label: 'delegacji' },
+      { code: 'IN', label: 'inne' }
+    ];
+
+    function ensureTimesheetState() {
+      const now = new Date();
+      if (!appState.timesheetBook || !Array.isArray(appState.timesheetBook.sessions) || appState.timesheetBook.sessions.length === 0) {
+        appState.timesheetBook = {
+          activeSessionId: 'ts-1',
+          sessions: [
+            {
+              id: 'ts-1',
+              title: 'Pracownicy - Bieżący miesiąc',
+              mode: 'workers',
+              orgName: appState.project?.name || 'Budowa - Zespół Wykonawczy',
+              month: now.getMonth() + 1,
+              year: now.getFullYear(),
+              dailyNorm: 8,
+              dayNotes: {},
+              entities: [
+                { id: 'e-1', name: 'Jan Kowalski', days: {} },
+                { id: 'e-2', name: 'Adam Nowak', days: {} }
+              ]
+            },
+            {
+              id: 'ts-2',
+              title: 'Sprzęt Budowlany - Bieżący miesiąc',
+              mode: 'equipment',
+              orgName: appState.project?.name || 'Budowa - Park Maszynowy',
+              month: now.getMonth() + 1,
+              year: now.getFullYear(),
+              dailyNorm: 8,
+              dayNotes: {},
+              entities: [
+                { id: 'eq-1', name: 'Koparka JCB 3CX', days: {} },
+                { id: 'eq-2', name: 'Żuraw wieżowy', days: {} }
+              ]
+            }
+          ]
+        };
+      }
+      if (!appState.timesheetBook.activeSessionId || !appState.timesheetBook.sessions.find(s => s.id === appState.timesheetBook.activeSessionId)) {
+        appState.timesheetBook.activeSessionId = appState.timesheetBook.sessions[0].id;
+      }
+    }
+
+    function getActiveTimesheetSession() {
+      ensureTimesheetState();
+      return appState.timesheetBook.sessions.find(s => s.id === appState.timesheetBook.activeSessionId) || appState.timesheetBook.sessions[0];
+    }
+
+    function initTimesheetUI() {
+      const s = getActiveTimesheetSession();
+      renderTimesheetSessionsBar();
+
+      document.getElementById('ts-meta-org').value = s.orgName || '';
+      document.getElementById('ts-meta-month').value = s.month || (new Date().getMonth() + 1);
+      document.getElementById('ts-meta-year').value = s.year || new Date().getFullYear();
+      document.getElementById('ts-meta-norm').value = s.dailyNorm ?? 8;
+
+      const btnW = document.getElementById('ts-mode-workers');
+      const btnE = document.getElementById('ts-mode-equipment');
+      const addBtn = document.getElementById('ts-btn-add-entity');
+      if (s.mode === 'equipment') {
+        btnE.className = 'px-3 py-1.5 rounded-lg bg-amber-600 text-white transition-colors flex items-center gap-1';
+        btnW.className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1';
+        if (addBtn) addBtn.innerHTML = `<i data-lucide="truck" class="w-3.5 h-3.5"></i> + Dodaj sprzęt / maszynę`;
+      } else {
+        btnW.className = 'px-3 py-1.5 rounded-lg bg-indigo-600 text-white transition-colors flex items-center gap-1';
+        btnE.className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1';
+        if (addBtn) addBtn.innerHTML = `<i data-lucide="user-plus" class="w-3.5 h-3.5"></i> + Dodaj pracownika`;
+      }
+
+      renderTimesheetSummaryCards();
+      renderTimesheetInteractiveGrid();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function setTimesheetMode(mode) {
+      const s = getActiveTimesheetSession();
+      s.mode = mode;
+      persistData();
+      initTimesheetUI();
+    }
+
+    function updateTimesheetMeta() {
+      const s = getActiveTimesheetSession();
+      s.orgName = document.getElementById('ts-meta-org').value;
+      s.month = parseInt(document.getElementById('ts-meta-month').value) || 1;
+      s.year = parseInt(document.getElementById('ts-meta-year').value) || 2026;
+      s.dailyNorm = parseFloat(document.getElementById('ts-meta-norm').value) || 8;
+      persistData();
+      renderTimesheetSummaryCards();
+      renderTimesheetInteractiveGrid();
+    }
+
+    function renderTimesheetSessionsBar() {
+      ensureTimesheetState();
+      const c = document.getElementById('ts-sessions-chips');
+      if (!c) return;
+      c.innerHTML = '';
+      const act = getActiveTimesheetSession();
+      appState.timesheetBook.sessions.forEach(s => {
+        const isAct = s.id === act.id;
+        const icon = s.mode === 'equipment' ? '🚜' : '👷';
+        c.innerHTML += `
+          <div class="inline-flex items-center rounded-lg overflow-hidden border shrink-0 ${isAct ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-[#1b1b1b] border-[#333] text-gray-300'}">
+            <button onclick="switchTimesheetSession('${s.id}')" class="px-2.5 py-1 text-[11px] font-bold hover:text-white max-w-[190px] truncate">${icon} ${s.title}</button>
+            <button onclick="promptRenameTimesheetSession('${s.id}')" class="px-1.5 py-1 hover:bg-black/30 text-[10px] border-l ${isAct ? 'border-indigo-400/40 text-indigo-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Zmień nazwę">✎</button>
+            <button onclick="deleteTimesheetSession('${s.id}')" class="px-1.5 py-1 hover:bg-rose-700 text-[10px] border-l ${isAct ? 'border-indigo-400/40 text-indigo-100' : 'border-[#2a2a2a] text-gray-400'} hover:text-white" title="Usuń zestawienie">✕</button>
+          </div>`;
+      });
+    }
+
+    function switchTimesheetSession(id) {
+      appState.timesheetBook.activeSessionId = id;
+      persistData();
+      initTimesheetUI();
+    }
+
+    function promptNewTimesheetSession() {
+      ensureTimesheetState();
+      const isEq = confirm('Kliknij OK, aby utworzyć kartę dla PRACOWNIKÓW (Ludzi),\nlub Anuluj, aby utworzyć kartę dla SPRZĘTU BUDOWLANEGO.');
+      const mode = isEq ? 'workers' : 'equipment';
+      const defaultName = mode === 'workers' ? 'Brygada Robocza - Nowa Karta' : 'Sprzęt Budowlany - Nowa Karta';
+      const title = prompt('Podaj nazwę nowego zestawienia czasu pracy:', defaultName);
+      if (!title || !title.trim()) return;
+      const now = new Date();
+      const id = 'ts-' + Date.now();
+      appState.timesheetBook.sessions.push({
+        id,
+        title: title.trim(),
+        mode,
+        orgName: appState.project?.name || 'Budowa',
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+        dailyNorm: 8,
+        dayNotes: {},
+        entities: [
+          { id: 'ent-' + Date.now(), name: mode === 'workers' ? 'Pracownik 1' : 'Koparka 1', days: {} }
+        ]
+      });
+      appState.timesheetBook.activeSessionId = id;
+      persistData();
+      initTimesheetUI();
+    }
+
+    function promptRenameTimesheetSession(id) {
+      const s = appState.timesheetBook.sessions.find(x => x.id === id);
+      if (!s) return;
+      const n = prompt('Nowa nazwa zestawienia:', s.title);
+      if (!n || !n.trim()) return;
+      s.title = n.trim();
+      persistData();
+      renderTimesheetSessionsBar();
+    }
+
+    function deleteTimesheetSession(id) {
+      ensureTimesheetState();
+      const s = appState.timesheetBook.sessions.find(x => x.id === id);
+      if (!s) return;
+      if (appState.timesheetBook.sessions.length <= 1) {
+        if (confirm(`Wyczyścić wszystkie wpisy w zestawieniu "${s.title}"?`)) {
+          s.entities.forEach(e => e.days = {});
+          s.dayNotes = {};
+          persistData();
+          initTimesheetUI();
+        }
+        return;
+      }
+      if (confirm(`Usunąć zestawienie "${s.title}"?`)) {
+        appState.timesheetBook.sessions = appState.timesheetBook.sessions.filter(x => x.id !== id);
+        appState.timesheetBook.activeSessionId = appState.timesheetBook.sessions[0].id;
+        persistData();
+        initTimesheetUI();
+      }
+    }
+
+    function promptAddTimesheetEntity() {
+      const s = getActiveTimesheetSession();
+      const label = s.mode === 'equipment' ? 'Podaj nazwę sprzętu / maszyny (np. Koparka CAT 320):' : 'Podaj imię i nazwisko pracownika:';
+      const name = prompt(label);
+      if (!name || !name.trim()) return;
+      s.entities.push({ id: 'ent-' + Date.now(), name: name.trim(), days: {} });
+      persistData();
+      initTimesheetUI();
+    }
+
+    function promptRenameTimesheetEntity(entId) {
+      const s = getActiveTimesheetSession();
+      const ent = s.entities.find(e => e.id === entId);
+      if (!ent) return;
+      const name = prompt('Zmień nazwę kolumny (Pracownik / Sprzęt):', ent.name);
+      if (!name || !name.trim()) return;
+      ent.name = name.trim();
+      persistData();
+      initTimesheetUI();
+    }
+
+    function deleteTimesheetEntity(entId) {
+      const s = getActiveTimesheetSession();
+      const ent = s.entities.find(e => e.id === entId);
+      if (!ent) return;
+      if (!confirm(`Usunąć kolumnę "${ent.name}" wraz z jej godzinami?`)) return;
+      s.entities = s.entities.filter(e => e.id !== entId);
+      persistData();
+      initTimesheetUI();
+    }
+
+    // Obliczanie statystyk dla pojedynczego pracownika lub sprzętu w miesiącu
+    function computeEntityStats(s, ent) {
+      const workSums = { base: 0, ot50: 0, ot100: 0, sun: 0, free: 0, night: 0, duty: 0, juv: 0, other: 0 };
+      const absSums = { UW: 0, UM: 0, UWy: 0, UB: 0, UO: 0, NZ: 0, CH: 0, OP: 0, U: 0, NN: 0, DEL: 0, IN: 0 };
+      let totalHours = 0;
+      let workedDays = 0;
+
+      for (let d = 1; d <= 31; d++) {
+        const rec = ent.days ? ent.days[d] : null;
+        if (!rec) continue;
+        if (rec.type === 'work') {
+          const th = Number(rec.total) || 0;
+          if (th > 0) {
+            totalHours += th;
+            workedDays++;
+          }
+          Object.keys(workSums).forEach(k => {
+            workSums[k] += Number(rec[k]) || 0;
+          });
+        } else if (rec.type === 'absence' && rec.code) {
+          if (absSums[rec.code] !== undefined) absSums[rec.code] += 1;
+        }
+      }
+
+      return { workSums, absSums, totalHours, workedDays };
+    }
+
+    function renderTimesheetSummaryCards() {
+      const s = getActiveTimesheetSession();
+      const c = document.getElementById('ts-summary-cards');
+      if (!c) return;
+
+      let allHours = 0, allDays = 0, allOt = 0, allNight = 0, allAbs = 0;
+      s.entities.forEach(ent => {
+        const st = computeEntityStats(s, ent);
+        allHours += st.totalHours;
+        allDays += st.workedDays;
+        allOt += (st.workSums.ot50 + st.workSums.ot100);
+        allNight += st.workSums.night;
+        Object.values(st.absSums).forEach(v => allAbs += v);
+      });
+
+      const isEq = s.mode === 'equipment';
+      c.innerHTML = `
+        <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
+          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Suma maszynogodzin (m-g)' : 'Suma przepracowanych godzin'}</div>
+          <div class="text-xl font-black text-indigo-400 font-mono mt-0.5">${allHours.toFixed(1).replace('.0','')} h</div>
+        </div>
+        <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
+          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Przepracowane maszynodni' : 'Przepracowane osobodni'}</div>
+          <div class="text-xl font-black text-emerald-400 font-mono mt-0.5">${allDays} dni</div>
+        </div>
+        <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
+          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Praca ponadnormatywna / Nocna' : 'Nadgodziny (50%+100%) / Nocne'}</div>
+          <div class="text-xl font-black text-amber-400 font-mono mt-0.5">${allOt.toFixed(1).replace('.0','')} h <span class="text-xs text-purple-300">(🌙 ${allNight.toFixed(1).replace('.0','')}h)</span></div>
+        </div>
+        <div class="bg-[#141414] border border-[#262626] rounded-xl p-3">
+          <div class="text-[10px] text-gray-400 uppercase font-bold">${isEq ? 'Dni przestoju / serwisu' : 'Dni urlopów i nieobecności'}</div>
+          <div class="text-xl font-black text-rose-400 font-mono mt-0.5">${allAbs} dni</div>
+        </div>
+      `;
+    }
+
+    function getDaysInSelectedMonth(year, month) {
+      return new Date(year, month, 0).getDate();
+    }
+
+    function renderTimesheetInteractiveGrid() {
+      const s = getActiveTimesheetSession();
+      const c = document.getElementById('ts-grid-container');
+      if (!c) return;
+
+      const maxDaysInMonth = getDaysInSelectedMonth(s.year, s.month);
+      const entities = s.entities || [];
+      const statsMap = {};
+      entities.forEach(e => { statsMap[e.id] = computeEntityStats(s, e); });
+
+      const dayNamesShort = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So'];
+
+      let html = `
+        <table class="w-full border-collapse text-[11px] select-none">
+          <thead>
+            <tr class="bg-[#1b1b1b] text-gray-200">
+              <th class="border border-[#333] p-2 w-16 text-center font-black">Dzień<br><span class="text-[9px] text-gray-400">${String(s.month).padStart(2,'0')}.${s.year}</span></th>
+              <th class="border border-[#333] p-2 w-36 text-left font-bold text-gray-400">Uwagi / Podpis kierownika</th>
+              ${entities.map((e, idx) => `
+                <th class="border border-[#333] p-2 min-w-[110px] text-center bg-[#181818]">
+                  <div class="text-[9px] text-indigo-400 font-black">Kolumna ${idx + 1}</div>
+                  <div class="font-bold text-white truncate max-w-[120px] mx-auto" title="${e.name}">${e.name}</div>
+                  <div class="flex justify-center gap-1.5 mt-1">
+                    <button onclick="promptRenameTimesheetEntity('${e.id}')" class="text-[10px] text-gray-400 hover:text-white px-1 bg-[#252525] rounded">✎</button>
+                    <button onclick="deleteTimesheetEntity('${e.id}')" class="text-[10px] text-gray-400 hover:text-rose-400 px-1 bg-[#252525] rounded">✕</button>
+                  </div>
+                </th>
+              `).join('')}
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      for (let d = 1; d <= 31; d++) {
+        const isValidDay = d <= maxDaysInMonth;
+        const dateObj = isValidDay ? new Date(s.year, s.month - 1, d) : null;
+        const dow = dateObj ? dateObj.getDay() : -1;
+        const isSun = dow === 0;
+        const isSat = dow === 6;
+        const rowBg = !isValidDay ? 'bg-[#090909] opacity-35' : (isSun ? 'bg-rose-950/20' : (isSat ? 'bg-amber-950/15' : 'bg-[#111]'));
+        const dayBadgeCol = isSun ? 'text-rose-400 font-black' : (isSat ? 'text-amber-300 font-bold' : 'text-gray-300 font-bold');
+        const noteVal = (s.dayNotes && s.dayNotes[d]) ? s.dayNotes[d].replace(/"/g, '&quot;') : '';
+
+        html += `
+          <tr class="${rowBg} hover:bg-[#1a1a1a] transition-colors">
+            <td class="border border-[#2a2a2a] px-2 py-1 text-center ${dayBadgeCol}">
+              <span>${d}</span>
+              ${isValidDay ? `<span class="text-[9px] ml-1 opacity-75">${dayNamesShort[dow]}</span>` : ''}
+            </td>
+            <td class="border border-[#2a2a2a] px-1.5 py-0.5">
+              <input type="text" value="${noteVal}" ${!isValidDay ? 'disabled' : ''} onchange="updateTimesheetDayNote(${d}, this.value)" placeholder="—" class="w-full bg-transparent text-[10px] text-gray-300 outline-none">
+            </td>
+            ${entities.map(e => {
+              if (!isValidDay) return `<td class="border border-[#222] bg-[#080808]"></td>`;
+              const rec = e.days ? e.days[d] : null;
+              let cellContent = `<span class="text-gray-600 text-[10px]">+ wpisz</span>`;
+              let cellStyle = '';
+              if (rec) {
+                if (rec.type === 'work') {
+                  const tot = Number(rec.total) || 0;
+                  const ot = (Number(rec.ot50) || 0) + (Number(rec.ot100) || 0);
+                  cellStyle = 'bg-indigo-950/30';
+                  cellContent = `
+                    <div class="font-black text-white text-xs">${tot} h</div>
+                    <div class="text-[9px] text-indigo-300">${rec.start || ''}–${rec.end || ''}${ot > 0 ? ` <b class="text-amber-400">(+${ot})</b>` : ''}${rec.night > 0 ? ` <b class="text-purple-300">🌙${rec.night}</b>` : ''}</div>
+                  `;
+                } else if (rec.type === 'absence') {
+                  cellStyle = 'bg-rose-950/30';
+                  cellContent = `<span class="font-black text-rose-300 bg-rose-900/40 px-1.5 py-0.5 rounded text-[10px]">${rec.code}</span>`;
+                }
+              }
+              return `<td onclick="openTimesheetDayModal('${e.id}', ${d})" class="border border-[#2a2a2a] px-1.5 py-1 text-center cursor-pointer hover:border-indigo-500 ${cellStyle}">${cellContent}</td>`;
+            }).join('')}
+          </tr>
+        `;
+      }
+
+      // Wiersz sumy dni pracy i godzin całkowitych
+      html += `
+        <tr class="bg-[#1c1c1c] font-black text-white border-t-2 border-indigo-500">
+          <td colspan="2" class="border border-[#333] p-2 text-right text-indigo-300 uppercase text-[10px]">SUMA GODZIN (I DNI PRACY):</td>
+          ${entities.map(e => {
+            const st = statsMap[e.id];
+            return `<td class="border border-[#333] p-2 text-center"><span class="text-indigo-400 text-xs">${st.totalHours.toFixed(1).replace('.0','')} h</span> <span class="text-[10px] text-emerald-400 block">(${st.workedDays} dni)</span></td>`;
+          }).join('')}
+        </tr>
+      `;
+
+      // Sekcja 1 podsumowania: Faktyczna liczba godzin czasu pracy
+      html += `
+        <tr class="bg-[#181818]"><td colspan="${2 + entities.length}" class="border border-[#333] px-2 py-1 text-[10px] font-black text-indigo-400 uppercase tracking-wider">Faktyczna liczba godzin czasu pracy (podsumowanie miesięczne)</td></tr>
+      `;
+      TS_WORK_ROWS.forEach(r => {
+        const fullLbl = r.group ? `${r.group}: ${r.label}` : r.label;
+        html += `
+          <tr class="bg-[#121212]">
+            <td colspan="2" class="border border-[#2a2a2a] px-2 py-1 text-[10px] text-gray-300">${fullLbl}</td>
+            ${entities.map(e => {
+              const val = statsMap[e.id].workSums[r.key] || 0;
+              return `<td class="border border-[#2a2a2a] px-2 py-1 text-center font-mono font-bold ${val > 0 ? 'text-white' : 'text-gray-600'}">${val > 0 ? val.toFixed(1).replace('.0','') : '—'}</td>`;
+            }).join('')}
+          </tr>
+        `;
+      });
+
+      // Sekcja 2 podsumowania: Liczba dni nieobecności
+      html += `
+        <tr class="bg-[#181818]"><td colspan="${2 + entities.length}" class="border border-[#333] px-2 py-1 text-[10px] font-black text-rose-400 uppercase tracking-wider">Liczba dni nieobecności w pracy z powodu:</td></tr>
+      `;
+      TS_ABSENCE_ROWS.forEach(r => {
+        const fullLbl = r.group ? `urlopu ${r.label}` : r.label;
+        html += `
+          <tr class="bg-[#121212]">
+            <td colspan="2" class="border border-[#2a2a2a] px-2 py-1 text-[10px] text-gray-300">${fullLbl} <span class="text-gray-500">(${r.code})</span></td>
+            ${entities.map(e => {
+              const val = statsMap[e.id].absSums[r.code] || 0;
+              return `<td class="border border-[#2a2a2a] px-2 py-1 text-center font-mono font-bold ${val > 0 ? 'text-rose-400' : 'text-gray-600'}">${val > 0 ? val : '—'}</td>`;
+            }).join('')}
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      c.innerHTML = html;
+    }
+
+    function updateTimesheetDayNote(day, val) {
+      const s = getActiveTimesheetSession();
+      if (!s.dayNotes) s.dayNotes = {};
+      s.dayNotes[day] = val.trim();
+      persistData();
+    }
+
+    // ================= MODAL DNIA I INTERAKTYWNY ZEGAREK 24H =================
+    function openTimesheetDayModal(entityId, day) {
+      const s = getActiveTimesheetSession();
+      const ent = s.entities.find(e => e.id === entityId);
+      if (!ent) return;
+
+      tsModalCtx.entityId = entityId;
+      tsModalCtx.day = day;
+      tsModalCtx.clockTarget = 'start';
+      tsModalCtx.clockStep = 'hour';
+
+      const dateStr = `${s.year}-${String(s.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      document.getElementById('ts-modal-date').value = dateStr;
+      document.getElementById('ts-modal-day-from').value = day;
+      document.getElementById('ts-modal-day-to').value = day;
+      document.getElementById('ts-modal-title').textContent = `${ent.name} — Dzień ${day}.${String(s.month).padStart(2, '0')}.${s.year}`;
+      document.getElementById('ts-modal-subtitle').textContent = s.mode === 'equipment' ? '🚜 Tryb rozliczania pracy sprzętu' : '👷 Tryb rozliczania czasu pracy pracownika';
+      document.getElementById('ts-modal-note').value = (s.dayNotes && s.dayNotes[day]) ? s.dayNotes[day] : '';
+
+      const existing = ent.days ? ent.days[day] : null;
+      if (existing && existing.type === 'absence') {
+        setTsEntryType('absence');
+        document.getElementById('ts-absence-code').value = existing.code || 'UW';
+      } else {
+        setTsEntryType('work');
+        document.getElementById('ts-input-start').value = (existing && existing.start) ? existing.start : '07:00';
+        document.getElementById('ts-input-end').value = (existing && existing.end) ? existing.end : '15:00';
+        document.getElementById('ts-input-break').value = (existing && existing.breakMin !== undefined) ? existing.breakMin : 0;
+
+        if (existing && existing.type === 'work') {
+          document.getElementById('ts-h-base').value = existing.base ?? 8;
+          document.getElementById('ts-h-ot50').value = existing.ot50 ?? 0;
+          document.getElementById('ts-h-ot100').value = existing.ot100 ?? 0;
+          document.getElementById('ts-h-night').value = existing.night ?? 0;
+          document.getElementById('ts-h-sun').value = existing.sun ?? 0;
+          document.getElementById('ts-h-free').value = existing.free ?? 0;
+          document.getElementById('ts-h-duty').value = existing.duty ?? 0;
+          document.getElementById('ts-h-juv').value = existing.juv ?? 0;
+          document.getElementById('ts-h-other').value = existing.other ?? 0;
+          updateTsTotalBadge();
+        } else {
+          recalcTsModalHours();
+        }
+      }
+
+      openInteractiveClock('start');
+      const modal = document.getElementById('modal-timesheet-entry');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeTimesheetModal() {
+      const modal = document.getElementById('modal-timesheet-entry');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function onTsModalDateChange() {
+      const val = document.getElementById('ts-modal-date').value;
+      if (!val) return;
+      const parts = val.split('-');
+      const pickedDay = parseInt(parts[2], 10);
+      if (pickedDay >= 1 && pickedDay <= 31) {
+        tsModalCtx.day = pickedDay;
+        document.getElementById('ts-modal-day-from').value = pickedDay;
+        document.getElementById('ts-modal-day-to').value = pickedDay;
+        recalcTsModalHours();
+      }
+    }
+
+    function setTsEntryType(type) {
+      tsModalCtx.entryType = type;
+      const wBtn = document.getElementById('ts-tab-work');
+      const aBtn = document.getElementById('ts-tab-absence');
+      const wPan = document.getElementById('ts-panel-work');
+      const aPan = document.getElementById('ts-panel-absence');
+
+      if (type === 'work') {
+        wBtn.className = 'py-2 rounded-lg font-extrabold text-xs bg-indigo-600 text-white transition-colors';
+        aBtn.className = 'py-2 rounded-lg font-extrabold text-xs text-gray-400 hover:text-white transition-colors';
+        wPan.classList.remove('hidden');
+        aPan.classList.add('hidden');
+      } else {
+        aBtn.className = 'py-2 rounded-lg font-extrabold text-xs bg-rose-600 text-white transition-colors';
+        wBtn.className = 'py-2 rounded-lg font-extrabold text-xs text-gray-400 hover:text-white transition-colors';
+        aPan.classList.remove('hidden');
+        wPan.classList.add('hidden');
+      }
+    }
+
+    function applyTsPreset(startStr, endStr) {
+      document.getElementById('ts-input-start').value = startStr;
+      document.getElementById('ts-input-end').value = endStr;
+      recalcTsModalHours();
+      drawInteractiveClockSVG();
+    }
+
+    function openInteractiveClock(target) {
+      tsModalCtx.clockTarget = target;
+      tsModalCtx.clockStep = 'hour';
+      const bStart = document.getElementById('ts-box-start');
+      const bEnd = document.getElementById('ts-box-end');
+      const lbl = document.getElementById('ts-clock-target-label');
+      if (target === 'start') {
+        bStart.className = 'bg-[#181818] border-2 border-indigo-500 rounded-xl p-2 text-center cursor-pointer transition-all';
+        bEnd.className = 'bg-[#181818] border-2 border-[#333] hover:border-indigo-400 rounded-xl p-2 text-center cursor-pointer transition-all';
+        lbl.textContent = 'Wybierz na tarczy: Rozpoczęcie (Od)';
+      } else {
+        bEnd.className = 'bg-[#181818] border-2 border-indigo-500 rounded-xl p-2 text-center cursor-pointer transition-all';
+        bStart.className = 'bg-[#181818] border-2 border-[#333] hover:border-indigo-400 rounded-xl p-2 text-center cursor-pointer transition-all';
+        lbl.textContent = 'Wybierz na tarczy: Zakończenie (Do)';
+      }
+      setClockStep('hour');
+    }
+
+    function setClockStep(step) {
+      tsModalCtx.clockStep = step;
+      document.getElementById('ts-clock-step-h').className = `px-2 py-0.5 rounded font-bold text-[10px] ${step === 'hour' ? 'bg-indigo-600 text-white' : 'bg-[#222] text-gray-400'}`;
+      document.getElementById('ts-clock-step-m').className = `px-2 py-0.5 rounded font-bold text-[10px] ${step === 'minute' ? 'bg-indigo-600 text-white' : 'bg-[#222] text-gray-400'}`;
+      drawInteractiveClockSVG();
+    }
+
+    function drawInteractiveClockSVG() {
+      const svg = document.getElementById('ts-clock-svg');
+      if (!svg) return;
+      const inpId = tsModalCtx.clockTarget === 'start' ? 'ts-input-start' : 'ts-input-end';
+      const val = document.getElementById(inpId).value || '07:00';
+      const [curH, curM] = val.split(':').map(n => parseInt(n, 10) || 0);
+
+      let out = `<circle cx="100" cy="100" r="4" fill="#6366f1"/>`;
+
+      if (tsModalCtx.clockStep === 'hour') {
+        // Zewnętrzny pierścień (1..12) oraz wewnętrzny pierścień (13..23, 00)
+        for (let i = 1; i <= 12; i++) {
+          const angle = (i * 30 - 90) * (Math.PI / 180);
+          const ox = 100 + 76 * Math.cos(angle);
+          const oy = 100 + 76 * Math.sin(angle);
+          const isSelOuter = curH === i;
+          if (isSelOuter) {
+            out += `<line x1="100" y1="100" x2="${ox}" y2="${oy}" stroke="#6366f1" stroke-width="2.5"/>`;
+          }
+          out += `
+            <g onclick="pickClockValue(${i})" class="cursor-pointer">
+              <circle cx="${ox}" cy="${oy}" r="14" fill="${isSelOuter ? '#6366f1' : 'transparent'}"/>
+              <text x="${ox}" y="${oy + 4}" text-anchor="middle" font-size="11" font-weight="bold" fill="${isSelOuter ? '#ffffff' : '#e5e7eb'}">${i}</text>
+            </g>
+          `;
+
+          const innerVal = i === 12 ? 0 : i + 12;
+          const ix = 100 + 46 * Math.cos(angle);
+          const iy = 100 + 46 * Math.sin(angle);
+          const isSelInner = curH === innerVal;
+          if (isSelInner) {
+            out += `<line x1="100" y1="100" x2="${ix}" y2="${iy}" stroke="#6366f1" stroke-width="2.5"/>`;
+          }
+          out += `
+            <g onclick="pickClockValue(${innerVal})" class="cursor-pointer">
+              <circle cx="${ix}" cy="${iy}" r="12" fill="${isSelInner ? '#6366f1' : 'transparent'}"/>
+              <text x="${ix}" y="${iy + 3.5}" text-anchor="middle" font-size="9.5" font-weight="bold" fill="${isSelInner ? '#ffffff' : '#9ca3af'}">${String(innerVal).padStart(2, '0')}</text>
+            </g>
+          `;
+        }
+      } else {
+        // Tarcza minut (co 5 minut: 00, 05, 10 ... 55)
+        for (let m = 0; m < 60; m += 5) {
+          const angle = (m * 6 - 90) * (Math.PI / 180);
+          const mx = 100 + 74 * Math.cos(angle);
+          const my = 100 + 74 * Math.sin(angle);
+          const isSel = curM === m;
+          if (isSel) {
+            out += `<line x1="100" y1="100" x2="${mx}" y2="${my}" stroke="#6366f1" stroke-width="2.5"/>`;
+          }
+          out += `
+            <g onclick="pickClockValue(${m})" class="cursor-pointer">
+              <circle cx="${mx}" cy="${my}" r="15" fill="${isSel ? '#6366f1' : 'transparent'}"/>
+              <text x="${mx}" y="${my + 4}" text-anchor="middle" font-size="11" font-weight="bold" fill="${isSel ? '#ffffff' : '#e5e7eb'}">${String(m).padStart(2, '0')}</text>
+            </g>
+          `;
+        }
+      }
+
+      svg.innerHTML = out;
+    }
+
+    function pickClockValue(val) {
+      const inpId = tsModalCtx.clockTarget === 'start' ? 'ts-input-start' : 'ts-input-end';
+      const inp = document.getElementById(inpId);
+      const [curH, curM] = (inp.value || '07:00').split(':').map(n => parseInt(n, 10) || 0);
+
+      if (tsModalCtx.clockStep === 'hour') {
+        inp.value = `${String(val).padStart(2, '0')}:${String(curM).padStart(2, '0')}`;
+        recalcTsModalHours();
+        setClockStep('minute');
+      } else {
+        inp.value = `${String(curH).padStart(2, '0')}:${String(val).padStart(2, '0')}`;
+        recalcTsModalHours();
+        if (tsModalCtx.clockTarget === 'start') {
+          openInteractiveClock('end');
+        } else {
+          drawInteractiveClockSVG();
+        }
+      }
+    }
+
+    function computeNightOverlapHours(startMin, endMin) {
+      // Pora nocna: 22:00 (1320) – 06:00 (360 dnia następnego, czyli 1800)
+      let eMin = endMin <= startMin ? endMin + 1440 : endMin;
+      let nightMin = 0;
+      const windows = [
+        [0, 360],
+        [1320, 1800],
+        [2760, 3240]
+      ];
+      windows.forEach(([wStart, wEnd]) => {
+        const s = Math.max(startMin, wStart);
+        const e = Math.min(eMin, wEnd);
+        if (e > s) nightMin += (e - s);
+      });
+      return Math.round((nightMin / 60) * 2) / 2;
+    }
+
+    function recalcTsModalHours() {
+      const s = getActiveTimesheetSession();
+      const startStr = document.getElementById('ts-input-start').value || '07:00';
+      const endStr = document.getElementById('ts-input-end').value || '15:00';
+      const breakMin = parseInt(document.getElementById('ts-input-break').value, 10) || 0;
+
+      const [sh, sm] = startStr.split(':').map(Number);
+      const [eh, em] = endStr.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      let endMin = eh * 60 + em;
+      if (endMin <= startMin) endMin += 1440; // Przejście przez północ
+
+      const netMin = Math.max(0, (endMin - startMin) - breakMin);
+      const totalH = Math.round((netMin / 60) * 2) / 2;
+
+      const dateObj = new Date(s.year, s.month - 1, tsModalCtx.day);
+      const dow = dateObj.getDay(); // 0 = Niedziela, 6 = Sobota
+      const norm = Number(s.dailyNorm) || 8;
+
+      const nightH = computeNightOverlapHours(startMin, eh * 60 + em);
+
+      let baseH = 0, ot50 = 0, ot100 = 0, sunH = 0, freeH = 0;
+      if (dow === 0) {
+        // Niedziela
+        sunH = totalH;
+        ot100 = totalH;
+      } else if (dow === 6) {
+        // Sobota (dzień dodatkowo wolny)
+        freeH = totalH;
+        ot50 = totalH;
+      } else {
+        baseH = Math.min(totalH, norm);
+        ot50 = Math.max(0, totalH - norm);
+      }
+
+      document.getElementById('ts-h-base').value = baseH;
+      document.getElementById('ts-h-ot50').value = ot50;
+      document.getElementById('ts-h-ot100').value = ot100;
+      document.getElementById('ts-h-night').value = nightH;
+      document.getElementById('ts-h-sun').value = sunH;
+      document.getElementById('ts-h-free').value = freeH;
+      document.getElementById('ts-h-duty').value = 0;
+      document.getElementById('ts-h-juv').value = 0;
+      document.getElementById('ts-h-other').value = 0;
+
+      updateTsTotalBadge();
+    }
+
+    function updateTsTotalBadge() {
+      const base = parseFloat(document.getElementById('ts-h-base').value) || 0;
+      const ot50 = parseFloat(document.getElementById('ts-h-ot50').value) || 0;
+      const ot100 = parseFloat(document.getElementById('ts-h-ot100').value) || 0;
+      const other = parseFloat(document.getElementById('ts-h-other').value) || 0;
+      const total = base + ot50 + ot100 + other;
+      document.getElementById('ts-modal-total-badge').textContent = `Razem: ${total.toFixed(1).replace('.0','')} h`;
+    }
+
+    function saveTsDayEntry() {
+      const s = getActiveTimesheetSession();
+      const ent = s.entities.find(e => e.id === tsModalCtx.entityId);
+      if (!ent) return;
+      if (!ent.days) ent.days = {};
+
+      const dFrom = Math.max(1, Math.min(31, parseInt(document.getElementById('ts-modal-day-from').value, 10) || tsModalCtx.day));
+      const dTo = Math.max(dFrom, Math.min(31, parseInt(document.getElementById('ts-modal-day-to').value, 10) || dFrom));
+      const skipWeekends = document.getElementById('ts-modal-skip-weekends').checked;
+      const noteTxt = document.getElementById('ts-modal-note').value.trim();
+
+      for (let d = dFrom; d <= dTo; d++) {
+        if (d > dFrom && skipWeekends) {
+          const dow = new Date(s.year, s.month - 1, d).getDay();
+          if (dow === 0 || dow === 6) continue;
+        }
+
+        if (tsModalCtx.entryType === 'absence') {
+          ent.days[d] = {
+            type: 'absence',
+            code: document.getElementById('ts-absence-code').value || 'UW'
+          };
+        } else {
+          const base = parseFloat(document.getElementById('ts-h-base').value) || 0;
+          const ot50 = parseFloat(document.getElementById('ts-h-ot50').value) || 0;
+          const ot100 = parseFloat(document.getElementById('ts-h-ot100').value) || 0;
+          const night = parseFloat(document.getElementById('ts-h-night').value) || 0;
+          const sun = parseFloat(document.getElementById('ts-h-sun').value) || 0;
+          const free = parseFloat(document.getElementById('ts-h-free').value) || 0;
+          const duty = parseFloat(document.getElementById('ts-h-duty').value) || 0;
+          const juv = parseFloat(document.getElementById('ts-h-juv').value) || 0;
+          const other = parseFloat(document.getElementById('ts-h-other').value) || 0;
+          const total = base + ot50 + ot100 + other;
+
+          ent.days[d] = {
+            type: 'work',
+            start: document.getElementById('ts-input-start').value,
+            end: document.getElementById('ts-input-end').value,
+            breakMin: parseInt(document.getElementById('ts-input-break').value, 10) || 0,
+            total, base, ot50, ot100, night, sun, free, duty, juv, other
+          };
+        }
+
+        if (noteTxt) {
+          if (!s.dayNotes) s.dayNotes = {};
+          s.dayNotes[d] = noteTxt;
+        }
+      }
+
+      closeTimesheetModal();
+      persistData();
+      renderTimesheetSummaryCards();
+      renderTimesheetInteractiveGrid();
+    }
+
+    function clearTsDayEntry() {
+      const s = getActiveTimesheetSession();
+      const ent = s.entities.find(e => e.id === tsModalCtx.entityId);
+      if (ent && ent.days) {
+        delete ent.days[tsModalCtx.day];
+      }
+      closeTimesheetModal();
+      persistData();
+      renderTimesheetSummaryCards();
+      renderTimesheetInteractiveGrid();
+    }
+
+    // ================= GENERATOR KARTY A4 (1:1 ZE WZOREM, BEZ PRODUCT PLACEMENTU) =================
+    function openTimesheetPrintPreview() {
+      switchView('timesheet-print');
+      renderTimesheetPrintPages();
+    }
+
+    function renderTimesheetPrintPages() {
+      const s = getActiveTimesheetSession();
+      const c = document.getElementById('timesheet-print-container');
+      if (!c) return;
+
+      const cellFormat = document.getElementById('ts-print-cell-format')?.value || 'hours';
+      const entities = s.entities || [];
+      const chunks = [];
+      for (let i = 0; i < Math.max(1, entities.length); i += 10) {
+        chunks.push(entities.slice(i, i + 10));
+      }
+
+      let html = '';
+
+      chunks.forEach((group, pageIdx) => {
+        // Dopełnienie do 10 kolumn (1, 2, 3, 4, 5, 6, 7, 8, 9, 0) jak w klasycznym formularzu
+        const slots = [...group];
+        while (slots.length < 10) slots.push(null);
+
+        const statsArr = slots.map(ent => ent ? computeEntityStats(s, ent) : null);
+
+        html += `
+          <div class="a4-page" style="padding: 8mm 10mm !important;">
+            <table class="w-full border-collapse border-2 border-[#1e293b] text-[#0f172a]" style="font-size: 6.8pt; line-height: 1.08; table-layout: fixed;">
+              <colgroup>
+                <col style="width: 7mm;">
+                <col style="width: 28mm;">
+                <col style="width: 8mm;">
+                ${slots.map(() => `<col style="width: 14.7mm;">`).join('')}
+              </colgroup>
+              <tbody>
+                <!-- GÓRNY NAGŁÓWEK: STRONA / ROK / M-C / KOLUMNY 1..0 -->
+                <tr style="height: 7mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1.5 py-0.5 align-top font-bold text-[7pt]">
+                    strona <span class="font-black ml-2">${pageIdx + 1}</span>
+                  </td>
+                  <td class="border border-[#1e293b] text-center align-middle font-bold text-[6.5pt]">
+                    <div>rok</div>
+                    <div class="font-black text-[7.5pt]">${s.year}</div>
+                  </td>
+                  ${slots.map((ent, idx) => `
+                    <td rowspan="2" class="border border-[#1e293b] p-0.5 align-bottom text-center relative" style="height: 24mm;">
+                      <div class="flex flex-col justify-between h-full">
+                        <div class="font-bold text-[6.8pt] leading-tight break-words px-0.5 pt-1 text-[#0f172a]">${ent ? ent.name : ''}</div>
+                        <div class="border-t border-[#94a3b8] pt-0.5 font-black text-[7.5pt] bg-[#f1f5f9]">${idx === 9 ? '0' : (idx + 1)}</div>
+                      </div>
+                    </td>
+                  `).join('')}
+                </tr>
+                <tr style="height: 17mm;">
+                  <td rowspan="32" class="border border-[#1e293b] p-0 align-middle text-center bg-[#f8fafc] relative">
+                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[7.5pt] tracking-wide py-2">
+                      Nazwa komórki organizacyjnej: <span class="font-black text-[#0f172a]">${s.orgName || ''}</span>
+                    </div>
+                  </td>
+                  <td class="border border-[#1e293b] p-1 text-center align-middle font-bold text-[6.8pt] leading-tight">
+                    podpis<br>kierownika<br>komórki<br>organizac.
+                  </td>
+                  <td class="border border-[#1e293b] text-center align-bottom pb-1 font-bold text-[6.8pt]">
+                    <div>m-c</div>
+                    <div class="font-black text-[8pt]">${String(s.month).padStart(2, '0')}</div>
+                  </td>
+                </tr>
+
+                <!-- WIERSZE DNI 1..31 -->
+                ${Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
+                  const note = (s.dayNotes && s.dayNotes[d]) ? s.dayNotes[d] : '';
+                  return `
+                    <tr style="height: 4.1mm;">
+                      <td class="border border-[#1e293b] px-1 text-[6.2pt] truncate">${note}</td>
+                      <td class="border border-[#1e293b] text-center font-bold bg-[#e2e8f0] text-[6.8pt]">${d}</td>
+                      ${slots.map(ent => {
+                        if (!ent || !ent.days || !ent.days[d]) return `<td class="border border-[#1e293b]"></td>`;
+                        const rec = ent.days[d];
+                        if (rec.type === 'absence') {
+                          return `<td class="border border-[#1e293b] text-center font-bold text-[6.5pt]">${rec.code}</td>`;
+                        }
+                        const tot = Number(rec.total) || 0;
+                        if (cellFormat === 'range' && rec.start && rec.end) {
+                          return `<td class="border border-[#1e293b] text-center text-[5.8pt] leading-none">${rec.start}-${rec.end}<br><b>${tot}h</b></td>`;
+                        }
+                        return `<td class="border border-[#1e293b] text-center font-bold text-[7pt]">${tot > 0 ? tot : ''}</td>`;
+                      }).join('')}
+                    </tr>
+                  `;
+                }).join('')}
+
+                <!-- SEKCJA DOLNA 1: FAKTYCZNA LICZBA GODZIN CZASU PRACY -->
+                <tr style="height: 4.3mm;">
+                  <td rowspan="9" class="border border-[#1e293b] bg-[#1e293b] text-white text-center align-middle p-0">
+                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[6.2pt] tracking-tight">
+                      Faktyczna liczba godzin czasu pracy
+                    </div>
+                  </td>
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">podstawowego wg normy dziennej</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.base > 0 ? st.workSums.base : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w godz. nadliczbowych: z dopłatą 50%</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.ot50 > 0 ? st.workSums.ot50 : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w godz. nadliczbowych: z dopłatą 100%</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.ot100 > 0 ? st.workSums.ot100 : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w niedziele i święta</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.sun > 0 ? st.workSums.sun : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w dni dodatkowo wolne od pracy</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.free > 0 ? st.workSums.free : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w porze nocnej</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.night > 0 ? st.workSums.night : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">w porze dyżuru</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.duty > 0 ? st.workSums.duty : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.8mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[5.5pt] leading-none">młodocianego przy pracach wzbronionych (dozwolonych w przygotowaniu zawodowym)</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.workSums.juv > 0 ? st.workSums.juv : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt] font-bold flex-row justify-between">
+                    <span>inne ${s.mode === 'equipment' ? '(Suma godz. / dni sprzętu)' : '(Razem godz. / dni)'}</span>
+                  </td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-black bg-[#f8fafc] text-[6.4pt]">${st && st.totalHours > 0 ? `${st.totalHours}h (${st.workedDays}d)` : ''}</td>`).join('')}
+                </tr>
+
+                <!-- SEKCJA DOLNA 2: LICZBA DNI NIEOBECNOŚCI W PRACY Z POWODU -->
+                <tr style="height: 4.3mm;">
+                  <td rowspan="12" class="border border-[#1e293b] bg-[#1e293b] text-white text-center align-middle p-0">
+                    <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;" class="mx-auto font-bold text-[6.2pt] tracking-tight">
+                      Liczba dni nieobecności w pracy z powodu:
+                    </div>
+                  </td>
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: wypoczynkowego</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UW > 0 ? st.absSums.UW : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: macierzyńskiego</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UM > 0 ? st.absSums.UM : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: wychowawczego</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UWy > 0 ? st.absSums.UWy : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: bezpłatnego</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UB > 0 ? st.absSums.UB : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">urlopu: okolicznościowego</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.UO > 0 ? st.absSums.UO : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">niepłatnego zwolnienia od pracy</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.NZ > 0 ? st.absSums.NZ : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">choroby pracownika</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.CH > 0 ? st.absSums.CH : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">opieki nad dzieckiem lub innym członkiem rodziny</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.OP > 0 ? st.absSums.OP : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[5.8pt]">usprawiedliwionych (do odpracowania lub niepłatnej)</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.U > 0 ? st.absSums.U : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">innych spraw nieusprawiedliwionych</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.NN > 0 ? st.absSums.NN : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">delegacji</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.DEL > 0 ? st.absSums.DEL : ''}</td>`).join('')}
+                </tr>
+                <tr style="height: 4.3mm;">
+                  <td colspan="2" class="border border-[#1e293b] px-1 text-[6.2pt]">inne</td>
+                  ${statsArr.map(st => `<td class="border border-[#1e293b] text-center font-bold">${st && st.absSums.IN > 0 ? st.absSums.IN : ''}</td>`).join('')}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+      });
+
+      c.innerHTML = html;
+    }
+    
 function exportProjectFile() {
       const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
       a.download = `Inspektor_Pro_${new Date().toISOString().slice(0,10)}.insp`; a.click();
