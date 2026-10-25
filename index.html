@@ -118,16 +118,16 @@
       </div>
     </div>
 
-    <!-- Pasek zakładek nawigacyjnych (Desktop) -->
+  <!-- Pasek zakładek nawigacyjnych (Desktop) -->
     <nav class="hidden xl:flex bg-[#1c1c1c] p-1 rounded-xl border border-[#2a2a2a] gap-1 text-xs font-semibold">
       <button onclick="switchView('dashboard')" id="nav-btn-dashboard" class="nav-tab px-3 py-1.5 rounded-lg text-white bg-[#2d2d2d] shadow-sm flex items-center gap-1.5"><i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Pulpit</button>
       <button onclick="switchView('plan')" id="nav-btn-plan" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="map" class="w-3.5 h-3.5"></i> Rzut & Usterki (<span id="nav-count-pins">0</span>)</button>
       <button onclick="switchView('todo')" id="nav-btn-todo" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> To-Do</button>
+      <button onclick="switchView('timesheet')" id="nav-btn-timesheet" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Czas Pracy & Sprzęt</button>
       <button onclick="switchView('calendar')" id="nav-btn-calendar" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Kalendarz</button>
       <button onclick="switchView('norms')" id="nav-btn-norms" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Normy</button>
       <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Protokół odbiorowy/jakościowy</button>
-     <button onclick="switchView('leveling')" id="nav-btn-leveling" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Niwelacja</button>
-      <button onclick="switchView('timesheet')" id="nav-btn-timesheet" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Czas Pracy & Sprzęt</button>
+      <button onclick="switchView('leveling')" id="nav-btn-leveling" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Niwelacja</button>
     </nav>
     
     <!-- Zarządzanie projektem -->
@@ -1642,21 +1642,30 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
     });
 
-    function updateDashboardCounts() {
+ function updateDashboardCounts() {
       let pins=0; appState.buildings.forEach(b=>b.floors.forEach(f=>pins+=f.pins.length));
       document.getElementById('dash-count-pins').innerText = pins; document.getElementById('nav-count-pins').innerText = pins;
       document.getElementById('dash-count-todos').innerText = appState.todos.filter(t=>!t.completed).length;
       document.getElementById('dash-count-takeoffs').innerText = appState.takeoffBook.sessions.length;
+
+      const normsEl = document.getElementById('dash-count-norms');
+      if (normsEl) normsEl.innerText = (appState.customNormCategories || []).length;
+
+      const logsEl = document.getElementById('dash-count-logs');
+      if (logsEl) logsEl.innerText = (appState.calendarSchedule || []).length;
+
       let lvlPts = 0;
       if (appState.levelingBook && Array.isArray(appState.levelingBook.sessions)) {
         appState.levelingBook.sessions.forEach(s => lvlPts += (s.points ? s.points.length : 0));
       }
       const lvlEl = document.getElementById('dash-count-leveling');
       if (lvlEl) lvlEl.innerText = lvlPts;
+
       const tsEl = document.getElementById('dash-count-timesheet');
       if (tsEl && appState.timesheetBook && Array.isArray(appState.timesheetBook.sessions)) {
         tsEl.innerText = appState.timesheetBook.sessions.length + ' kart';
       }
+
       const act = getCurrentBuilding();
       document.getElementById('header-active-info').innerText = `Pro: ${appState.project.name} (${act?act.name:''})`;
     }
@@ -3167,7 +3176,7 @@ let pendingNormDefectText = null;
       renderNorms(); 
     }
 
-    function saveNewNormCategory() {
+   function saveNewNormCategory() {
       const editId = document.getElementById('edit-norm-cat-id').value;
       const short = document.getElementById('new-norm-short').value.trim();
       const title = document.getElementById('new-norm-title').value.trim();
@@ -3175,6 +3184,18 @@ let pendingNormDefectText = null;
       
       if (!short || !title) { uiAlert('Podaj krótką nazwę i tytuł normy.'); return; }
       if (!appState.customNormCategories) appState.customNormCategories = [];
+
+      // Sprawdzanie, czy norma o takiej nazwie już istnieje
+      const duplicate = appState.customNormCategories.find(c =>
+        c.id !== editId && (
+          (c.short && c.short.trim().toLowerCase() === short.toLowerCase()) ||
+          (c.title && c.title.trim().toLowerCase() === title.toLowerCase())
+        )
+      );
+      if (duplicate) {
+        uiAlert(`Norma "${duplicate.short}" (${duplicate.title}) już istnieje w bazie!`);
+        return;
+      }
       
       const guidelinesList = g.split('\n').map(s => s.trim()).filter(Boolean);
 
@@ -3214,6 +3235,11 @@ let pendingNormDefectText = null;
       const n = appState.customNormCategories.find(c => c.id === catId); 
       if(n) {
         if(!n.checklist) n.checklist = [];
+        const exists = n.checklist.some(item => ((typeof item === 'string' ? item : item.text) || '').trim().toLowerCase() === text.toLowerCase());
+        if (exists) {
+          uiAlert('Taki punkt kontrolny już istnieje w tej normie!');
+          return;
+        }
         n.checklist.push({ id: 'chk-' + Date.now(), text: text, isNiceToHave: isNice });
       }
       
@@ -3236,8 +3262,36 @@ let pendingNormDefectText = null;
         try { 
           const d = JSON.parse(evt.target.result); 
           if(!appState.customNormCategories) appState.customNormCategories = [];
-          if(Array.isArray(d)) { appState.customNormCategories = [...appState.customNormCategories, ...d]; persistData(); renderNorms(); uiAlert('Zaimportowano bazę norm.'); } 
-          else { uiAlert('Zły format pliku.'); }
+          if(Array.isArray(d)) {
+            let added = 0, skipped = 0;
+            d.forEach(item => {
+              if (!item || (!item.short && !item.title)) return;
+              const sLow = (item.short || '').trim().toLowerCase();
+              const tLow = (item.title || '').trim().toLowerCase();
+              const exists = appState.customNormCategories.some(c =>
+                (sLow && (c.short || '').trim().toLowerCase() === sLow) ||
+                (tLow && (c.title || '').trim().toLowerCase() === tLow)
+              );
+              if (exists) {
+                skipped++;
+              } else {
+                const uniqueId = (item.id && !appState.customNormCategories.some(c => c.id === item.id))
+                  ? item.id
+                  : ('n-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6));
+                appState.customNormCategories.push({ ...item, id: uniqueId });
+                added++;
+              }
+            });
+            persistData();
+            renderNorms();
+            if (skipped > 0 && added === 0) {
+              uiAlert(`Norma już istnieje! Wszystkie normy z wybranego pliku (${skipped}) znajdują się już w Twojej bazie.`);
+            } else if (skipped > 0) {
+              uiAlert(`Dodano nowych norm: ${added}.\nPominięto istniejące duplikaty: ${skipped}.`);
+            } else {
+              uiAlert(`Zaimportowano bazę norm (${added}).`);
+            }
+          } else { uiAlert('Zły format pliku.'); }
         } catch(err) { uiAlert('Błąd odczytu pliku!'); }
       }; r.readAsText(file); e.target.value='';
     }
@@ -3252,8 +3306,23 @@ let pendingNormDefectText = null;
     }
     function filterNorms(val) { renderNorms(); }
 
-    // KALKULATOR
-    function toggleQuickToolsMenu() { toggleElement('quick-tools-menu'); }
+   // KALKULATOR & SZYBKIE NARZĘDZIA (Auto-zamykanie po kliknięciu poza kluczem)
+    function toggleQuickToolsMenu() {
+      const menu = document.getElementById('quick-tools-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+      const toolsMenu = document.getElementById('quick-tools-menu');
+      const toolsContainer = document.getElementById('floating-tools-container');
+      if (toolsMenu && !toolsMenu.classList.contains('hidden') && toolsContainer && !toolsContainer.contains(e.target)) {
+        toolsMenu.classList.add('hidden');
+      }
+      const projMenu = document.getElementById('project-menu-dropdown');
+      if (projMenu && !projMenu.classList.contains('hidden') && !e.target.closest('#project-menu-dropdown') && !e.target.closest('[onclick*="project-menu-dropdown"]')) {
+        projMenu.classList.add('hidden');
+      }
+    });
     function openCalculatorModal() { document.getElementById('modal-calculator').classList.remove('hidden'); document.getElementById('modal-calculator').classList.add('flex'); renderCalcLists(); }
     function setCalcTab(t) { ['standard','concrete','steel','slopes','masonry'].forEach(x=>{document.getElementById('calc-panel-'+x).classList.toggle('hidden',x!==t); document.getElementById('calctab-'+x).classList.toggle('text-amber-400',x===t); document.getElementById('calctab-'+x).classList.toggle('text-gray-400',x!==t); document.getElementById('calctab-'+x).classList.toggle('bg-[#1b1b1b]',x===t);}); }
     
