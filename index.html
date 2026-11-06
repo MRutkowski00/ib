@@ -13,9 +13,19 @@
 
   <!-- Tailwind CSS & Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+tailwind.config = { theme: { extend: { colors: { app: {
+  bg:'#0a0a0c', surface:'#141519', surfaceHover:'#1a1c22', input:'#0e0f13',
+  border:'#23252f', borderHover:'#323544', text:'#f8fafc', muted:'#8b92a5'
+}}}}}
+</script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- Generowanie PDF (html2canvas + jsPDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     :root {
@@ -96,6 +106,16 @@
       }
       .a4-page:last-child { page-break-after: auto !important; break-after: auto !important; }
     }
+
+  .calendar-collapse { transition: max-height .28s cubic-bezier(.4,0,.2,1), opacity .2s ease; overflow: hidden; }
+.calendar-open { max-height: 500px; opacity: 1; }
+.calendar-closed { max-height: 0; opacity: 0; }
+#pdf-render-area { background:#fff; color:#0f172a; width:794px; min-height:480px; margin:0 auto; box-sizing:border-box; font-family: Arial, sans-serif; }
+.pdf-table { width:100%; border-collapse:collapse; }
+.pdf-table th, .pdf-table td { border:1px solid #cbd5e1; padding:8px 10px; vertical-align:top; text-align:left; font-size:11px; line-height:1.45; color:#0f172a; }
+.pdf-table th { background:#f8fafc; font-weight:700; color:#1e293b; text-transform:uppercase; letter-spacing:.04em; font-size:10px; }
+.pdf-page-break-avoid { page-break-inside:avoid; break-inside:avoid; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cursor:pointer; }
     
   </style>
 </head>
@@ -125,6 +145,7 @@
       <button onclick="switchView('todo')" id="nav-btn-todo" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> To-Do</button>
       <button onclick="switchView('timesheet')" id="nav-btn-timesheet" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Czas Pracy & Sprzęt</button>
       <button onclick="switchView('calendar')" id="nav-btn-calendar" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Kalendarz</button>
+      <button onclick="switchView('reports')" id="nav-btn-reports" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i> Raport robót</button>
       <button onclick="switchView('norms')" id="nav-btn-norms" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Normy</button>
       <button onclick="switchView('report-rohe')" id="nav-btn-report-rohe" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i> Protokół odbiorowy/jakościowy</button>
       <button onclick="switchView('leveling')" id="nav-btn-leveling" class="nav-tab px-3 py-1.5 rounded-lg text-gray-400 hover:text-white flex items-center gap-1.5"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i> Niwelacja</button>
@@ -210,6 +231,14 @@
             </div>
             <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Wpisy:</span><span class="font-bold text-amber-400" id="dash-count-logs">0</span></div>
           </div>
+          <div onclick="switchView('reports')" class="bg-[#141414] border border-[#262626] hover:border-blue-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
+  <div>
+    <div class="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="clipboard-list" class="w-5 h-5"></i></div>
+    <h3 class="font-bold text-white text-sm sm:text-base">Raport robót (PW)</h3>
+    <p class="text-[11px] text-gray-400 mt-1">Dzienne i tygodniowe raporty prac podwykonawców.</p>
+  </div>
+  <div class="mt-4 pt-3 border-t border-[#222] flex justify-between text-xs text-gray-300"><span>Wpisy:</span><span class="font-bold text-blue-400" id="dash-count-reports">0</span></div>
+</div>
           <div onclick="switchView('norms')" class="bg-[#141414] border border-[#262626] hover:border-purple-500/50 p-4 sm:p-5 rounded-2xl cursor-pointer flex flex-col justify-between group shadow-lg">
             <div>
               <div class="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
@@ -339,6 +368,227 @@
       </div>
     </div>
 
+<!-- RAPORT ROBÓT (PW) -->
+<div id="view-reports" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-8 pb-28 bg-[#0a0a0a]">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Przyciski u góry -->
+    <div class="flex justify-end gap-2.5">
+      <button onclick="openPwModal()" class="px-3.5 py-2 rounded-xl bg-app-surface hover:bg-app-surfaceHover text-slate-200 border border-app-border text-xs font-medium flex items-center gap-2 transition">
+        <span>Baza PW</span>
+        <span id="header-pw-count" class="px-1.5 rounded-md bg-white/5 text-app-muted font-mono text-[11px]">0</span>
+      </button>
+      <button onclick="openExportModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-2 transition">
+        <span>Raport PDF</span>
+        <span id="export-selected-badge" class="hidden px-1.5 py-0.5 text-[10px] font-mono bg-black/30 text-blue-200 rounded">0</span>
+      </button>
+    </div>
+
+   <!-- ===================== RAPORT ROBÓT (PW) ===================== -->
+<div id="view-reports" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-8 pb-28 bg-[#0a0a0a]">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Przyciski u góry -->
+    <div class="flex justify-end gap-2.5">
+      <button onclick="openPwModal()" class="px-3.5 py-2 rounded-xl bg-app-surface hover:bg-app-surfaceHover text-slate-200 border border-app-border text-xs font-medium flex items-center gap-2 transition">
+        <span>Baza PW</span>
+        <span id="header-pw-count" class="px-1.5 rounded-md bg-white/5 text-app-muted font-mono text-[11px]">0</span>
+      </button>
+      <button onclick="openExportModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-2 transition">
+        <span>Raport PDF</span>
+        <span id="export-selected-badge" class="hidden px-1.5 py-0.5 text-[10px] font-mono bg-black/30 text-blue-200 rounded">0</span>
+      </button>
+    </div>
+
+    <!-- Nagłówek modułu + nawigacja dat -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+          <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">Raport Dzienny i Tygodniowy</h1>
+          <p class="text-xs sm:text-sm text-app-muted">Ewidencja prac podwykonawców (PW), sił roboczych i postępu robót.</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center bg-app-surface border border-app-border rounded-xl p-1">
+          <button onclick="shiftSelectedDate(-1)" title="Poprzedni dzień" class="p-2 rounded-lg hover:bg-white/5 text-app-muted hover:text-white transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button onclick="toggleCalendarDropdown()" class="px-3 py-1.5 rounded-lg hover:bg-white/5 flex items-center gap-2.5 transition">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <div class="text-left">
+              <div id="active-date-display" class="text-xs font-semibold text-white leading-none">—</div>
+              <div id="active-week-display" class="text-[10px] font-mono text-app-muted mt-1">—</div>
+            </div>
+            <svg id="calendar-chevron" class="w-3.5 h-3.5 text-app-muted transition-transform duration-200 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <button onclick="shiftSelectedDate(1)" title="Następny dzień" class="p-2 rounded-lg hover:bg-white/5 text-app-muted hover:text-white transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <button onclick="goToToday()" class="px-2.5 py-1.5 mr-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-medium text-slate-300 transition">Dziś</button>
+        </div>
+
+        <div class="flex items-center bg-app-surface border border-app-border p-1 rounded-xl">
+          <button onclick="setViewFilter('day')" id="filter-btn-day" class="px-3 py-1.5 rounded-lg text-xs font-medium transition">Dzień</button>
+          <button onclick="setViewFilter('week')" id="filter-btn-week" class="px-3 py-1.5 rounded-lg text-xs font-medium transition">Tydzień</button>
+          <button onclick="setViewFilter('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg text-xs font-medium transition">Wszystkie</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rozwijany kalendarz miesięczny -->
+    <div id="calendar-dropdown" class="calendar-collapse calendar-closed">
+      <div class="bg-app-surface border border-app-border rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2.5">
+            <h3 id="calendar-month-year" class="text-sm font-semibold text-white capitalize">—</h3>
+            <span class="text-xs text-app-muted font-mono hidden sm:inline">• Kliknij dzień, aby przełączyć widok</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="rptChangeCalendarMonth(-1)" class="p-1.5 rounded-lg bg-app-input hover:bg-white/5 text-slate-300 border border-app-border">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onclick="rptChangeCalendarMonth(1)" class="p-1.5 rounded-lg bg-app-input hover:bg-white/5 text-slate-300 border border-app-border">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-7 gap-1.5 text-center mb-1.5">
+          <div class="text-[10px] font-mono uppercase text-app-muted py-1">Pon</div>
+          <div class="text-[10px] font-mono uppercase text-app-muted py-1">Wt</div>
+          <div class="text-[10px] font-mono uppercase text-app-muted py-1">Śr</div>
+          <div class="text-[10px] font-mono uppercase text-app-muted py-1">Czw</div>
+          <div class="text-[10px] font-mono uppercase text-app-muted py-1">Pt</div>
+          <div class="text-[10px] font-mono uppercase text-amber-400/80 py-1">Sob</div>
+          <div class="text-[10px] font-mono uppercase text-rose-400/80 py-1">Nie</div>
+        </div>
+        <div id="calendar-days-grid" class="grid grid-cols-7 gap-1.5"></div>
+      </div>
+    </div>
+
+    <!-- Siatka robocza: formularz + lista -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEWA KARTA: formularz wpisu -->
+      <section class="lg:col-span-5 bg-app-surface border border-app-border rounded-2xl p-5 sm:p-6">
+        <div class="flex items-center justify-between mb-5 pb-3 border-b border-app-border">
+          <div class="flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </div>
+            <h2 id="form-title" class="text-sm font-bold text-white">Nowy wpis raportowy</h2>
+          </div>
+          <span id="edit-mode-indicator" class="hidden text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30">Edycja wpisu</span>
+        </div>
+
+        <form id="task-form" onsubmit="handleTaskSubmit(event)" class="space-y-4">
+          <input type="hidden" id="task-edit-id" value="">
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-app-muted mb-1.5">Data wykonania *</label>
+              <input type="date" id="task-date" required class="w-full px-3 py-2 rounded-xl bg-app-input border border-app-border text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-blue-500 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-app-muted mb-1.5">Odcinek / Lokalizacja</label>
+              <input type="text" id="task-location" placeholder="np. Bud. A, parter" class="w-full px-3 py-2 rounded-xl bg-app-input border border-app-border text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition">
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-medium text-app-muted">Podwykonawca (PW) *</label>
+              <button type="button" onclick="openPwModal()" class="text-[11px] text-blue-400 hover:text-blue-300 transition">Edytuj listę PW</button>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="task-subcontractor" required placeholder="Wpisz nazwę PW lub wybierz poniżej..." class="flex-1 px-3.5 py-2 rounded-xl bg-app-input border border-app-border text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition">
+              <button type="button" onclick="quickSaveTypedPwToList()" title="Zapisz wpisaną nazwę PW do bazy" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-app-border text-xs text-slate-300 hover:text-white transition shrink-0">+ Do bazy</button>
+            </div>
+            <div id="subcontractor-chips" class="flex flex-wrap gap-1.5 mt-2.5"></div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-app-muted mb-1.5">Stan osobowy / Sprzęt <span class="text-slate-600">(opcjonalnie)</span></label>
+            <input type="text" id="task-workers" placeholder="np. 5 pracowników, podnośnik nożycowy" class="w-full px-3.5 py-2 rounded-xl bg-app-input border border-app-border text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-app-muted mb-1.5">Zakres wykonanych robót *</label>
+            <textarea id="task-description" rows="4" required placeholder="Opisz wykonane prace..." class="w-full px-3.5 py-2.5 rounded-xl bg-app-input border border-app-border text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition leading-relaxed"></textarea>
+          </div>
+
+          <div class="pt-1">
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="task-auto-select" checked class="w-4 h-4 rounded bg-app-input border-app-border text-blue-600 focus:ring-0 focus:ring-offset-0">
+              <span class="text-xs text-app-muted">Zaznacz od razu do wyboru PDF</span>
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2 pt-2">
+            <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition">
+              <span id="submit-task-btn-text">Zapisz wpis</span>
+            </button>
+            <button type="button" id="cancel-edit-btn" onclick="resetTaskForm()" class="hidden py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-xs sm:text-sm transition">Anuluj</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- PRAWA KARTA: lista wpisów -->
+      <section class="lg:col-span-7 bg-app-surface border border-app-border rounded-2xl p-5 sm:p-6 flex flex-col justify-between min-h-[520px]">
+        <div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-app-border">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 id="list-view-heading" class="text-sm font-bold text-white">Wpisy z wybranego dnia</h2>
+                <span id="list-count-badge" class="px-2 py-0.5 text-xs font-mono font-semibold rounded-md bg-white/5 text-blue-400 border border-app-border">0</span>
+              </div>
+              <p id="list-view-subheading" class="text-xs text-app-muted mt-0.5">Lista zarejestrowanych prac podwykonawców</p>
+            </div>
+            <div class="relative w-full sm:w-56">
+              <input type="text" id="search-input" oninput="renderTasksList()" placeholder="Filtruj PW lub roboty..." class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-app-input border border-app-border text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 transition">
+              <svg class="w-3.5 h-3.5 text-app-muted absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3 text-xs">
+            <div class="flex items-center gap-3">
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none text-app-muted hover:text-white transition">
+                <input type="checkbox" id="select-all-visible" onchange="toggleSelectAllVisible(this.checked)" class="w-4 h-4 rounded bg-app-input border-app-border text-blue-600 focus:ring-0">
+                <span>Zaznacz widoczne</span>
+              </label>
+              <button onclick="clearAllSelections()" class="text-app-muted hover:text-slate-300 transition">
+                Odznacz wszystkie (<span id="selected-total-counter" class="font-mono text-slate-300">0</span>)
+              </button>
+            </div>
+            <button onclick="confirmClearAllTasks()" class="text-[11px] text-rose-400/80 hover:text-rose-400 transition">Wyczyść wpisy</button>
+          </div>
+
+          <div id="tasks-list-container" class="space-y-2.5 max-h-[430px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-app-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="text-xs text-app-muted">Szybki eksport PDF:</div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openExportModal('daily')" class="px-3 py-1.5 rounded-xl bg-app-input hover:bg-white/5 text-slate-300 border border-app-border text-xs font-medium transition">Dzienny</button>
+            <button onclick="openExportModal('weekly')" class="px-3 py-1.5 rounded-xl bg-app-input hover:bg-white/5 text-slate-300 border border-app-border text-xs font-medium transition">Tygodniowy</button>
+            <button onclick="openExportModal('selected')" class="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/25 text-xs font-medium transition">
+              Zaznaczone (<span id="bottom-selected-count" class="font-mono">0</span>)
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</div>
+<!-- =================== KONIEC: RAPORT ROBÓT (PW) =================== -->
+
+  </div>
+</div>
+    
    <!-- 5. NORMY I ODBIORY -->
     <div id="view-norms" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-6 pb-28 md:pb-12 bg-[#0c0c0c]">
       <div class="max-w-4xl mx-auto space-y-6">
@@ -371,7 +621,7 @@
             <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="file-check" class="w-4 h-4 text-rose-500"></i> Protokół odbiorowy / jakościowy</h3>
             <div class="flex items-center gap-2 flex-wrap">
               <button onclick="toggleElement('rohe-blueprint-manager'); if(!document.getElementById('rohe-blueprint-manager').classList.contains('hidden')) setTimeout(fitRoheBlueprintToView, 60);" class="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i> Rzuty i pinezki (<span id="rohe-sheets-count">1</span>)</button>
-              <button onclick="window.print()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Drukuj / PDF (A4)</button>
+              <button onclick="window.print()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Wygeneruj PDF</button>
             </div>
           </div>
 
@@ -534,7 +784,7 @@
               <button id="lvl-btn-cm" onclick="setLevelingUnit('cm')" class="px-3 py-1 rounded-lg text-gray-400 hover:text-white transition-colors">Łata w cm</button>
             </div>
             <button onclick="openLevelingPrintPreview()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg">
-              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Drukuj Kartę (PDF)
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Wygeneruj PDF
             </button>
           </div>
         </div>
@@ -736,7 +986,7 @@
           </div>
           <div class="flex gap-2">
             <button onclick="switchView('leveling')" class="px-3 py-1 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
-            <button onclick="window.print()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Drukuj / PDF</button>
+            <button onclick="window.print()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Wygeneruj PDF</button>
           </div>
         </div>
         <div id="leveling-print-container" class="space-y-4"></div>
@@ -761,7 +1011,7 @@
               <button type="button" id="ts-mode-equipment" onclick="setTimesheetMode('equipment')" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors flex items-center gap-1">🚜 Sprzęt</button>
             </div>
             <button type="button" onclick="openTimesheetPrintPreview()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg">
-              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Drukuj Kartę A4 (PDF)
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> Wygeneruj PDF
             </button>
           </div>
         </div>
@@ -847,7 +1097,7 @@
               <option value="range">W kratkach: Przedział + suma (np. 7-15 / 8h)</option>
             </select>
             <button type="button" onclick="switchView('timesheet')" class="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
-            <button type="button" onclick="window.print()" class="bg-white hover:bg-gray-200 text-black text-xs font-bold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Drukuj / PDF</button>
+            <button type="button" onclick="window.print()" class="bg-white hover:bg-gray-200 text-black text-xs font-bold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Wygeneruj PDF </button>
           </div>
         </div>
         <div id="timesheet-print-container" class="space-y-4"></div>
@@ -1127,7 +1377,7 @@
       </div>
       <div class="flex gap-1 sm:gap-2">
         <button onclick="promptCreateNewTakeoffSession()" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] sm:text-[11px]">Nowy</button>
-        <button onclick="openTakeoffPrintPreview()" class="bg-[#1f1f1f] text-emerald-400 border border-[#333] px-2 py-1 rounded text-[10px] sm:text-[11px]">Drukuj PDF</button>
+        <button onclick="openTakeoffPrintPreview()" class="bg-[#1f1f1f] text-emerald-400 border border-[#333] px-2 py-1 rounded text-[10px] sm:text-[11px]">Wygeneruj PDF</button>
         <button onclick="closeTakeoffModal()" class="text-gray-400 pl-1"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
     </div>
@@ -1446,6 +1696,240 @@
       </div>
     </div>
   </div>
+
+     <!-- ========================================================================= -->
+    <!-- MODAL ZARZĄDZANIA WŁASNĄ BAZĄ PODWYKONAWCÓW (PW)                          -->
+    <!-- ========================================================================= -->
+    <div id="pw-modal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-app-surface border border-app-border rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="px-5 py-4 border-b border-app-border flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Baza Podwykonawców (PW)</h3>
+                        <p class="text-[11px] text-app-muted">Dodawaj, zmieniaj nazwy i usuwaj swoich podwykonawców</p>
+                    </div>
+                </div>
+                <button onclick="closePwModal()" class="p-1.5 rounded-lg text-app-muted hover:text-white hover:bg-white/5 transition">✕</button>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <!-- Dodawanie nowego PW -->
+                <form onsubmit="handleAddPwInModal(event)" class="flex gap-2">
+                    <input type="text" id="new-pw-input" placeholder="Wpisz nazwę nowego PW (np. INSTAL-BUD)..." class="flex-1 px-3.5 py-2 rounded-xl bg-app-input border border-app-border text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500">
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition shrink-0">
+                        Dodaj PW
+                    </button>
+                </form>
+
+                <!-- Lista zapisanych PW z edycją nazwy i usuwaniem -->
+                <div>
+                    <div class="text-[11px] font-medium text-app-muted mb-2 flex items-center justify-between">
+                        <span>Twoja lista PW (kliknij ołówek, aby zmienić nazwę):</span>
+                        <span id="modal-pw-counter" class="font-mono">0</span>
+                    </div>
+                    <div id="pw-manager-list" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                        <!-- Generowane w JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-5 py-3.5 border-t border-app-border bg-app-input/50 flex justify-end">
+                <button onclick="closePwModal()" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition">
+                    Gotowe
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL KONFIGURACJI I PODGLĄDU EKSPORTU PDF (DARK UI + BIAŁA KARTKA A4)    -->
+    <!-- ========================================================================= -->
+    <div id="export-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-app-surface border border-app-border rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden my-auto">
+            
+            <!-- Nagłówek modala -->
+            <div class="px-5 py-4 border-b border-app-border flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm sm:text-base font-bold text-white">Eksport Raportu do pliku PDF</h3>
+                        <p class="text-xs text-app-muted">Dostosuj metryczkę i pobierz gotowy dokument A4</p>
+                    </div>
+                </div>
+                <button onclick="closeExportModal()" class="p-1.5 rounded-lg text-app-muted hover:text-white hover:bg-white/5 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Zawartość modala -->
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+                
+                <!-- Wybór zakresu + pola metryczki -->
+                <div class="bg-app-input border border-app-border p-4 rounded-2xl space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- Karta: Raport Dzienny -->
+                        <label onclick="selectExportType('daily')" id="export-card-daily" class="cursor-pointer rounded-xl border p-3.5 transition flex items-start gap-3">
+                            <input type="radio" name="exportType" value="daily" class="mt-1 text-blue-600 bg-app-surface border-app-border focus:ring-0">
+                            <div>
+                                <div class="text-xs font-bold text-white">Raport Dzienny</div>
+                                <div id="export-desc-daily" class="text-[11px] text-app-muted mt-0.5">Wybrany dzień</div>
+                                <span id="export-count-daily" class="inline-block mt-1.5 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-300">0 poz.</span>
+                            </div>
+                        </label>
+
+                        <!-- Karta: Raport Tygodniowy -->
+                        <label onclick="selectExportType('weekly')" id="export-card-weekly" class="cursor-pointer rounded-xl border p-3.5 transition flex items-start gap-3">
+                            <input type="radio" name="exportType" value="weekly" class="mt-1 text-blue-600 bg-app-surface border-app-border focus:ring-0">
+                            <div>
+                                <div class="text-xs font-bold text-white">Raport Tygodniowy</div>
+                                <div id="export-desc-weekly" class="text-[11px] text-app-muted mt-0.5">Poniedziałek – Niedziela</div>
+                                <span id="export-count-weekly" class="inline-block mt-1.5 text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-slate-300">0 poz.</span>
+                            </div>
+                        </label>
+
+                        <!-- Karta: Zaznaczone pozycje -->
+                        <label onclick="selectExportType('selected')" id="export-card-selected" class="cursor-pointer rounded-xl border p-3.5 transition flex items-start gap-3">
+                            <input type="radio" name="exportType" value="selected" class="mt-1 text-blue-600 bg-app-surface border-app-border focus:ring-0">
+                            <div>
+                                <div class="text-xs font-bold text-white">Zaznaczone pozycje</div>
+                                <div class="text-[11px] text-app-muted mt-0.5">Tylko wybrane z listy</div>
+                                <span id="export-count-selected" class="inline-block mt-1.5 text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/15 text-blue-300">0 zaznaczonych</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Edycja metryczki (Inwestycja, Sporządził, Uwagi) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-app-border">
+                        <div>
+                            <label class="block text-[11px] font-medium text-app-muted mb-1">Inwestycja</label>
+                            <input type="text" id="pdf-project-name" oninput="saveProjectSettingsFromPdfModal(); updatePdfPreview()" placeholder="Wpisz nazwę inwestycji..." class="w-full px-3 py-1.5 rounded-xl bg-app-surface border border-app-border text-xs text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-app-muted mb-1">Sporządził (Inżynier / Kierownik)</label>
+                            <input type="text" id="pdf-author-name" oninput="saveProjectSettingsFromPdfModal(); updatePdfPreview()" placeholder="np. inż. Jan Nowak" class="w-full px-3 py-1.5 rounded-xl bg-app-surface border border-app-border text-xs text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-app-muted mb-1">Uwagi ogólne / Warunki atmosferyczne</label>
+                            <input type="text" id="pdf-general-notes" oninput="saveProjectSettingsFromPdfModal(); updatePdfPreview()" placeholder="np. +10°C, brak opadów" class="w-full px-3 py-1.5 rounded-xl bg-app-surface border border-app-border text-xs text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Podgląd arkusza A4 (bez żadnego loga ROHE) -->
+                <div>
+                    <div class="flex items-center justify-between mb-2 px-1">
+                        <span class="text-[11px] font-semibold uppercase tracking-wider text-app-muted">Podgląd wydruku A4</span>
+                        <span class="text-xs text-app-muted font-mono" id="pdf-filename-preview">Raport_Budowy.pdf</span>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-2xl border border-app-border bg-[#0a0a0c] p-3 sm:p-6">
+                        
+                        <!-- OBSZAR RENDEROWANY DO PLIKU PDF -->
+                        <div id="pdf-render-area" class="p-8 shadow-xl rounded-sm">
+                            
+                            <!-- Minimalistyczny, czysty nagłówek inżynierski bez żadnego logo -->
+                            <div class="flex items-start justify-between border-b-2 border-slate-900 pb-4 mb-5">
+                                <div>
+                                    <div class="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-semibold">
+                                        DOKUMENTACJA BUDOWY
+                                    </div>
+                                    <h1 id="pdf-header-project-title" class="text-lg font-bold text-slate-900 mt-0.5">
+                                        Inwestycja B (Budynek AB)
+                                    </h1>
+                                </div>
+                                <div class="text-right">
+                                    <div id="pdf-doc-badge" class="inline-block px-2.5 py-1 bg-slate-900 text-white font-bold text-[11px] uppercase tracking-wider">
+                                        RAPORT DZIENNY BUDOWY
+                                    </div>
+                                    <div class="text-[10px] text-slate-500 mt-1 font-mono">
+                                        Data wygenerowania: <span id="pdf-gen-date">06.11.2026</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Metryczka inwestycji w PDF -->
+                            <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3.5 border border-slate-300 mb-5 text-xs">
+                                <div>
+                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Inwestycja:</div>
+                                    <div id="pdf-meta-project" class="font-bold text-slate-900 text-xs mt-0.5">Inwestycja B (Budynek AB)</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Zakres raportu:</div>
+                                    <div id="pdf-meta-period" class="font-bold text-slate-900 text-xs mt-0.5 font-mono">06.11.2026 (Piątek)</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Sporządził:</div>
+                                    <div id="pdf-meta-author" class="font-semibold text-slate-800 mt-0.5">—</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Uwagi / Warunki:</div>
+                                    <div id="pdf-meta-notes" class="text-slate-700 mt-0.5">—</div>
+                                </div>
+                            </div>
+
+                            <!-- Tabela robót -->
+                            <div id="pdf-table-container">
+                                <!-- Wypełniane dynamicznie w JS -->
+                            </div>
+
+                            <!-- Stopka i podpisy w PDF -->
+                            <div class="mt-8 pt-4 border-t border-slate-300 flex items-end justify-between text-[11px] text-slate-600 pdf-page-break-avoid">
+                                <div>
+                                    <div>Liczba wykazanych pozycji (PW): <strong id="pdf-total-tasks-count" class="text-slate-900">0</strong></div>
+                                </div>
+                                <div class="flex gap-12 text-center pt-6">
+                                    <div class="w-40 border-t border-slate-400 pt-1 text-[10px] text-slate-500">
+                                        Podpis Sporządzającego
+                                    </div>
+                                    <div class="w-40 border-t border-slate-400 pt-1 text-[10px] text-slate-500">
+                                        Podpis Kierownika Budowy
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stopka modala PDF -->
+            <div class="px-5 py-3.5 border-t border-app-border bg-app-input flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div id="pdf-export-warning" class="text-xs text-rose-400 font-medium hidden">
+                    Brak wpisów w wybranym zakresie — dodaj pozycje do raportu.
+                </div>
+                <div class="text-xs text-app-muted" id="pdf-export-status">
+                    Gotowy do wygenerowania pliku PDF.
+                </div>
+                <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <button onclick="closeExportModal()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-xs transition">
+                        Zamknij
+                    </button>
+                    <button id="download-pdf-btn" onclick="generateAndDownloadPDF()" class="flex-1 sm:flex-initial justify-center px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span id="download-pdf-btn-text">Wygeneruj PDF</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customowy Modal Potwierdzenia -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-app-surface border border-app-border rounded-2xl shadow-xl max-w-sm w-full p-5">
+            <h4 id="confirm-modal-title" class="text-sm font-bold text-white">Potwierdzenie</h4>
+            <p id="confirm-modal-desc" class="text-xs text-app-muted mt-1.5 leading-relaxed">Czy na pewno chcesz wykonać tę operację?</p>
+            <div class="flex justify-end gap-2 mt-5">
+                <button onclick="closeConfirmModal()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium">Anuluj</button>
+                <button id="confirm-modal-action-btn" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold">Potwierdź</button>
+            </div>
+        </div>
+    </div>
+
 
   <script>
   // Wektorowe Logo ROHE
@@ -5758,6 +6242,104 @@ let pendingNormDefectText = null;
 
       c.innerHTML = html;
     }
+
+    // ================= SILNIK PDF (A4, 1:1 z podglądem) =================
+function pdfFileName(name) {
+  return String(name || 'Dokument').replace(/[^\w\-ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+/g, '_').replace(/^_+|_+$/g, '') + '.pdf';
+}
+function pdfMakeStage(width) {
+  const s = document.createElement('div');
+  s.style.cssText = `position:fixed;left:-20000px;top:0;width:${width};background:#fff;pointer-events:none;`;
+  document.body.appendChild(s);
+  return s;
+}
+async function pdfWaitRender(root) {
+  const imgs = [...root.querySelectorAll('img')];
+  await Promise.all(imgs.map(i => i.complete ? Promise.resolve() : new Promise(r => { i.onload = i.onerror = r; })));
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+}
+// html2canvas słabo radzi sobie z writing-mode – zamieniamy pionowe napisy na obrócone poziome
+function pdfFixVerticalText(root) {
+  root.querySelectorAll('[style*="writing-mode"]').forEach(n => {
+    n.parentElement.style.position = 'relative';
+    Object.assign(n.style, { writingMode: 'horizontal-tb', position: 'absolute', top: '50%', left: '50%',
+      transform: 'translate(-50%,-50%) rotate(-90deg)', whiteSpace: 'nowrap' });
+  });
+}
+
+// Strony .a4-page z kontenera -> 1 strona A4 = 1 strona PDF (nic nie jest ucinane)
+async function generatePdf(containerId, name) {
+  const box = document.getElementById(containerId);
+  const pages = box ? [...box.querySelectorAll('.a4-page')] : [];
+  if (!pages.length) { alert('Brak stron do wygenerowania. Najpierw otwórz podgląd.'); return; }
+  document.body.style.cursor = 'progress';
+  const stage = pdfMakeStage('210mm');
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+    const PW = 210, PH = 297;
+    for (let i = 0; i < pages.length; i++) {
+      const c = pages[i].cloneNode(true);
+      c.querySelectorAll('.no-print').forEach(n => n.remove());
+      Object.assign(c.style, { margin: '0', boxShadow: 'none', width: '210mm', minHeight: '297mm', height: 'auto', maxHeight: 'none', overflow: 'visible' });
+      pdfFixVerticalText(c);
+      stage.appendChild(c);
+      await pdfWaitRender(c);
+      const canvas = await html2canvas(c, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      let w = PW, h = canvas.height / canvas.width * PW;
+      if (h > PH) { h = PH; w = canvas.width / canvas.height * PH; }   // zmniejsz zamiast ucinać
+      if (i > 0) pdf.addPage();
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (PW - w) / 2, 0, w, h, undefined, 'FAST');
+      stage.removeChild(c);
+    }
+    pdf.save(pdfFileName(name));
+  } catch (e) {
+    console.error(e); alert('Nie udało się wygenerować PDF.');
+  } finally { stage.remove(); document.body.style.cursor = ''; }
+}
+
+// Długi dokument (raport robót) -> cięcie na strony A4 po granicach wierszy, z marginesami
+async function generatePdfFlow(el, name) {
+  const stage = pdfMakeStage('794px');
+  const clone = el.cloneNode(true);
+  Object.assign(clone.style, { width: '794px', margin: '0', boxShadow: 'none', borderRadius: '0' });
+  stage.appendChild(clone);
+  try {
+    const { jsPDF } = window.jspdf;
+    await pdfWaitRender(clone);
+    const SC = 2, PW = 210, PH = 297, MARGIN = 14;
+    const pxPerMm = 794 / PW;
+    const usable = (PH - 2 * MARGIN) * pxPerMm;
+    const canvas = await html2canvas(clone, { scale: SC, backgroundColor: '#ffffff', useCORS: true, logging: false });
+    const top = clone.getBoundingClientRect().top;
+    const total = clone.getBoundingClientRect().height;
+    const bounds = [...new Set([...clone.querySelectorAll('.pdf-table tr, .pdf-page-break-avoid')]
+      .map(r => Math.round(r.getBoundingClientRect().bottom - top)))].sort((a, b) => a - b);
+
+    const slices = []; let y = 0;
+    while (y < total - 1) {
+      const limit = y + usable;
+      if (limit >= total) { slices.push([y, total]); break; }
+      let cut = bounds.filter(b => b > y + usable * 0.3 && b <= limit).pop();
+      if (!cut) cut = limit;
+      slices.push([y, cut]); y = cut;
+    }
+
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+    slices.forEach(([a, b], i) => {
+      const sc = document.createElement('canvas');
+      sc.width = canvas.width; sc.height = Math.max(1, Math.round((b - a) * SC));
+      const ctx = sc.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, sc.width, sc.height);
+      ctx.drawImage(canvas, 0, Math.round(a * SC), canvas.width, sc.height, 0, 0, canvas.width, sc.height);
+      if (i > 0) pdf.addPage();
+      pdf.addImage(sc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, MARGIN, PW, (b - a) / pxPerMm, undefined, 'FAST');
+      pdf.setFontSize(8); pdf.setTextColor(110);
+      pdf.text(`Strona ${i + 1} z ${slices.length}`, PW / 2, PH - 6, { align: 'center' });
+    });
+    pdf.save(pdfFileName(name));
+  } finally { stage.remove(); }
+}
     
 function exportProjectFile() {
       const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
@@ -5795,5 +6377,812 @@ async function createNewEmptyProject() {
 }
     
   </script>
+
+    <script>
+// ===================== MODUŁ: RAPORT ROBÓT (PW) =====================
+const STORAGE_KEYS = {
+    TASKS: 'inspektor_raport_tasks_v2',
+    SETTINGS: 'inspektor_raport_settings_v2'
+};
+
+let state = {
+    selectedDate: getTodayISO(),
+    calendarMonth: new Date().getMonth(),
+    calendarYear: new Date().getFullYear(),
+    isCalendarOpen: false,
+    viewFilter: 'day',
+    exportMode: 'daily',
+    tasks: [],
+    settings: {
+        projectName: 'Inwestycja B (Budynek AB)',
+        authorName: '',
+        generalNotes: '',
+        subcontractors: []
+    }
+};
+
+function getTodayISO() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function formatPolishDate(isoDate, includeWeekday = true) {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+    if (includeWeekday) options.weekday = 'long';
+    const formatted = dateObj.toLocaleDateString('pl-PL', options);
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+function formatShortDate(isoDate) {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}.${m}.${y}`;
+}
+
+function getPolishWeekdayName(isoDate) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const name = new Date(y, m - 1, d).toLocaleDateString('pl-PL', { weekday: 'long' });
+    return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function getWeekRangeForDate(isoDate) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const current = new Date(y, m - 1, d);
+    const dayOfWeek = current.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(current);
+    monday.setDate(current.getDate() + diffToMonday);
+    const toISO = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const t = new Date(monday);
+        t.setDate(monday.getDate() + i);
+        days.push(toISO(t));
+    }
+    return { mondayISO: days[0], sundayISO: days[6], days };
+}
+
+function getISOWeekNumber(isoDate) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+// ---------- Inicjalizacja ----------
+window.addEventListener('DOMContentLoaded', () => {
+    loadFromLocalStorage();
+    syncSelectedDateUI();
+    renderSubcontractorChips();
+    rptRenderCalendarGrid();
+    renderTasksList();
+    if (typeof updateDashboardCounts === 'function') updateDashboardCounts();
+});
+
+// Odświeżanie widoku po wejściu w zakładkę "Raport robót" (bez zmian w głównym skrypcie)
+(function hookSwitchView() {
+    if (typeof window.switchViewCore === 'function') {
+        const orig = window.switchViewCore;
+        window.switchViewCore = function (view, fromClick) {
+            orig(view, fromClick);
+            if (view === 'reports') {
+                syncSelectedDateUI();
+                rptRenderCalendarGrid();
+                renderSubcontractorChips();
+                renderTasksList();
+                if (window.lucide) lucide.createIcons();
+            }
+        };
+    }
+    // licznik na Pulpicie
+    if (typeof window.updateDashboardCounts === 'function') {
+        const origCounts = window.updateDashboardCounts;
+        window.updateDashboardCounts = function () {
+            origCounts();
+            const rEl = document.getElementById('dash-count-reports');
+            if (rEl && state && Array.isArray(state.tasks)) rEl.innerText = state.tasks.length;
+        };
+    }
+})();
+
+// ---------- Zapis / odczyt ----------
+function loadFromLocalStorage() {
+    try {
+        const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+        if (savedSettings) {
+            state.settings = { ...state.settings, ...JSON.parse(savedSettings) };
+            if (!Array.isArray(state.settings.subcontractors)) state.settings.subcontractors = [];
+        }
+        const savedTasks = localStorage.getItem(STORAGE_KEYS.TASKS);
+        if (savedTasks) state.tasks = JSON.parse(savedTasks);
+    } catch (err) {
+        console.error('Błąd odczytu localStorage:', err);
+    }
+}
+
+function saveTasksToStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(state.tasks));
+        if (typeof updateDashboardCounts === 'function') updateDashboardCounts();
+      const rEl = document.getElementById('dash-count-reports');
+if (rEl && typeof state !== 'undefined' && state.tasks) rEl.innerText = state.tasks.length;
+    } catch (err) { console.error('Błąd zapisu zadań:', err); }
+}
+
+function saveSettingsToStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
+    } catch (err) { console.error('Błąd zapisu ustawień:', err); }
+}
+
+// ---------- Baza podwykonawców (PW) ----------
+function renderSubcontractorChips() {
+    const container = document.getElementById('subcontractor-chips');
+    const countBadge = document.getElementById('header-pw-count');
+    if (!container) return;
+    const list = state.settings.subcontractors || [];
+    if (countBadge) countBadge.textContent = list.length;
+
+    if (list.length === 0) {
+        container.innerHTML = `<div class="text-[11px] text-app-muted py-0.5">Brak zapisanych PW. Wpisz nazwę wyżej i kliknij <strong>+ Do bazy</strong> lub otwórz <strong>Baza PW</strong>.</div>`;
+        return;
+    }
+    container.innerHTML = list.map((sub, i) => `
+        <button type="button" onclick="fillSubcontractorByIndex(${i})" class="px-2.5 py-1 rounded-lg bg-app-input hover:bg-blue-500/15 text-slate-300 hover:text-blue-300 border border-app-border hover:border-blue-500/30 text-[11px] font-medium transition">
+            ${escapeHtml(sub)}
+        </button>`).join('');
+}
+
+function fillSubcontractorByIndex(i) {
+    const input = document.getElementById('task-subcontractor');
+    input.value = state.settings.subcontractors[i] || '';
+    input.focus();
+}
+
+function quickSaveTypedPwToList() {
+    const input = document.getElementById('task-subcontractor');
+    const name = input.value.trim();
+    if (!name) return;
+    if (!state.settings.subcontractors.some(s => s.toLowerCase() === name.toLowerCase())) {
+        state.settings.subcontractors.push(name);
+        saveSettingsToStorage();
+        renderSubcontractorChips();
+    }
+}
+
+function openPwModal() {
+    document.getElementById('pw-modal').classList.remove('hidden');
+    renderPwManagerList();
+    setTimeout(() => document.getElementById('new-pw-input')?.focus(), 50);
+}
+
+function closePwModal() {
+    document.getElementById('pw-modal').classList.add('hidden');
+}
+
+function handleAddPwInModal(e) {
+    e.preventDefault();
+    const input = document.getElementById('new-pw-input');
+    const name = input.value.trim();
+    if (!name) return;
+    if (!state.settings.subcontractors.some(s => s.toLowerCase() === name.toLowerCase())) {
+        state.settings.subcontractors.push(name);
+        saveSettingsToStorage();
+        renderSubcontractorChips();
+        renderPwManagerList();
+    }
+    input.value = '';
+    input.focus();
+}
+
+let editingPwIndex = null;
+
+function renderPwManagerList() {
+    const container = document.getElementById('pw-manager-list');
+    const counter = document.getElementById('modal-pw-counter');
+    const list = state.settings.subcontractors || [];
+    counter.textContent = `${list.length} PW`;
+
+    if (list.length === 0) {
+        container.innerHTML = `<div class="rounded-xl border border-dashed border-app-border p-6 text-center text-xs text-app-muted">Twoja baza PW jest pusta. Dodaj pierwszego podwykonawcę powyżej.</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map((pw, idx) => {
+        if (editingPwIndex === idx) {
+            return `
+                <div class="flex items-center gap-2 p-2 rounded-xl bg-app-input border border-blue-500/50">
+                    <input type="text" id="edit-pw-field-${idx}" value="${escapeHtml(pw)}" onkeydown="if(event.key==='Enter'){saveEditedPw(${idx});}" class="flex-1 bg-transparent text-xs text-white px-2 py-1 focus:outline-none">
+                    <button onclick="saveEditedPw(${idx})" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold">Zapisz</button>
+                    <button onclick="cancelEditPw()" class="px-2 py-1 rounded-lg bg-white/5 text-app-muted hover:text-white text-[11px]">Anuluj</button>
+                </div>`;
+        }
+        return `
+            <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-app-input border border-app-border hover:border-app-borderHover transition">
+                <span class="text-xs font-medium text-slate-200 truncate">${escapeHtml(pw)}</span>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button onclick="startEditPw(${idx})" title="Zmień nazwę PW" class="p-1.5 rounded-lg text-app-muted hover:text-blue-400 hover:bg-white/5 transition text-xs">✎</button>
+                    <button onclick="removePwFromList(${idx})" title="Usuń z listy" class="p-1.5 rounded-lg text-app-muted hover:text-rose-400 hover:bg-rose-500/10 transition text-xs">✕</button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function startEditPw(idx) {
+    editingPwIndex = idx;
+    renderPwManagerList();
+    setTimeout(() => {
+        const el = document.getElementById(`edit-pw-field-${idx}`);
+        if (el) { el.focus(); el.select(); }
+    }, 30);
+}
+
+function cancelEditPw() {
+    editingPwIndex = null;
+    renderPwManagerList();
+}
+
+function saveEditedPw(idx) {
+    const el = document.getElementById(`edit-pw-field-${idx}`);
+    if (!el) return;
+    const newName = el.value.trim();
+    const oldName = state.settings.subcontractors[idx];
+    if (newName && newName !== oldName) {
+        state.settings.subcontractors[idx] = newName;
+        state.tasks.forEach(t => { if (t.subcontractor === oldName) t.subcontractor = newName; });
+        saveSettingsToStorage();
+        saveTasksToStorage();
+        renderSubcontractorChips();
+        renderTasksList();
+    }
+    editingPwIndex = null;
+    renderPwManagerList();
+}
+
+function removePwFromList(idx) {
+    state.settings.subcontractors.splice(idx, 1);
+    saveSettingsToStorage();
+    renderSubcontractorChips();
+    renderPwManagerList();
+}
+
+// ---------- Kalendarz i nawigacja datami ----------
+function toggleCalendarDropdown() {
+    state.isCalendarOpen = !state.isCalendarOpen;
+    const dropdown = document.getElementById('calendar-dropdown');
+    const chevron = document.getElementById('calendar-chevron');
+    if (state.isCalendarOpen) {
+        dropdown.classList.remove('calendar-closed');
+        dropdown.classList.add('calendar-open');
+        chevron.classList.add('rotate-180');
+        rptRenderCalendarGrid();
+    } else {
+        dropdown.classList.remove('calendar-open');
+        dropdown.classList.add('calendar-closed');
+        chevron.classList.remove('rotate-180');
+    }
+}
+
+function selectDateFromCalendar(isoDate) {
+    state.selectedDate = isoDate;
+    const [y, m] = isoDate.split('-').map(Number);
+    state.calendarYear = y;
+    state.calendarMonth = m - 1;
+    syncSelectedDateUI();
+    rptRenderCalendarGrid();
+    renderTasksList();
+}
+
+function shiftSelectedDate(daysDelta) {
+    const [y, m, d] = state.selectedDate.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + daysDelta);
+    selectDateFromCalendar(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+}
+
+function goToToday() {
+    selectDateFromCalendar(getTodayISO());
+}
+
+function rptChangeCalendarMonth(monthDelta) {
+    let newMonth = state.calendarMonth + monthDelta;
+    let newYear = state.calendarYear;
+    if (newMonth < 0) { newMonth = 11; newYear--; }
+    else if (newMonth > 11) { newMonth = 0; newYear++; }
+    state.calendarMonth = newMonth;
+    state.calendarYear = newYear;
+    rptRenderCalendarGrid();
+}
+
+function syncSelectedDateUI() {
+    const dateDisplay = document.getElementById('active-date-display');
+    const weekDisplay = document.getElementById('active-week-display');
+    if (!dateDisplay || !weekDisplay) return;
+    const weekRange = getWeekRangeForDate(state.selectedDate);
+    const weekNum = getISOWeekNumber(state.selectedDate);
+
+    dateDisplay.textContent = formatPolishDate(state.selectedDate, true);
+    weekDisplay.textContent = `Tydzień ${weekNum} (${formatShortDate(weekRange.mondayISO).slice(0, 5)} – ${formatShortDate(weekRange.sundayISO).slice(0, 5)})`;
+
+    const editId = document.getElementById('task-edit-id').value;
+    if (!editId) document.getElementById('task-date').value = state.selectedDate;
+
+    const filterBtns = {
+        day: document.getElementById('filter-btn-day'),
+        week: document.getElementById('filter-btn-week'),
+        all: document.getElementById('filter-btn-all')
+    };
+    Object.keys(filterBtns).forEach(key => {
+        filterBtns[key].className = key === state.viewFilter
+            ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-white transition'
+            : 'px-3 py-1.5 rounded-lg text-xs font-medium text-app-muted hover:text-white transition';
+    });
+}
+
+function rptRenderCalendarGrid() {
+    const grid = document.getElementById('calendar-days-grid');
+    const monthYearLabel = document.getElementById('calendar-month-year');
+    if (!grid) return;
+
+    const monthDate = new Date(state.calendarYear, state.calendarMonth, 1);
+    monthYearLabel.textContent = monthDate.toLocaleDateString('pl-PL', { month: 'long', year: 'numeric' });
+
+    const firstDayIndex = (monthDate.getDay() + 6) % 7;
+    const daysInMonth = new Date(state.calendarYear, state.calendarMonth + 1, 0).getDate();
+
+    const taskCountsByDate = {};
+    state.tasks.forEach(t => { taskCountsByDate[t.date] = (taskCountsByDate[t.date] || 0) + 1; });
+
+    const todayISO = getTodayISO();
+    const activeWeek = getWeekRangeForDate(state.selectedDate);
+
+    let html = '';
+    for (let i = 0; i < firstDayIndex; i++) html += `<div class="h-10 rounded-xl bg-transparent"></div>`;
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const iso = `${state.calendarYear}-${String(state.calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isSelected = iso === state.selectedDate;
+        const isToday = iso === todayISO;
+        const isInActiveWeek = activeWeek.days.includes(iso);
+        const count = taskCountsByDate[iso] || 0;
+
+        let cls = 'h-10 rounded-xl border flex flex-col items-center justify-center relative transition text-xs ';
+        if (isSelected) cls += 'bg-blue-600 text-white border-blue-500 font-bold ';
+        else if (isToday) cls += 'bg-amber-500/10 text-amber-300 border-amber-500/40 font-semibold ';
+        else if (isInActiveWeek) cls += 'bg-white/[0.04] text-slate-200 border-app-border hover:bg-white/[0.08] ';
+        else cls += 'bg-app-input text-slate-400 border-app-border/60 hover:bg-white/[0.05] hover:text-white ';
+
+        const dot = count > 0 ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-400'} mt-0.5"></span>` : '';
+        html += `<button type="button" onclick="selectDateFromCalendar('${iso}')" class="${cls}"><span>${day}</span>${dot}</button>`;
+    }
+    grid.innerHTML = html;
+}
+
+function setViewFilter(filterType) {
+    state.viewFilter = filterType;
+    syncSelectedDateUI();
+    renderTasksList();
+}
+
+// ---------- Dodawanie / edycja / usuwanie wpisów ----------
+function handleTaskSubmit(e) {
+    e.preventDefault();
+    const editId = document.getElementById('task-edit-id').value;
+    const date = document.getElementById('task-date').value;
+    const subcontractor = document.getElementById('task-subcontractor').value.trim();
+    const location = document.getElementById('task-location').value.trim();
+    const workers = document.getElementById('task-workers').value.trim();
+    const description = document.getElementById('task-description').value.trim();
+    const autoSelect = document.getElementById('task-auto-select').checked;
+
+    if (!date || !subcontractor || !description) return;
+
+    if (!state.settings.subcontractors.some(s => s.toLowerCase() === subcontractor.toLowerCase())) {
+        state.settings.subcontractors.push(subcontractor);
+        saveSettingsToStorage();
+    }
+
+    if (editId) {
+        const idx = state.tasks.findIndex(t => t.id === editId);
+        if (idx !== -1) {
+            state.tasks[idx] = { ...state.tasks[idx], date, subcontractor, location, workers, description, selected: autoSelect };
+        }
+    } else {
+        state.tasks.unshift({
+            id: 'task-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+            date, subcontractor, location, workers, description, selected: autoSelect
+        });
+    }
+
+    state.selectedDate = date;
+    saveTasksToStorage();
+    resetTaskForm();
+    syncSelectedDateUI();
+    rptRenderCalendarGrid();
+    renderSubcontractorChips();
+    renderTasksList();
+}
+
+function editTask(taskId) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+    document.getElementById('task-edit-id').value = task.id;
+    document.getElementById('task-date').value = task.date;
+    document.getElementById('task-subcontractor').value = task.subcontractor;
+    document.getElementById('task-location').value = task.location || '';
+    document.getElementById('task-workers').value = task.workers || '';
+    document.getElementById('task-description').value = task.description;
+    document.getElementById('task-auto-select').checked = !!task.selected;
+
+    document.getElementById('form-title').textContent = 'Edycja wpisu';
+    document.getElementById('edit-mode-indicator').classList.remove('hidden');
+    document.getElementById('submit-task-btn-text').textContent = 'Zapisz zmiany';
+    document.getElementById('cancel-edit-btn').classList.remove('hidden');
+    document.getElementById('task-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function resetTaskForm() {
+    document.getElementById('task-edit-id').value = '';
+    document.getElementById('task-date').value = state.selectedDate;
+    document.getElementById('task-subcontractor').value = '';
+    document.getElementById('task-location').value = '';
+    document.getElementById('task-workers').value = '';
+    document.getElementById('task-description').value = '';
+    document.getElementById('task-auto-select').checked = true;
+
+    document.getElementById('form-title').textContent = 'Nowy wpis raportowy';
+    document.getElementById('edit-mode-indicator').classList.add('hidden');
+    document.getElementById('submit-task-btn-text').textContent = 'Zapisz wpis';
+    document.getElementById('cancel-edit-btn').classList.add('hidden');
+}
+
+function deleteTask(taskId) {
+    openConfirmModal('Usuwanie wpisu', 'Czy na pewno chcesz usunąć ten wpis z raportu?', () => {
+        state.tasks = state.tasks.filter(t => t.id !== taskId);
+        saveTasksToStorage();
+        rptRenderCalendarGrid();
+        renderTasksList();
+    });
+}
+
+function confirmClearAllTasks() {
+    if (state.tasks.length === 0) return;
+    openConfirmModal('Wyczyść wszystkie wpisy', 'Czy na pewno chcesz usunąć wszystkie wpisy raportowe z pamięci?', () => {
+        state.tasks = [];
+        saveTasksToStorage();
+        rptRenderCalendarGrid();
+        renderTasksList();
+    });
+}
+
+// ---------- Lista wpisów ----------
+function getFilteredTasksForCurrentView() {
+    const query = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+    const weekRange = getWeekRangeForDate(state.selectedDate);
+    return state.tasks.filter(task => {
+        if (state.viewFilter === 'day' && task.date !== state.selectedDate) return false;
+        if (state.viewFilter === 'week' && !weekRange.days.includes(task.date)) return false;
+        if (query) {
+            const hay = `${task.subcontractor} ${task.description} ${task.location || ''} ${task.workers || ''}`.toLowerCase();
+            if (!hay.includes(query)) return false;
+        }
+        return true;
+    }).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function renderTasksList() {
+    const container = document.getElementById('tasks-list-container');
+    if (!container) return;
+    const heading = document.getElementById('list-view-heading');
+    const subheading = document.getElementById('list-view-subheading');
+    const countBadge = document.getElementById('list-count-badge');
+    const weekRange = getWeekRangeForDate(state.selectedDate);
+
+    if (state.viewFilter === 'day') {
+        heading.textContent = `Wpisy z dnia ${formatShortDate(state.selectedDate)}`;
+        subheading.textContent = getPolishWeekdayName(state.selectedDate);
+    } else if (state.viewFilter === 'week') {
+        heading.textContent = `Tydzień ${formatShortDate(weekRange.mondayISO).slice(0, 5)} – ${formatShortDate(weekRange.sundayISO)}`;
+        subheading.textContent = 'Zestawienie tygodniowe (Poniedziałek – Niedziela)';
+    } else {
+        heading.textContent = 'Wszystkie wpisy';
+        subheading.textContent = 'Pełny rejestr wpisów budowy';
+    }
+
+    const filtered = getFilteredTasksForCurrentView();
+    countBadge.textContent = filtered.length;
+    updateSelectionCounters();
+
+    const selectAll = document.getElementById('select-all-visible');
+    if (selectAll) selectAll.checked = filtered.length > 0 && filtered.every(t => t.selected);
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-app-border p-10 text-center">
+                <p class="text-xs font-medium text-slate-300">Brak wpisów w wybranym widoku</p>
+                <p class="text-[11px] text-app-muted mt-1">Dodaj nowy wpis po lewej stronie, aby rozpocząć raportowanie.</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = filtered.map(task => {
+        const sel = !!task.selected;
+        const borderClass = sel ? 'border-blue-500/40 bg-blue-500/[0.03]' : 'border-app-border bg-app-input/60';
+        return `
+            <div class="rounded-xl border ${borderClass} p-3.5 transition flex items-start gap-3 hover:border-app-borderHover">
+                <div class="pt-0.5">
+                    <input type="checkbox" ${sel ? 'checked' : ''} onchange="toggleTaskSelection('${task.id}', this.checked)" class="w-4 h-4 rounded bg-app-input border-app-border text-blue-600 focus:ring-0 cursor-pointer">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-lg bg-white/10 text-white font-semibold text-xs">${escapeHtml(task.subcontractor)}</span>
+                            <span class="text-[11px] font-mono text-app-muted">${formatShortDate(task.date)}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="editTask('${task.id}')" title="Edytuj" class="p-1 rounded-lg text-app-muted hover:text-white hover:bg-white/5 transition text-xs">✎</button>
+                            <button onclick="deleteTask('${task.id}')" title="Usuń" class="p-1 rounded-lg text-app-muted hover:text-rose-400 hover:bg-rose-500/10 transition text-xs">✕</button>
+                        </div>
+                    </div>
+                    ${(task.location || task.workers) ? `
+                        <div class="flex flex-wrap items-center gap-3 mt-1.5 text-[11px] text-app-muted">
+                            ${task.location ? `<span><strong class="text-slate-400 font-medium">Lokalizacja:</strong> ${escapeHtml(task.location)}</span>` : ''}
+                            ${task.workers ? `<span><strong class="text-slate-400 font-medium">Siły:</strong> ${escapeHtml(task.workers)}</span>` : ''}
+                        </div>` : ''}
+                    <p class="text-xs text-slate-200 mt-2 leading-relaxed whitespace-pre-line">${escapeHtml(task.description)}</p>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function toggleTaskSelection(taskId, isChecked) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) { task.selected = isChecked; saveTasksToStorage(); renderTasksList(); }
+}
+
+function toggleSelectAllVisible(isChecked) {
+    const ids = new Set(getFilteredTasksForCurrentView().map(t => t.id));
+    state.tasks.forEach(t => { if (ids.has(t.id)) t.selected = isChecked; });
+    saveTasksToStorage();
+    renderTasksList();
+}
+
+function clearAllSelections() {
+    state.tasks.forEach(t => t.selected = false);
+    saveTasksToStorage();
+    renderTasksList();
+}
+
+function updateSelectionCounters() {
+    const selectedCount = state.tasks.filter(t => t.selected).length;
+    document.getElementById('selected-total-counter').textContent = selectedCount;
+    document.getElementById('bottom-selected-count').textContent = selectedCount;
+    const topBadge = document.getElementById('export-selected-badge');
+    if (selectedCount > 0) { topBadge.textContent = selectedCount; topBadge.classList.remove('hidden'); }
+    else topBadge.classList.add('hidden');
+}
+
+// ---------- Eksport PDF ----------
+function openExportModal(preferredMode = null) {
+    if (preferredMode) state.exportMode = preferredMode;
+    document.getElementById('pdf-project-name').value = state.settings.projectName;
+    document.getElementById('pdf-author-name').value = state.settings.authorName;
+    document.getElementById('pdf-general-notes').value = state.settings.generalNotes;
+    document.getElementById('export-modal').classList.remove('hidden');
+    selectExportType(state.exportMode);
+}
+
+function closeExportModal() {
+    document.getElementById('export-modal').classList.add('hidden');
+}
+
+function saveProjectSettingsFromPdfModal() {
+    state.settings.projectName = document.getElementById('pdf-project-name').value.trim() || 'Inwestycja';
+    state.settings.authorName = document.getElementById('pdf-author-name').value.trim();
+    state.settings.generalNotes = document.getElementById('pdf-general-notes').value.trim();
+    saveSettingsToStorage();
+}
+
+function selectExportType(mode) {
+    state.exportMode = mode;
+    ['daily', 'weekly', 'selected'].forEach(m => {
+        const card = document.getElementById(`export-card-${m}`);
+        const radio = card.querySelector('input[type="radio"]');
+        if (m === mode) {
+            card.className = 'cursor-pointer rounded-xl border border-blue-500 bg-blue-500/10 p-3.5 transition flex items-start gap-3';
+            radio.checked = true;
+        } else {
+            card.className = 'cursor-pointer rounded-xl border border-app-border hover:border-app-borderHover bg-app-surface p-3.5 transition flex items-start gap-3';
+            radio.checked = false;
+        }
+    });
+    updatePdfPreview();
+}
+
+function getTasksForPdfExport() {
+    const weekRange = getWeekRangeForDate(state.selectedDate);
+    if (state.exportMode === 'daily') return state.tasks.filter(t => t.date === state.selectedDate);
+    if (state.exportMode === 'weekly') return state.tasks.filter(t => weekRange.days.includes(t.date)).sort((a, b) => a.date.localeCompare(b.date));
+    return state.tasks.filter(t => t.selected).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function updatePdfPreview() {
+    const weekRange = getWeekRangeForDate(state.selectedDate);
+    const dailyCount = state.tasks.filter(t => t.date === state.selectedDate).length;
+    const weeklyCount = state.tasks.filter(t => weekRange.days.includes(t.date)).length;
+    const selectedCount = state.tasks.filter(t => t.selected).length;
+
+    document.getElementById('export-desc-daily').textContent = `${formatShortDate(state.selectedDate)} (${getPolishWeekdayName(state.selectedDate)})`;
+    document.getElementById('export-count-daily').textContent = `${dailyCount} poz.`;
+    document.getElementById('export-desc-weekly').textContent = `${formatShortDate(weekRange.mondayISO)} – ${formatShortDate(weekRange.sundayISO)}`;
+    document.getElementById('export-count-weekly').textContent = `${weeklyCount} poz.`;
+    document.getElementById('export-count-selected').textContent = `${selectedCount} zaznaczonych`;
+
+    const docBadge = document.getElementById('pdf-doc-badge');
+    const metaPeriod = document.getElementById('pdf-meta-period');
+    const filenamePreview = document.getElementById('pdf-filename-preview');
+
+    if (state.exportMode === 'daily') {
+        docBadge.textContent = 'RAPORT DZIENNY BUDOWY';
+        metaPeriod.textContent = `${formatShortDate(state.selectedDate)} (${getPolishWeekdayName(state.selectedDate)})`;
+        filenamePreview.textContent = `Raport_Dzienny_${state.selectedDate}.pdf`;
+    } else if (state.exportMode === 'weekly') {
+        const weekNum = getISOWeekNumber(state.selectedDate);
+        docBadge.textContent = 'RAPORT TYGODNIOWY BUDOWY';
+        metaPeriod.textContent = `Tydzień ${weekNum}: ${formatShortDate(weekRange.mondayISO)} – ${formatShortDate(weekRange.sundayISO)}`;
+        filenamePreview.textContent = `Raport_Tygodniowy_T${weekNum}_${weekRange.mondayISO}.pdf`;
+    } else {
+        docBadge.textContent = 'RAPORT ZBIORCZY ROBÓT';
+        metaPeriod.textContent = `Wybrane pozycje (${selectedCount} poz.)`;
+        filenamePreview.textContent = `Raport_Robot_${getTodayISO()}.pdf`;
+    }
+
+    const projectTitle = state.settings.projectName || 'Inwestycja';
+    document.getElementById('pdf-header-project-title').textContent = projectTitle;
+    document.getElementById('pdf-meta-project').textContent = projectTitle;
+    document.getElementById('pdf-gen-date').textContent = formatShortDate(getTodayISO());
+    document.getElementById('pdf-meta-author').textContent = state.settings.authorName || '—';
+    document.getElementById('pdf-meta-notes').textContent = state.settings.generalNotes || '—';
+
+    const tasksToExport = getTasksForPdfExport();
+    document.getElementById('pdf-total-tasks-count').textContent = tasksToExport.length;
+
+    const warningEl = document.getElementById('pdf-export-warning');
+    const downloadBtn = document.getElementById('download-pdf-btn');
+    if (tasksToExport.length === 0) {
+        warningEl.classList.remove('hidden');
+        downloadBtn.classList.add('opacity-50', 'pointer-events-none');
+    } else {
+        warningEl.classList.add('hidden');
+        downloadBtn.classList.remove('opacity-50', 'pointer-events-none');
+    }
+
+    const tableContainer = document.getElementById('pdf-table-container');
+    if (tasksToExport.length === 0) {
+        tableContainer.innerHTML = `<div class="border border-slate-300 p-8 text-center text-xs text-slate-500">Brak wpisów dla wybranego zakresu raportu.</div>`;
+        return;
+    }
+
+    if (state.exportMode === 'weekly') {
+        const grouped = {};
+        tasksToExport.forEach(t => { (grouped[t.date] = grouped[t.date] || []).push(t); });
+        let idx = 1, html = '';
+        Object.keys(grouped).sort().forEach(dateISO => {
+            const dayTasks = grouped[dateISO];
+            html += `
+                <div class="mb-4 pdf-page-break-avoid">
+                    <div class="bg-slate-900 text-white px-3 py-1.5 text-[11px] font-bold flex items-center justify-between">
+                        <span>DZIEŃ: ${formatShortDate(dateISO)} — ${getPolishWeekdayName(dateISO).toUpperCase()}</span>
+                        <span class="font-mono text-[10px] text-slate-300">Pozycji: ${dayTasks.length}</span>
+                    </div>
+                    <table class="pdf-table">
+                        <thead><tr>
+                            <th style="width:36px;text-align:center;">Lp.</th>
+                            <th style="width:170px;">Podwykonawca (PW)</th>
+                            <th style="width:150px;">Lokalizacja / Siły</th>
+                            <th>Zakres wykonanych robót</th>
+                        </tr></thead>
+                        <tbody>
+                            ${dayTasks.map(t => `
+                                <tr>
+                                    <td style="text-align:center;font-weight:600;">${idx++}.</td>
+                                    <td><div style="font-weight:700;">${escapeHtml(t.subcontractor)}</div></td>
+                                    <td>
+                                        ${t.location ? `<div><strong>Lok:</strong> ${escapeHtml(t.location)}</div>` : ''}
+                                        ${t.workers ? `<div style="color:#475569;margin-top:2px;"><strong>Siły:</strong> ${escapeHtml(t.workers)}</div>` : ''}
+                                        ${(!t.location && !t.workers) ? '—' : ''}
+                                    </td>
+                                    <td style="white-space:pre-line;">${escapeHtml(t.description)}</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+        });
+        tableContainer.innerHTML = html;
+    } else {
+        tableContainer.innerHTML = `
+            <table class="pdf-table">
+                <thead><tr>
+                    <th style="width:36px;text-align:center;">Lp.</th>
+                    <th style="width:85px;">Data</th>
+                    <th style="width:165px;">Podwykonawca (PW)</th>
+                    <th style="width:145px;">Lokalizacja / Siły</th>
+                    <th>Zakres wykonanych robót</th>
+                </tr></thead>
+                <tbody>
+                    ${tasksToExport.map((t, i) => `
+                        <tr class="pdf-page-break-avoid">
+                            <td style="text-align:center;font-weight:600;">${i + 1}.</td>
+                            <td style="font-size:10.5px;">
+                                <strong>${formatShortDate(t.date)}</strong><br>
+                                <span style="color:#64748b;font-size:9.5px;">${getPolishWeekdayName(t.date)}</span>
+                            </td>
+                            <td><div style="font-weight:700;">${escapeHtml(t.subcontractor)}</div></td>
+                            <td>
+                                ${t.location ? `<div><strong>Lok:</strong> ${escapeHtml(t.location)}</div>` : ''}
+                                ${t.workers ? `<div style="color:#475569;margin-top:2px;"><strong>Siły:</strong> ${escapeHtml(t.workers)}</div>` : ''}
+                                ${(!t.location && !t.workers) ? '—' : ''}
+                            </td>
+                            <td style="white-space:pre-line;">${escapeHtml(t.description)}</td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>`;
+    }
+}
+
+// Generowanie PDF – używa silnika generatePdfFlow z głównego skryptu (punkt 2)
+async function generateAndDownloadPDF() {
+    const tasks = getTasksForPdfExport();
+    if (!tasks.length) return;
+    const btn = document.getElementById('download-pdf-btn');
+    const btnText = document.getElementById('download-pdf-btn-text');
+    const statusText = document.getElementById('pdf-export-status');
+    const filename = document.getElementById('pdf-filename-preview').textContent || 'Raport_Budowy.pdf';
+    try {
+        btn.disabled = true;
+        btnText.textContent = 'Generowanie...';
+        statusText.textContent = 'Trwa przygotowywanie PDF...';
+        await generatePdfFlow(document.getElementById('pdf-render-area'), filename.replace(/\.pdf$/i, ''));
+        statusText.textContent = 'Pobrano plik PDF.';
+    } catch (e) {
+        console.error(e);
+        statusText.textContent = 'Błąd podczas generowania PDF.';
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Wygeneruj PDF';
+    }
+}
+
+// ---------- Modal potwierdzeń ----------
+let pendingConfirmAction = null;
+
+function openConfirmModal(title, desc, onConfirm) {
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-desc').textContent = desc;
+    pendingConfirmAction = onConfirm;
+    document.getElementById('confirm-modal').classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+    pendingConfirmAction = null;
+    document.getElementById('confirm-modal').classList.add('hidden');
+}
+
+document.getElementById('confirm-modal-action-btn').addEventListener('click', () => {
+    if (typeof pendingConfirmAction === 'function') pendingConfirmAction();
+    closeConfirmModal();
+});
+</script>
+    
 </body>
 </html>
