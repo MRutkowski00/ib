@@ -1122,7 +1122,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
         <input type="text" id="modal-pin-loc" placeholder="Lokalizacja / Osie..." class="w-full bg-[#1c1c1c] border border-[#333] rounded-lg px-2 py-1.5 text-white outline-none focus:border-blue-500">
         <div>
           <label class="block text-gray-400 font-bold mb-1">Zdjęcie:</label>
-          <input type="file" id="modal-pin-photo-input" accept="image/*" class="w-full text-gray-400" onchange="handlePinPhotoUpload(event)">
+                    <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="document.getElementById('modal-pin-photo-camera').click()" class="py-2 rounded-lg bg-blue-600 text-white font-semibold text-[11px]">📷 Zrób zdjęcie</button>
+            <button type="button" onclick="document.getElementById('modal-pin-photo-input').click()" class="py-2 rounded-lg bg-[#222] border border-[#333] text-gray-200 font-semibold text-[11px]">📎 Załącz plik</button>
+          </div>
+          <input type="file" id="modal-pin-photo-camera" accept="image/*" capture="environment" class="hidden" onchange="handlePinPhotoUpload(event)">
+          <input type="file" id="modal-pin-photo-input" accept="image/*" class="hidden" onchange="handlePinPhotoUpload(event)">
           <div id="modal-photo-preview-box" class="mt-2 hidden"><img id="modal-photo-preview-img" class="w-full h-32 object-cover rounded border border-[#333]" /></div>
         </div>
       </div>
@@ -1178,7 +1183,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
 
         <div>
           <label class="block text-gray-400 text-[10px] font-bold uppercase mb-1">Zdjęcie do załącznika (opcjonalnie):</label>
-          <input type="file" id="modal-rohe-photo-input" accept="image/*" class="w-full text-gray-400 text-[11px]" onchange="handleRohePinPhotoUpload(event)">
+                    <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="document.getElementById('modal-rohe-photo-camera').click()" class="py-2 rounded-xl bg-rose-600 text-white font-semibold text-[11px]">📷 Zrób zdjęcie</button>
+            <button type="button" onclick="document.getElementById('modal-rohe-photo-input').click()" class="py-2 rounded-xl bg-[#222] border border-[#333] text-gray-200 font-semibold text-[11px]">📎 Załącz plik</button>
+          </div>
+          <input type="file" id="modal-rohe-photo-camera" accept="image/*" capture="environment" class="hidden" onchange="handleRohePinPhotoUpload(event)">
+          <input type="file" id="modal-rohe-photo-input" accept="image/*" class="hidden" onchange="handleRohePinPhotoUpload(event)">
           <div id="modal-rohe-photo-preview-box" class="mt-2 hidden">
             <img id="modal-rohe-photo-preview-img" class="w-full h-36 object-cover rounded-xl border border-[#333]" />
           </div>
@@ -1993,6 +2003,9 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
         switchViewCore('dashboard', false);
       }
     }
+
+        const RESTORABLE_VIEWS = ['plan', 'report-rohe'];
+    function rememberView(v) { try { localStorage.setItem('insp_last_view', v); } catch (e) {} }
     
     function switchView(view) {
       document.getElementById('project-menu-dropdown').classList.add('hidden');
@@ -2000,6 +2013,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       switchViewCore(view, true);
     }
    function switchViewCore(view, fromClick) {
+           rememberView(RESTORABLE_VIEWS.includes(view) ? view : 'dashboard');
       document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
       const activePanel = document.getElementById(`view-${view}`);
       if(activePanel) activePanel.classList.remove('hidden');
@@ -2033,7 +2047,22 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }
     }
 
-    async function persistData() { await saveToDB(appState); updateDashboardCounts(); }
+     let _persistT = null;
+    function persistData() {
+      updateDashboardCounts();
+      clearTimeout(_persistT);
+      _persistT = setTimeout(() => saveToDB(appState), 400);
+    }
+    async function persistDataNow() {
+      clearTimeout(_persistT);
+      await saveToDB(appState);
+      updateDashboardCounts();
+    }
+    // zapis natychmiast, gdy wychodzisz z apki (np. do aparatu)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') { clearTimeout(_persistT); saveToDB(appState); }
+    });
+    window.addEventListener('pagehide', () => { clearTimeout(_persistT); saveToDB(appState); });
     function promptRenameProject() {
       const name = prompt('Nazwa projektu:', appState.project.name);
       if(name){ appState.project.name = name; const el = document.getElementById('rohe-meta-project'); if(el) el.value = name; persistData(); }
@@ -2104,7 +2133,12 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       ensureTimesheetState();
       
       setupBlueprintClick(); setupRoheBlueprintClick(); setupTkInteraction();
-      updateDashboardCounts(); if(window.lucide) lucide.createIcons();
+            updateDashboardCounts(); if(window.lucide) lucide.createIcons();
+      try {
+        const lv = localStorage.getItem('insp_last_view');
+        if (lv === 'takeoff') openTakeoffModal();
+        else if (RESTORABLE_VIEWS.includes(lv)) switchView(lv);
+      } catch (e) {}
     });
 
  function updateDashboardCounts() {
@@ -2360,6 +2394,7 @@ let pendingNormDefectText = null;
     function openPinModal(id=null, coords=null) {
       selectedPinId = id; tempPinPhoto = null;
       document.getElementById('modal-pin-photo-input').value='';
+      document.getElementById('modal-pin-photo-camera').value='';
       const b=document.getElementById('modal-pin-badge'), d=document.getElementById('modal-pin-desc'), l=document.getElementById('modal-pin-loc'), img=document.getElementById('modal-photo-preview-img'), box=document.getElementById('modal-photo-preview-box');
       if(id) {
         const p = getCurrentFloor().pins.find(x=>x.id===id);
@@ -2402,6 +2437,13 @@ let pendingNormDefectText = null;
     }
     function deleteCurrentPin() { getCurrentFloor().pins = getCurrentFloor().pins.filter(x=>x.id!==selectedPinId); closePinModal(); persistData(); renderPins(); }
 
+const _imgCache = {};
+function loadImgCached(src) {
+  if (_imgCache[src]) return _imgCache[src];
+  _imgCache[src] = new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(i); i.src = src; });
+  return _imgCache[src];
+}
+    
     async function openQuickDefectReport() {
       switchView('quick-report'); const c = document.getElementById('quick-report-container');
       let pins=[]; appState.buildings.forEach(b=>b.floors.forEach(f=>pins.push(...f.pins))); pins.sort((a,b)=>a.num-b.num);
@@ -2409,9 +2451,11 @@ let pendingNormDefectText = null;
       c.innerHTML='<div class="text-center text-white py-4">Generowanie...</div>'; let html='';
       for(const p of pins) {
         let mapUrl = ''; if(p.bp) {
-          const img=new Image(); img.src=p.bp; await new Promise(r=>img.onload=r);
-          const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0);
-          const px=(p.x/100)*img.width, py=(p.y/100)*img.height, r=Math.max(img.width*0.02, 26);
+                   const img = await loadImgCached(p.bp);
+          const k = Math.min(1, 1600 / img.width);
+          const cv=document.createElement('canvas'); cv.width=Math.round(img.width*k); cv.height=Math.round(img.height*k);
+          const ctx=cv.getContext('2d'); ctx.drawImage(img,0,0,cv.width,cv.height);
+          const px=(p.x/100)*cv.width, py=(p.y/100)*cv.height, r=Math.max(cv.width*0.02, 26);
           ctx.fillStyle='#e11d48'; ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2); ctx.fill();
           ctx.lineWidth=r*0.15; ctx.strokeStyle='#fff'; ctx.stroke();
           ctx.fillStyle='#fff'; ctx.font=`bold ${Math.round(r)}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.num,px,py);
@@ -2559,8 +2603,9 @@ let pendingNormDefectText = null;
       if (document.getElementById('rohe-trade-ele')?.checked) trades.push('Elektryczna');
       m.trades = trades;
 
-      persistData();
-      renderRoheReportPages();
+            persistData();
+      clearTimeout(window._roheT);
+      window._roheT = setTimeout(renderRoheReportPages, 400);
     }
 
     // Wielorzutowość w protokole (Dodawanie, edycja nazwy, usuwanie rzutów)
@@ -2764,6 +2809,7 @@ let pendingNormDefectText = null;
     function openRohePinModal(x, y) {
       ensureRoheState();
       document.getElementById('modal-rohe-photo-input').value = '';
+      document.getElementById('modal-rohe-photo-camera').value = '';
       tempRohePhoto = null;
       document.getElementById('modal-rohe-photo-preview-box').classList.add('hidden');
       document.getElementById('modal-rohe-pin-new-text').value = '';
@@ -3054,6 +3100,9 @@ let pendingNormDefectText = null;
     }
 
    async function renderRoheSheetSnapshot(sheet) {
+           const key = (sheet.blueprint||'').length + '|' + JSON.stringify(appState.roheReport.pins.filter(p => p.sheetId === sheet.id).map(p => [p.x, p.y, p.dNum]));
+      window._snapCache = window._snapCache || {};
+      if (window._snapCache[sheet.id] && window._snapCache[sheet.id].key === key) return window._snapCache[sheet.id].out;
       const img = new Image();
       img.src = sheet.blueprint;
       await new Promise(r => { img.onload = r; img.onerror = r; });
@@ -3097,7 +3146,9 @@ let pendingNormDefectText = null;
         ctx.fillText(String(p.dNum), px, cy);
         ctx.restore();
       });
-      return cv.toDataURL('image/jpeg', 0.88);
+           const out = cv.toDataURL('image/jpeg', 0.88);
+      window._snapCache[sheet.id] = { key, out };
+      return out;
     }
 
     async function renderRoheReportPages() {
@@ -3848,8 +3899,8 @@ let pendingNormDefectText = null;
     }
     
     function getActiveTk() { let s=appState.takeoffBook.sessions.find(x=>x.id===appState.takeoffBook.activeSessionId); if(!s){s=appState.takeoffBook.sessions[0]; appState.takeoffBook.activeSessionId=s.id;} return s; }
-    function openTakeoffModal() { document.getElementById('modal-takeoff').classList.remove('hidden'); document.getElementById('modal-takeoff').classList.add('flex'); renderTkList(); loadTkSess(); }
-    function closeTakeoffModal() { document.getElementById('modal-takeoff').classList.add('hidden'); document.getElementById('modal-takeoff').classList.remove('flex'); tkPoints=[]; }
+    function openTakeoffModal() { rememberView('takeoff'); document.getElementById('modal-takeoff').classList.remove('hidden'); document.getElementById('modal-takeoff').classList.add('flex'); renderTkList(); loadTkSess(); }
+    function closeTakeoffModal() { const _top = navStack[navStack.length - 1]; rememberView(RESTORABLE_VIEWS.includes(_top) ? _top : 'dashboard'); document.getElementById('modal-takeoff').classList.add('hidden'); document.getElementById('modal-takeoff').classList.remove('flex'); tkPoints=[]; }
     
     function promptCreateNewTakeoffSession() { const t=prompt('Nazwa karty:'); if(t){ const id='tk-'+Date.now(); appState.takeoffBook.sessions.push({id, title:t, date:new Date().toLocaleDateString('pl-PL'), blueprints:[], items:[], lines:[], pxToMeterScale:null}); appState.takeoffBook.activeSessionId=id; persistData(); renderTkList(); loadTkSess(); } }
     function promptRenameActiveTakeoff() { const s=getActiveTk(); const n=prompt('Nazwa:',s.title); if(n){s.title=n; persistData(); renderTkList(); document.getElementById('takeoff-active-title').innerText=n;} }
@@ -6249,34 +6300,47 @@ function pdfFixVerticalText(root) {
 }
 
 // Strony .a4-page z kontenera -> 1 strona A4 = 1 strona PDF (nic nie jest ucinane)
+function pdfProgress(msg) {
+  let el = document.getElementById('pdf-progress');
+  if (!msg) { if (el) el.remove(); return; }
+  if (!el) {
+    el = document.createElement('div'); el.id = 'pdf-progress';
+    el.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#111;color:#fff;border:1px solid #333;padding:10px 16px;border-radius:12px;font:600 12px Arial;box-shadow:0 8px 30px rgba(0,0,0,.6)';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+}
+
 async function generatePdf(containerId, name) {
   const box = document.getElementById(containerId);
   const pages = box ? [...box.querySelectorAll('.a4-page')] : [];
   if (!pages.length) { alert('Brak stron do wygenerowania. Najpierw otwórz podgląd.'); return; }
-  document.body.style.cursor = 'progress';
   const stage = pdfMakeStage('210mm');
   try {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
     const PW = 210, PH = 297;
     for (let i = 0; i < pages.length; i++) {
+      pdfProgress(`Generowanie PDF: strona ${i + 1} z ${pages.length}…`);
+      await new Promise(r => setTimeout(r, 0));          // pozwala odświeżyć napis
       const c = pages[i].cloneNode(true);
       c.querySelectorAll('.no-print').forEach(n => n.remove());
       Object.assign(c.style, { margin: '0', boxShadow: 'none', width: '210mm', minHeight: '297mm', height: 'auto', maxHeight: 'none', overflow: 'visible' });
       pdfFixVerticalText(c);
       stage.appendChild(c);
       await pdfWaitRender(c);
-      const canvas = await html2canvas(c, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const canvas = await html2canvas(c, { scale: 1.5, backgroundColor: '#ffffff', useCORS: true, logging: false });
       let w = PW, h = canvas.height / canvas.width * PW;
-      if (h > PH) { h = PH; w = canvas.width / canvas.height * PH; }   // zmniejsz zamiast ucinać
+      if (h > PH) { h = PH; w = canvas.width / canvas.height * PH; }
       if (i > 0) pdf.addPage();
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (PW - w) / 2, 0, w, h, undefined, 'FAST');
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', (PW - w) / 2, 0, w, h, undefined, 'FAST');
       stage.removeChild(c);
     }
+    pdfProgress('Zapisuję plik…');
     pdf.save(pdfFileName(name));
   } catch (e) {
     console.error(e); alert('Nie udało się wygenerować PDF.');
-  } finally { stage.remove(); document.body.style.cursor = ''; }
+  } finally { stage.remove(); pdfProgress(); }
 }
 
 // Długi dokument (raport robót) -> cięcie na strony A4 po granicach wierszy, z marginesami
@@ -6325,8 +6389,9 @@ async function generatePdfFlow(el, name) {
     // ===== PDF OD RAZU (bez zatrzymywania się na podglądzie) =====
 async function runPdfDirect(openFn, containerId, name, backFn) {
   try {
+       pdfProgress('Przygotowuję strony…');
     await openFn();                                   // buduje te same strony A4 co podgląd
-    await new Promise(r => setTimeout(r, 200));
+    await pdfWaitRender(document.getElementById(containerId));
     await generatePdf(containerId, name);             // pobiera PDF 1:1 z podglądem
   } catch (e) { console.error(e); alert('Nie udało się wygenerować PDF.'); }
   finally { if (backFn) backFn(); }                   // wraca do poprzedniego widoku
@@ -6350,7 +6415,7 @@ function exportProjectFile() {
     
     function importProjectFile(e) {
       const r = new FileReader(); r.onload = async(evt) => {
-        try { const d = JSON.parse(evt.target.result); if(d.buildings) { appState = d; await persistData(); window.location.reload(); } } catch(e){ uiAlert('Błąd pliku!'); }
+        try { const d = JSON.parse(evt.target.result); if(d.buildings) { appState = d; await persistDataNow(); window.location.reload(); } } catch(e){ uiAlert('Błąd pliku!'); }
       }; r.readAsText(e.target.files[0]); e.target.value='';
     }
     
@@ -6374,7 +6439,7 @@ async function createNewEmptyProject() {
     auditTrail: []
   };
 
-  await persistData();
+ await persistDataNow();
   window.location.reload();
 }
     
