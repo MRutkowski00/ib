@@ -290,7 +290,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
       <div class="absolute right-3 top-3 flex flex-col gap-2 z-30">
         <input type="file" id="plan-file-input" accept="image/*,application/pdf,.pdf" class="hidden" onchange="handlePlanUploadUniversal(event)">
         <button onclick="document.getElementById('plan-file-input').click()" class="w-10 h-10 rounded-xl bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-xl"><i data-lucide="upload" class="w-4 h-4"></i></button>
-        <button onclick="openQuickDefectReport()" class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-xl mt-2"><i data-lucide="printer" class="w-4 h-4"></i></button>
+       <button onclick="quickDefectsPdfDirect()" title="Pobierz PDF usterek" class="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center shadow-xl mt-2"><i data-lucide="printer" class="w-4 h-4"></i></button>
         <div class="w-10 h-[1px] bg-[#333] my-1"></div>
         <button onclick="fitBlueprintToView()" class="w-10 h-10 rounded-xl bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-lg"><i data-lucide="focus" class="w-4 h-4"></i></button>
         <button onclick="zoomManual(1.3, viewport)" class="w-10 h-10 rounded-xl bg-[#1b1b1b]/90 border border-[#333] text-gray-200 flex items-center justify-center shadow-lg"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
@@ -366,22 +366,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
         
         <div id="calendar-content-container" class="space-y-3"></div>
       </div>
-    </div>
-
-<!-- RAPORT ROBÓT (PW) -->
-<div id="view-reports" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-8 pb-28 bg-[#0a0a0a]">
-  <div class="max-w-6xl mx-auto space-y-6">
-
-    <!-- Przyciski u góry -->
-    <div class="flex justify-end gap-2.5">
-      <button onclick="openPwModal()" class="px-3.5 py-2 rounded-xl bg-app-surface hover:bg-app-surfaceHover text-slate-200 border border-app-border text-xs font-medium flex items-center gap-2 transition">
-        <span>Baza PW</span>
-        <span id="header-pw-count" class="px-1.5 rounded-md bg-white/5 text-app-muted font-mono text-[11px]">0</span>
-      </button>
-      <button onclick="openExportModal()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-2 transition">
-        <span>Raport PDF</span>
-        <span id="export-selected-badge" class="hidden px-1.5 py-0.5 text-[10px] font-mono bg-black/30 text-blue-200 rounded">0</span>
-      </button>
     </div>
 
    <!-- ===================== RAPORT ROBÓT (PW) ===================== -->
@@ -585,9 +569,6 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
   </div>
 </div>
 <!-- =================== KONIEC: RAPORT ROBÓT (PW) =================== -->
-
-  </div>
-</div>
     
    <!-- 5. NORMY I ODBIORY -->
     <div id="view-norms" class="view-panel w-full h-full hidden overflow-y-auto p-4 sm:p-6 pb-28 md:pb-12 bg-[#0c0c0c]">
@@ -621,7 +602,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
             <h3 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="file-check" class="w-4 h-4 text-rose-500"></i> Protokół odbiorowy / jakościowy</h3>
             <div class="flex items-center gap-2 flex-wrap">
               <button onclick="toggleElement('rohe-blueprint-manager'); if(!document.getElementById('rohe-blueprint-manager').classList.contains('hidden')) setTimeout(fitRoheBlueprintToView, 60);" class="bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i> Rzuty i pinezki (<span id="rohe-sheets-count">1</span>)</button>
-              <button onclick="window.print()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Wygeneruj PDF</button>
+             <button onclick="renderRoheReportPages().then(()=>generatePdf('rohe-report-container','Protokol_'+(appState.roheReport.meta.docNum||'odbiorowy')))" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Podgląd i PDF </button>
             </div>
           </div>
 
@@ -748,7 +729,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
           </div>
           <div class="flex gap-2">
             <button onclick="switchView('plan')" class="px-2 py-1 rounded-lg border border-[#333] text-gray-300 text-[11px]">Zamknij</button>
-            <button onclick="window.print()" class="bg-cyan-600 text-white text-[11px] px-3 py-1 rounded-lg shadow"><i data-lucide="printer" class="inline w-3 h-3 mr-1"></i> Drukuj</button>
+            <button onclick="generatePdf('quick-report-container','Karta_usterek')" class="bg-cyan-600 text-white text-[11px] px-3 py-1 rounded-lg shadow"><i data-lucide="printer" class="inline w-3 h-3 mr-1"></i> Wygeneruj PDF</button>
           </div>
         </div>
         <div id="quick-report-container" class="space-y-4"></div>
@@ -761,7 +742,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
           <h3 class="text-sm font-bold text-white"><i data-lucide="ruler" class="inline w-3 h-3 text-emerald-400 mr-1"></i> Karta Obmiaru (Wydruk)</h3>
           <div class="flex gap-2">
             <button onclick="openTakeoffModal()" class="px-2 py-1 rounded-lg border border-[#333] text-gray-300 text-[11px]">Zamknij</button>
-            <button onclick="window.print()" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded-lg shadow"><i data-lucide="printer" class="inline w-3 h-3 mr-1"></i> Drukuj</button>
+            <button onclick="generatePdf('takeoff-print-container','Obmiar_'+getActiveTk().title)" class="bg-emerald-600 text-white text-[11px] px-3 py-1 rounded-lg shadow"><i data-lucide="printer" class="inline w-3 h-3 mr-1"></i> Wygeneruj PDF</button>
           </div>
         </div>
         <div id="takeoff-print-container" class="space-y-4"></div>
@@ -783,7 +764,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
               <button id="lvl-btn-mm" onclick="setLevelingUnit('mm')" class="px-3 py-1 rounded-lg bg-cyan-600 text-white transition-colors">Łata w mm</button>
               <button id="lvl-btn-cm" onclick="setLevelingUnit('cm')" class="px-3 py-1 rounded-lg text-gray-400 hover:text-white transition-colors">Łata w cm</button>
             </div>
-            <button onclick="openLevelingPrintPreview()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg">
+            <button onclick="levelingPdfDirect()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg">
               <i data-lucide="printer" class="w-3.5 h-3.5"></i> Wygeneruj PDF
             </button>
           </div>
@@ -986,7 +967,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
           </div>
           <div class="flex gap-2">
             <button onclick="switchView('leveling')" class="px-3 py-1 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
-            <button onclick="window.print()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Wygeneruj PDF</button>
+           <button onclick="generatePdf('leveling-print-container','Niwelacja_'+getActiveLevelingSession().title)" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Wygeneruj PDF</button>
           </div>
         </div>
         <div id="leveling-print-container" class="space-y-4"></div>
@@ -1097,7 +1078,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
               <option value="range">W kratkach: Przedział + suma (np. 7-15 / 8h)</option>
             </select>
             <button type="button" onclick="switchView('timesheet')" class="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs">Powrót do edytora</button>
-            <button type="button" onclick="window.print()" class="bg-white hover:bg-gray-200 text-black text-xs font-bold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Wygeneruj PDF </button>
+            <button type="button" onclick="generatePdf('timesheet-print-container','Czas_pracy_'+getActiveTimesheetSession().title)" class="bg-white hover:bg-gray-200 text-black text-xs font-bold px-4 py-1.5 rounded-lg shadow"><i data-lucide="printer" class="inline w-3.5 h-3.5 mr-1"></i> Wygeneruj PDF</button>
           </div>
         </div>
         <div id="timesheet-print-container" class="space-y-4"></div>
@@ -1377,7 +1358,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cur
       </div>
       <div class="flex gap-1 sm:gap-2">
         <button onclick="promptCreateNewTakeoffSession()" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px] sm:text-[11px]">Nowy</button>
-        <button onclick="openTakeoffPrintPreview()" class="bg-[#1f1f1f] text-emerald-400 border border-[#333] px-2 py-1 rounded text-[10px] sm:text-[11px]">Wygeneruj PDF</button>
+        <button onclick="takeoffPdfDirect()" class="bg-[#1f1f1f] text-emerald-400 border border-[#333] px-2 py-1 rounded text-[10px] sm:text-[11px]">Wygeneruj PDF</button>
         <button onclick="closeTakeoffModal()" class="text-gray-400 pl-1"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
     </div>
@@ -6339,6 +6320,27 @@ async function generatePdfFlow(el, name) {
     });
     pdf.save(pdfFileName(name));
   } finally { stage.remove(); }
+}
+
+    // ===== PDF OD RAZU (bez zatrzymywania się na podglądzie) =====
+async function runPdfDirect(openFn, containerId, name, backFn) {
+  try {
+    await openFn();                                   // buduje te same strony A4 co podgląd
+    await new Promise(r => setTimeout(r, 200));
+    await generatePdf(containerId, name);             // pobiera PDF 1:1 z podglądem
+  } catch (e) { console.error(e); alert('Nie udało się wygenerować PDF.'); }
+  finally { if (backFn) backFn(); }                   // wraca do poprzedniego widoku
+}
+function quickDefectsPdfDirect() {
+  return runPdfDirect(openQuickDefectReport, 'quick-report-container', 'Karta_usterek', () => handleAppBack());
+}
+function takeoffPdfDirect() {
+  const t = getActiveTk().title;
+  return runPdfDirect(openTakeoffPrintPreview, 'takeoff-print-container', 'Obmiar_' + t, () => { handleAppBack(); openTakeoffModal(); });
+}
+function levelingPdfDirect() {
+  const t = getActiveLevelingSession().title;
+  return runPdfDirect(openLevelingPrintPreview, 'leveling-print-container', 'Niwelacja_' + t, () => handleAppBack());
 }
     
 function exportProjectFile() {
