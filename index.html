@@ -2004,7 +2004,7 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }
     }
 
-        const RESTORABLE_VIEWS = ['plan', 'report-rohe'];
+       const RESTORABLE_VIEWS = ['plan', 'report-rohe', 'takeoff'];
     function rememberView(v) { try { localStorage.setItem('insp_last_view', v); } catch (e) {} }
     
     function switchView(view) {
@@ -2012,11 +2012,13 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       if(navStack[navStack.length-1] !== view) { navStack.push(view); history.pushState({view:view},''); }
       switchViewCore(view, true);
     }
-   function switchViewCore(view, fromClick) {
-           rememberView(RESTORABLE_VIEWS.includes(view) ? view : 'dashboard');
+    
+    function switchViewCore(view, fromClick) {
+      rememberView(RESTORABLE_VIEWS.includes(view) ? view : 'dashboard');
       document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
       const activePanel = document.getElementById(`view-${view}`);
       if(activePanel) activePanel.classList.remove('hidden');
+      
       document.querySelectorAll('.nav-tab').forEach(b => {
         b.classList.remove('text-white', 'bg-[#2d2d2d]', 'shadow-sm');
         b.classList.add('text-gray-400');
@@ -2028,10 +2030,15 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }
       const structBar = document.getElementById('structure-subbar');
       if(structBar) { if(view === 'plan') structBar.classList.remove('hidden'); else structBar.classList.add('hidden'); }
-      if(view === 'report-rohe') { initRoheModuleUI(); renderRoheReportPages(); }
-      if(view === 'leveling') { initLevelingUI(); }
-      if(view === 'timesheet') { initTimesheetUI(); }
-      if(view === 'plan' && planImg.naturalWidth>0) fitBlueprintToView();
+      
+      // Opóźnienie o 50ms zapobiega błędom wymiarów (zanim HTML się wczyta) i crashtestom na mobilkach
+      setTimeout(() => {
+        if(view === 'report-rohe') { initRoheModuleUI(); renderRoheReportPages(); }
+        if(view === 'leveling') { initLevelingUI(); }
+        if(view === 'timesheet') { initTimesheetUI(); }
+        if(view === 'plan' && planImg.naturalWidth>0) fitBlueprintToView();
+      }, 50);
+      
       updateDashboardCounts(); if(window.lucide) lucide.createIcons();
     }
 
@@ -2124,22 +2131,34 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       setupUniversalPanZoom(roheViewport, rohePlanWrapper, (s,x,y)=>{roheScale=s;rohePanX=x;rohePanY=y; rohePlanWrapper.style.setProperty('--pin-scale', Math.pow(1 / s, 0.8).toFixed(3));});
      setupUniversalPanZoom(tkViewport, tkWrapper, (s,x,y)=>{tkScale=s;tkPanX=x;tkPanY=y; redrawTk();});
       
-      renderStructureSubbar(); loadFloor(appState.buildings[0].currentFloorId);
-      renderTodos(); renderCalendarGrid(); renderCalendarList('all'); renderNorms(); renderRoheDefects(); renderRohePhotos();
-      
-     initRoheModuleUI();
-      initRoheModuleUI();
-      ensureLevelingState();
-      ensureTimesheetState();
-      
-      setupBlueprintClick(); setupRoheBlueprintClick(); setupTkInteraction();
-            updateDashboardCounts(); if(window.lucide) lucide.createIcons();
-      try {
-        const lv = localStorage.getItem('insp_last_view');
-        if (lv === 'takeoff') openTakeoffModal();
-        else if (RESTORABLE_VIEWS.includes(lv)) switchView(lv);
-      } catch (e) {}
-    });
+     renderStructureSubbar(); 
+              loadFloor(appState.buildings[0].currentFloorId);
+              renderTodos(); 
+              renderCalendarGrid(); 
+              renderCalendarList('all'); 
+              renderNorms(); 
+              
+              // Poprawka: ładujemy tylko szkielet danych by nie wymuszać 3x generowania PDF przy starcie
+              ensureRoheState();
+              ensureLevelingState();
+              ensureTimesheetState();
+              
+              setupBlueprintClick(); 
+              setupRoheBlueprintClick(); 
+              setupTkInteraction();
+              updateDashboardCounts(); 
+              if(window.lucide) lucide.createIcons();
+              
+              try {
+                const lv = localStorage.getItem('insp_last_view');
+                if (lv === 'takeoff') {
+                  openTakeoffModal();
+                } else if (RESTORABLE_VIEWS.includes(lv)) {
+                  switchViewCore(lv, false);
+                  if (navStack[navStack.length-1] !== lv) navStack.push(lv);
+                }
+              } catch (e) {}
+            });
 
  function updateDashboardCounts() {
       let pins=0; appState.buildings.forEach(b=>b.floors.forEach(f=>pins+=f.pins.length));
@@ -2346,8 +2365,8 @@ function uiConfirm(msg, cb) { if (confirm(msg)) cb(); }
       }
     }
 
-    function fitBlueprintToView() {
-      if(!planImg.naturalWidth) return;
+   function fitBlueprintToView() {
+      if(!planImg.naturalWidth || !viewport.clientWidth) return;
       const s = Math.min((viewport.clientWidth*0.94)/planImg.naturalWidth, (viewport.clientHeight*0.94)/planImg.naturalHeight, 1.5);
       viewport.setPanZoom(s, (viewport.clientWidth-planImg.naturalWidth*s)/2, (viewport.clientHeight-planImg.naturalHeight*s)/2);
     }
