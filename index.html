@@ -4452,14 +4452,14 @@ function loadImgCached(src) {
             <div class="text-right text-[9pt]"><b>${appState.project.name}</b><br>${s.date}</div>
           </div>
          <div class="border border-black w-full h-[120mm] flex items-center justify-center overflow-hidden mb-4"><img src="${snap}" class="max-w-full max-h-full object-contain"></div>
-        <div class="text-[10pt] font-bold mb-1 text-black">Zestawienie:</div>
+<div class="text-[10pt] font-bold mb-1 text-black">Zestawienie:</div>
           <table class="w-full border-collapse text-[9pt] text-black border border-black mb-4">
             <tr class="bg-gray-100">
-              <th class="border border-black p-1 w-10">Lp.</th>
+              <th class="border border-black p-1 w-10 text-center">Lp.</th>
               <th class="border border-black p-1 text-left">Opis</th>
               <th class="border border-black p-1 text-left">Dane źródłowe (wymiary)</th>
               <th class="border border-black p-1 text-right w-24">Wartość</th>
-              <th class="border border-black p-1 w-12">Jedn.</th>
+              <th class="border border-black p-1 w-12 text-center">Jedn.</th>
             </tr>
             ${s.items.map((i, idx) => {
               const l = s.lines.find(x => x.id === i.id);
@@ -4473,7 +4473,7 @@ function loadImgCached(src) {
               <tr>
                 <td class="border border-black p-1 text-center font-bold">${idx + 1}</td>
                 <td class="border border-black p-1">${i.desc}</td>
-                <td class="border border-black p-1 text-[7pt] text-gray-700 font-mono tracking-tighter">${valsStr}</td>
+                <td class="border border-black p-1 text-[7.5pt] text-gray-700 font-mono tracking-tighter">${valsStr}</td>
                 <td class="border border-black p-1 text-right font-bold">${i.val.toFixed(2)}</td>
                 <td class="border border-black p-1 text-center">${i.unit}</td>
               </tr>`;
@@ -4484,8 +4484,7 @@ function loadImgCached(src) {
         ${zoomPagesHtml}
       `;
     }
-    }
-
+      
     // ================= MODUŁ: NIWELACJA & KOTY (KARTA POMIARU NIWELACYJNEGO) =================
     let lvlPendingCoords = null;
 
