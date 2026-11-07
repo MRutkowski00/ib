@@ -3118,56 +3118,66 @@ function loadImgCached(src) {
       renderRohePhotos();
     }
 
-   async function renderRoheSheetSnapshot(sheet) {
-           const key = (sheet.blueprint||'').length + '|' + JSON.stringify(appState.roheReport.pins.filter(p => p.sheetId === sheet.id).map(p => [p.x, p.y, p.dNum]));
-      window._snapCache = window._snapCache || {};
-      if (window._snapCache[sheet.id] && window._snapCache[sheet.id].key === key) return window._snapCache[sheet.id].out;
-      const img = new Image();
-      img.src = sheet.blueprint;
-      await new Promise(r => { img.onload = r; img.onerror = r; });
-      if (!img.width) return sheet.blueprint;
-      const cv = document.createElement('canvas');
-      cv.width = img.width;
-      cv.height = img.height;
-      const ctx = cv.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+ async function renderRoheSheetSnapshot(sheet) {
+      if(!sheet || !sheet.blueprint) return '';
+      try {
+        const key = (sheet.blueprint||'').length + '|' + JSON.stringify(appState.roheReport.pins.filter(p => p.sheetId === sheet.id).map(p => [p.x, p.y, p.dNum]));
+        window._snapCache = window._snapCache || {};
+        if (window._snapCache[sheet.id] && window._snapCache[sheet.id].key === key) return window._snapCache[sheet.id].out;
+        
+        const img = new Image();
+        img.crossOrigin = "Anonymous"; // Zabezpieczenie Cross-Origin
+        img.src = sheet.blueprint;
+        await new Promise((r, e) => { img.onload = r; img.onerror = e; });
+        if (!img.width || img.width === 0) return sheet.blueprint;
+        
+        const cv = document.createElement('canvas');
+        cv.width = img.width;
+        cv.height = img.height;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0);
 
-      const pins = appState.roheReport.pins.filter(p => p.sheetId === sheet.id);
-      pins.forEach(p => {
-        const px = (p.x / 100) * img.width;
-        const py = (p.y / 100) * img.height;
-        const r = Math.max(img.width * 0.013, 16);
-        const cy = py - r * Math.SQRT2;
+        const pins = appState.roheReport.pins.filter(p => p.sheetId === sheet.id);
+        pins.forEach(p => {
+          if (p.x === undefined || p.y === undefined) return;
+          const px = (p.x / 100) * img.width;
+          const py = (p.y / 100) * img.height;
+          const r = Math.max(img.width * 0.013, 16);
+          const cy = py - r * Math.SQRT2;
 
-        ctx.save();
-        // Kształt pinezki (łezka wskazująca czubkiem dokładnie w punkt px, py)
-        ctx.beginPath();
-        ctx.arc(px, cy, r, Math.PI * 0.75, Math.PI * 0.25, false);
-        ctx.lineTo(px, py);
-        ctx.closePath();
+          ctx.save();
+          // Kształt pinezki (łezka wskazująca czubkiem dokładnie w punkt px, py)
+          ctx.beginPath();
+          ctx.arc(px, cy, r, Math.PI * 0.75, Math.PI * 0.25, false);
+          ctx.lineTo(px, py);
+          ctx.closePath();
 
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = Math.max(4, r * 0.25);
-        ctx.shadowOffsetY = Math.max(2, r * 0.1);
-        ctx.fillStyle = '#e11d48';
-        ctx.fill();
+          ctx.shadowColor = 'rgba(0,0,0,0.5)';
+          ctx.shadowBlur = Math.max(4, r * 0.25);
+          ctx.shadowOffsetY = Math.max(2, r * 0.1);
+          ctx.fillStyle = '#e11d48';
+          ctx.fill();
 
-        ctx.shadowColor = 'transparent';
-        ctx.lineWidth = Math.max(2, r * 0.16);
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
+          ctx.shadowColor = 'transparent';
+          ctx.lineWidth = Math.max(2, r * 0.16);
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
 
-        // Numer wady wewnątrz główki pinezki
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.round(r * 1.05)}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(p.dNum), px, cy);
-        ctx.restore();
-      });
-           const out = cv.toDataURL('image/jpeg', 0.88);
-      window._snapCache[sheet.id] = { key, out };
-      return out;
+          // Numer wady wewnątrz główki pinezki
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${Math.round(r * 1.05)}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(p.dNum || '?'), px, cy);
+          ctx.restore();
+        });
+        const out = cv.toDataURL('image/jpeg', 0.88);
+        window._snapCache[sheet.id] = { key, out };
+        return out;
+      } catch (err) {
+        console.error("Błąd podczas renderowania mapy ROHE:", err);
+        return sheet.blueprint; // Zabezpieczenie zapobiegające Crashowi – zwracamy chociaż pusty rzut
+      }
     }
 
     async function renderRoheReportPages() {
@@ -4304,13 +4314,13 @@ function loadImgCached(src) {
       persistData(); renderTkSheet(); redrawTk();
     }
 
-    function redrawTk() {
+  function redrawTk() {
   tkSvg.innerHTML = ''; const s = getActiveTk(); if (!s.blueprints.length || !tkImg.naturalWidth) return;
   const w = tkImg.naturalWidth, h = tkImg.naturalHeight;
   
-  // Genialny wzór: dzielimy 1 przez aktualną skalę przybliżenia. 
-  // To daje nam ZAWSZE stałą wielkość elementów SVG w pikselach na ekranie!
-  const u = 1 / (tkScale || 1); 
+  // Zabezpieczenie skali przed nieskończonością (0)
+  const safeScale = (typeof tkScale === 'number' && tkScale > 0) ? tkScale : 1;
+  const u = 1 / safeScale; 
 
   const X = p => (p.x / 100) * w, Y = p => (p.y / 100) * h;
   
