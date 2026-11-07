@@ -4270,7 +4270,30 @@ function loadImgCached(src) {
         if (i.unit === 'mb') smb += i.val; if (i.unit === 'm2') sm2 += i.val;
         const l = s.lines.find(x => x.id === i.id);
         const editable = l && (l.type === 'polygon' || (l.type === 'line' && l.pts));
-        c.innerHTML += `<div class="flex justify-between items-center bg-[#181818] p-1.5 rounded"><div class="flex-1 truncate text-gray-300 pr-2">${idx + 1}. <input type="text" value="${i.desc}" onchange="updateTkItem('${i.id}', this.value)" class="bg-transparent border-none text-white outline-none w-20 sm:w-28 text-[10px]"></div><span class="font-bold ${i.unit === 'mb' ? 'text-emerald-400' : 'text-blue-400'}">${i.val.toFixed(2)} ${i.unit}</span>${editable ? `<button onclick="editTakeoffMeasurement('${i.id}')" class="text-gray-400 ml-2" title="Edytuj wymiary"><i data-lucide="pencil" class="w-3 h-3"></i></button>` : ''}<button onclick="deleteTkItem('${i.id}')" class="text-rose-400 ml-2"><i data-lucide="x" class="w-3 h-3"></i></button></div>`;
+        
+        // Zbuduj string z wpisanymi wartościami
+        let valsStr = '';
+        if (l && l.vals) {
+           const parts = [];
+           Object.keys(l.vals).forEach(k => {
+             if (l.vals[k]) parts.push(`${k}: ${l.vals[k]}`);
+           });
+           if (parts.length > 0) valsStr = `<div class="text-[8.5px] text-gray-500 font-mono mt-0.5 truncate max-w-[140px] sm:max-w-xs" title="${parts.join(' | ')}">${parts.join(' | ')}</div>`;
+        }
+        
+        c.innerHTML += `
+        <div class="flex justify-between items-center bg-[#181818] p-1.5 rounded border border-[#222]">
+          <div class="flex-1 min-w-0 pr-2">
+             <div class="flex items-center text-gray-300">
+               <span class="mr-1">${idx + 1}.</span> 
+               <input type="text" value="${i.desc}" onchange="updateTkItem('${i.id}', this.value)" class="bg-transparent border-none text-white outline-none flex-1 min-w-0 text-[10px]">
+             </div>
+             ${valsStr}
+          </div>
+          <span class="font-bold shrink-0 ${i.unit === 'mb' ? 'text-emerald-400' : 'text-blue-400'}">${i.val.toFixed(2)} ${i.unit}</span>
+          ${editable ? `<button onclick="editTakeoffMeasurement('${i.id}')" class="text-gray-400 hover:text-white ml-2 shrink-0" title="Edytuj wymiary"><i data-lucide="pencil" class="w-3 h-3"></i></button>` : ''}
+          <button onclick="deleteTkItem('${i.id}')" class="text-rose-400 hover:text-rose-300 ml-2 shrink-0"><i data-lucide="x" class="w-3 h-3"></i></button>
+        </div>`;
       });
       document.getElementById('tk-sum-mb').innerText = smb.toFixed(2) + ' mb'; document.getElementById('tk-sum-m2').innerText = sm2.toFixed(2) + ' m2';
       updateTkInstruction(); if (window.lucide) lucide.createIcons();
@@ -4429,15 +4452,38 @@ function loadImgCached(src) {
             <div class="text-right text-[9pt]"><b>${appState.project.name}</b><br>${s.date}</div>
           </div>
          <div class="border border-black w-full h-[120mm] flex items-center justify-center overflow-hidden mb-4"><img src="${snap}" class="max-w-full max-h-full object-contain"></div>
-          <div class="text-[10pt] font-bold mb-1 text-black">Zestawienie:</div>
+        <div class="text-[10pt] font-bold mb-1 text-black">Zestawienie:</div>
           <table class="w-full border-collapse text-[9pt] text-black border border-black mb-4">
-            <tr class="bg-gray-100"><th class="border border-black p-1">Lp.</th><th class="border border-black p-1 text-left">Opis</th><th class="border border-black p-1 text-right">Wartość</th><th class="border border-black p-1">Jedn.</th></tr>
-            ${s.items.map((i,idx)=>`<tr><td class="border border-black p-1 text-center">${idx+1}</td><td class="border border-black p-1">${i.desc}</td><td class="border border-black p-1 text-right font-bold">${i.val.toFixed(2)}</td><td class="border border-black p-1 text-center">${i.unit}</td></tr>`).join('')}
+            <tr class="bg-gray-100">
+              <th class="border border-black p-1 w-10">Lp.</th>
+              <th class="border border-black p-1 text-left">Opis</th>
+              <th class="border border-black p-1 text-left">Dane źródłowe (wymiary)</th>
+              <th class="border border-black p-1 text-right w-24">Wartość</th>
+              <th class="border border-black p-1 w-12">Jedn.</th>
+            </tr>
+            ${s.items.map((i, idx) => {
+              const l = s.lines.find(x => x.id === i.id);
+              let valsStr = '—';
+              if (l && l.vals) {
+                const parts = [];
+                Object.keys(l.vals).forEach(k => { if (l.vals[k]) parts.push(`${k}: ${l.vals[k]}`); });
+                if (parts.length > 0) valsStr = parts.join(' | ');
+              }
+              return `
+              <tr>
+                <td class="border border-black p-1 text-center font-bold">${idx + 1}</td>
+                <td class="border border-black p-1">${i.desc}</td>
+                <td class="border border-black p-1 text-[7pt] text-gray-700 font-mono tracking-tighter">${valsStr}</td>
+                <td class="border border-black p-1 text-right font-bold">${i.val.toFixed(2)}</td>
+                <td class="border border-black p-1 text-center">${i.unit}</td>
+              </tr>`;
+            }).join('')}
           </table>
           <div class="mt-auto text-[8pt] border-t border-black pt-1">Podpis: .......................</div>
         </div>
         ${zoomPagesHtml}
       `;
+    }
     }
 
     // ================= MODUŁ: NIWELACJA & KOTY (KARTA POMIARU NIWELACYJNEGO) =================
